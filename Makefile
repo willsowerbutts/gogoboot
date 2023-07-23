@@ -8,11 +8,10 @@ LIB = m68k-linux-gnu-ar
 OBJCOPY = m68k-linux-gnu-objcopy
 LIBS = 
 
-# Common
-COPT = -Os -malign-int -Wall -nostdinc -nostdlib -nolibc -m68040 -Wall -Werror -std=c18
+COPT = -Os -malign-int -Wall -nostdinc -nostdlib -nolibc -m68040 -Wall -Werror -std=c18 -Iinclude
 AOPT = -m68040 -alhmsg 
 
-ROMOBJ = startup.o boot.o
+ROMOBJ = startup.o boot.o q40uart.o q40hw.o
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 
@@ -20,8 +19,9 @@ ROMOBJ = startup.o boot.o
 	$(AS) $(AOPT) -a=$*.lst -o $*.o $*.S
 
 .c.o:
-	$(CC) -S $(COPT) $*.c
-	$(AS) $(AOPT) -a=$*.lst -o $*.o $*.s
+	$(CC) -c $(COPT) -o $*.o $*.c
+#$(CC) -S $(COPT) $*.c
+#$(AS) $(AOPT) -a=$*.lst -o $*.o $*.s
 
 all:	q40boot.rom
 

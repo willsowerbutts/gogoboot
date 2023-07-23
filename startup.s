@@ -20,8 +20,6 @@ _start:
 
         jsr cboot                       /* off to C land */
 
-        st 0xff000030                   /* turn LED on plz */
-
         /* halt */
 _exit:  stop #0x2701                    /* all done */
         br.s _exit                      /* loop on NMI */
