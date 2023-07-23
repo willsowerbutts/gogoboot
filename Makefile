@@ -1,7 +1,6 @@
 # Makefile for Q40 ROM
 # Will Sowerbutts 2023-07-23
 
-# Will's environment
 CC = m68k-linux-gnu-gcc
 AS = m68k-linux-gnu-as
 LD = m68k-linux-gnu-ld
@@ -13,22 +12,28 @@ LIBS =
 COPT = -Os -malign-int -Wall -nostdinc -nostdlib -nolibc -m68040 -Wall -Werror -std=c18
 AOPT = -m68040 -alhmsg 
 
+ROMOBJ = startup.o boot.o
+
 .SUFFIXES:   .c .s .o .out .hex .bin
 
-.c.s:
-	$(CC) -S $(COPT) $*.c
+.S.o:
+	$(AS) $(AOPT) -a=$*.lst -o $*.o $*.S
 
-.s.o:
+.c.o:
+	$(CC) -S $(COPT) $*.c
 	$(AS) $(AOPT) -a=$*.lst -o $*.o $*.s
 
 all:	q40boot.rom
 
+test:	all
+	./sendrom /dev/ttyUSB0 q40boot.rom
+
 clean:
 	rm -f q40boot.rom q40boot.map *.o *.lst *.elf *.bin
 
-q40boot.rom:	startup.o
-	$(LD) --script=rom.ld --strip-all -Map q40boot.map -o q40boot.elf startup.o
-	$(OBJCOPY) -O binary q40boot.elf q40boot.bin
+q40boot.rom:	$(ROMOBJ)
+	$(LD) --script=rom.ld --strip-all -z noexecstack -Map q40boot.map -o q40boot.elf $(ROMOBJ)
+	$(OBJCOPY) -O binary q40boot.elf q40boot.rom
 
 
 #

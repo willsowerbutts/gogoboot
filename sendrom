@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+
+import serial
+import sys
+import struct
+
+rom = open(sys.argv[2], 'rb').read()
+print(f"ROM length {len(rom)} bytes")
+
+port = serial.Serial(sys.argv[1], 9600)
+port.write(struct.pack('>I', len(rom))) # send length, little-endian 32-bit word
+sent = 0
+while len(rom):
+    print(f'sent {sent}, remaining {len(rom)}')
+    chunk = rom[:512]
+    rom = rom[512:]
+    port.write(chunk)
+    sent += len(chunk)
+print('all sent. listening:')
+print(' ---- ')
+
+while True:
+    b = port.read(1)
+    if b == b'':
+        break
+    sys.stdout.write(b.decode('latin-1'))

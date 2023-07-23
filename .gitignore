@@ -1,5 +1,7 @@
 *.bin
+*.rom
 *.elf
 *.lst
 *.map
 *.o
+*.s
