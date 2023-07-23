@@ -1,13 +1,19 @@
-	.text
-	.globl	_start
-	.globl	cboot
-	.globl	_exit
+        .text
+        .globl  _start
+        .globl  cboot
+        .globl  copyright_msg
 
         dc.l    0x20000                 /* initial SP: 32KB of RAM between 96KB ROM and 32KB screen 0 */
         dc.l    _start                  /* initial PC */
 
+        /* get this copyright message up near the head of the ROM */
         .align 16
-	.ascii	"Q40BOOT: Copyright (C) 2023 William R. Sowerbutts <will@sowerbutts.com>\r\n"
+copyright_msg:
+        .ascii  "Q40BOOT: Copyright (c) 2023 William R. Sowerbutts <will@sowerbutts.com>\n\n"
+        .ascii  "This program is free software: you can redistribute it and/or modify it under\n"
+        .ascii  "the terms of the GNU General Public License as published by the Free Software\n"
+        .ascii  "Foundation, either version 3 of the License, or (at your option) any later\n"
+        .ascii  "version.\n\0" /* ensure string is terminated */
 
         .even
 _start:
@@ -21,6 +27,6 @@ _start:
         jsr cboot                       /* off to C land */
 
         /* halt */
-_exit:  stop #0x2701                    /* all done */
-        br.s _exit                      /* loop on NMI */
+halted: stop #0x2701                    /* all done */
+        br.s halted                     /* loop on NMI */
         .end
