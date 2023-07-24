@@ -3,12 +3,23 @@
 import serial
 import sys
 import struct
+import time
 
 rom = open(sys.argv[2], 'rb').read()
 print(f"ROM length {len(rom)} bytes")
 
 port = serial.Serial(sys.argv[1], 9600)
-port.write(struct.pack('>I', len(rom))) # send length, little-endian 32-bit word
+start = time.time()
+
+# WRS: observed that the final byte sent is NOT loaded correctly by the SOFTROM
+# utility on the Q40. We work around the defect here by adding 1 to the ROM
+# length.  Note that we do not actually send an extra byte, but this fixes the
+# issue observed.
+
+# send length+1 as little-endian 32-bit word
+port.write(struct.pack('>I', 1+len(rom))) 
+
+# send entire ROM contents
 sent = 0
 while len(rom):
     print(f'sent {sent}, remaining {len(rom)}')
@@ -16,9 +27,14 @@ while len(rom):
     rom = rom[512:]
     port.write(chunk)
     sent += len(chunk)
-print('all sent. listening:')
-print(' ---- ')
+port.flush()
 
+# report progress
+taken = time.time() - start
+print('all sent in %.3f seconds.' % taken)
+print('----')
+
+# listen for boot messages
 while True:
     b = port.read(1)
     if b == b'':
