@@ -8,6 +8,10 @@ import time
 rom = open(sys.argv[2], 'rb').read()
 print(f"ROM length {len(rom)} bytes")
 
+if len(rom) >= (96*1024)-1:
+    print("ROM too large! Aborted.")
+    sys.exit(1)
+
 port = serial.Serial(sys.argv[1], 9600)
 start = time.time()
 
@@ -22,11 +26,11 @@ port.write(struct.pack('>I', 1+len(rom)))
 # send entire ROM contents
 sent = 0
 while len(rom):
-    print(f'sent {sent}, remaining {len(rom)}')
     chunk = rom[:512]
     rom = rom[512:]
     port.write(chunk)
     sent += len(chunk)
+    print(f'sent {sent}, remaining {len(rom)}')
 port.flush()
 
 # report progress

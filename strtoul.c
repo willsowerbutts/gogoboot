@@ -62,9 +62,9 @@ unsigned long strtoul(const char *cptr, char **endptr, int radix)
     signed char sign = 0;
     unsigned long int  value = 0UL;
     const char *cp;
-    byte digit;
+    uint8_t digit;
     unsigned long int  max;
-    byte maxdigit;
+    uint8_t maxdigit;
 
     cp = cptr;    
     errno = 0;

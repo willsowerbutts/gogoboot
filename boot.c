@@ -2,37 +2,43 @@
 #include "q40isa.h"
 #include "q40uart.h"
 #include <stdlib.h>
+#include <stdbool.h>
 
 extern const char copyright_msg[];
 
 /* TODO:
- * - printf
- * - memcpy
- * - video mode?
+ * DONE - 040 cache modes
+ * DONE - debug odd crashes
+ * DONE - printf
+ * DONE - memcpy
+ * DONE - video mode?
+ * DONE - blank the screen
+ * DONE - measure installed RAM
+ * - 68K exception handler
  * - ISA bus reset
- * - configure the master chip's registers
- * - blank the screen
  * - some sort of timer (just use the hardware interrupt tick?)
+ * - configure the other master chip's registers -- interrupt control?
  * - IDE interface + FAT filesystem
  * - linux loader
  * - NE2000 driver
  * - ultimately target a port back to kiss-68030?
- * DONE - 040 cache modes
  */
 
 void boot_q40(void)
 {
-    // doing this will crash the machine ... stack problem?
-    q40_led(0);
+    q40_led(false);
 
     /* TODO: ISA bus reset */
 
-    /* TODO: master chip full initialisation */
-
     uart_init();
     uart_write_str(copyright_msg);
-    printf("printf test 1\n");
-    printf("printf test 2: %s\n", "it works!");
-    printf("test value = 0x%08x\n", 0x1234ABCD);
-    q40_led(1);
+
+    printf("Initialise video: ");
+    q40_graphics_init(3);
+    printf("done\n");
+
+    q40_measure_ram_size();
+    printf("RAM found: %d MB\n", (ram_size)>>20);
+
+    q40_led(true);
 }

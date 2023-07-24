@@ -55,10 +55,10 @@ _start:
         nop
 
         /* load .data section into RAM from ROM */
-        lea.l   data_load_start,%a0     /* source address */
-        lea.l   data_start,%a1          /* dest address */
-        move.l  data_size,%d0           /* num bytes to copy */
-        lsr.l   #2,%d0                  /* convert bytes to longwords */
+        lea.l   data_load_start, %a0    /* source address */
+        lea.l   data_start, %a1         /* dest address */
+        move.l  data_size, %d0          /* num bytes to copy -- assumed always a multiple of 4 */
+        lsr.l   #2, %d0                 /* convert bytes to longwords */
         br.s    copy_data
 copy_loop:
         move.l  (%a0)+,(%a1)+
@@ -66,17 +66,17 @@ copy_data:
         dbra    %d0,copy_loop
 
         /* clear the .bss section */
-        lea.l   bss_end,%a0
-        move.l  %a0,%d2
-        lea.l   bss_start,%a1
-        sub.l   %a1,%a0
-        move.l  %a0,%d0                 /* num bytes to zap */
-        lsr.l   #2,%d0                  /* convert bytes to longwords */
+        lea.l   bss_end, %a0
+        move.l  %a0, %d2
+        lea.l   bss_start, %a1
+        sub.l   %a1, %a0
+        move.l  %a0, %d0                /* num bytes to zap -- assumed always a multiple of 4 */
+        lsr.l   #2, %d0                 /* convert bytes to longwords */
         br.s    zap_bss
 zap_loop:
         clr.l   (%a1)+
 zap_bss:
-        dbra    %d0,zap_loop
+        dbra    %d0, zap_loop
 
         jsr boot_q40                    /* off to C land */
 

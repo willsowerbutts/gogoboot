@@ -14,14 +14,6 @@
 
 int errno;
 
-size_t strlen(const char *t)
-{
-        size_t ct = 0;
-        while (*t++)
-                ct++;
-        return ct;
-}
-
 char *strcpy(char *d, const char *s)
 {
         return memcpy(d, s, strlen(s) + 1);
@@ -133,52 +125,6 @@ int memcmp(const void *mem1, const void *mem2, size_t len)
         return *p1 - *p2;
 }
 
-/* we need to disable some of gcc's optimisations for these two
- * functions to prevent it converting them into a recursive call
- * back to themselves! */
-#ifdef __GNUC__
-__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
-#endif
-void *memcpy(void *dest, const void *src, size_t len)
-{
-        uint8_t *dp = dest;
-        const uint8_t *sp = src;
-        while(len-- > 0)
-                *dp++=*sp++;
-        return dest;
-}
-
-#ifdef __GNUC__
-__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
-#endif
-void *memset(void *dest, int data, size_t len)
-{
-        char *p = dest;
-        char v = (char)data;
-
-        while(len--)
-                *p++ = v;
-
-        return dest;
-}
-
-void *memmove(void *dest, const void *src, size_t len)
-{
-        uint8_t *dp = dest;
-        const uint8_t *sp = src;
-
-        if (sp < dp) {
-                dp += len;
-                sp += len;
-                while(len--)
-                        *--dp = *--sp;
-        } else {
-                while(len--)
-                        *dp++ = *sp++;
-        }
-        return dest;
-}
-
 int strncmp(const char *str1, const char *str2, size_t limit)
 {
         for(; ((--limit) && (*str1 == *str2)); ++str1, ++str2)
@@ -283,4 +229,64 @@ int toupper(int c)
 	if ((cb >= 'a') && (cb <= 'z'))
 		cb ^= 0x20;
 	return cb;
+}
+
+/* we need to disable some of gcc's optimisations for these 
+ * functions to prevent it converting them into a recursive call
+ * back to themselves! */
+#ifdef __GNUC__
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
+#endif
+void *memcpy(void *dest, const void *src, size_t len)
+{
+        uint8_t *dp = dest;
+        const uint8_t *sp = src;
+        while(len-- > 0)
+                *dp++=*sp++;
+        return dest;
+}
+
+#ifdef __GNUC__
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
+#endif
+void *memset(void *dest, int data, size_t len)
+{
+        char *p = dest;
+        char v = (char)data;
+
+        while(len--)
+                *p++ = v;
+
+        return dest;
+}
+
+#ifdef __GNUC__
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
+#endif
+size_t strlen(const char *t)
+{
+        size_t ct = 0;
+        while (*t++)
+                ct++;
+        return ct;
+}
+
+#ifdef __GNUC__
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
+#endif
+void *memmove(void *dest, const void *src, size_t len)
+{
+        uint8_t *dp = dest;
+        const uint8_t *sp = src;
+
+        if (sp < dp) {
+                dp += len;
+                sp += len;
+                while(len--)
+                        *--dp = *--sp;
+        } else {
+                while(len--)
+                        *dp++ = *sp++;
+        }
+        return dest;
 }
