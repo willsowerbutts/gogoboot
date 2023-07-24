@@ -15,7 +15,7 @@ copyright_msg:
         .ascii  "This program is free software: you can redistribute it and/or modify it under\n"
         .ascii  "the terms of the GNU General Public License as published by the Free Software\n"
         .ascii  "Foundation, either version 3 of the License, or (at your option) any later\n"
-        .ascii  "version.\n\0" /* ensure string is terminated */
+        .ascii  "version.\n\n\0"
 
         .even
 _start:

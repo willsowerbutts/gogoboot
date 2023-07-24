@@ -16,7 +16,7 @@ extern const char copyright_msg[];
  * DONE - measure installed RAM
  * - 68K exception handler
  * - ISA bus reset
- * - some sort of timer (just use the hardware interrupt tick?)
+ * - some sort of timer (add interrupt support, then use the timer tick?)
  * - configure the other master chip's registers -- interrupt control?
  * - IDE interface + FAT filesystem
  * - linux loader
@@ -28,7 +28,7 @@ void boot_q40(void)
 {
     q40_led(false);
 
-    /* TODO: ISA bus reset */
+    /* TODO: ISA bus reset ... requires some sort of delay function I think */
 
     uart_init();
     uart_write_str(copyright_msg);
@@ -38,7 +38,7 @@ void boot_q40(void)
     printf("done\n");
 
     q40_measure_ram_size();
-    printf("RAM found: %d MB\n", (ram_size)>>20);
+    printf("RAM installed: %d MB\n", (ram_size)>>20);
 
     q40_led(true);
 }
