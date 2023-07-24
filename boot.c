@@ -1,6 +1,7 @@
 #include "q40hw.h"
 #include "q40isa.h"
 #include "q40uart.h"
+#include <stdlib.h>
 
 extern const char copyright_msg[];
 
@@ -19,34 +20,10 @@ extern const char copyright_msg[];
  * DONE - 040 cache modes
  */
 
-void print_hex(unsigned int a)
-{
-    char b;
-    char buf[12];
-    char *p = buf + 11;
-
-    *p = 0;
-    do{
-        b = a & 0xF;
-        a = a >> 4;
-        p--;
-        if(b < 10)
-            *p = '0' + b;
-        else
-            *p = 'A' + b - 10;
-    }while(a);
-
-    *(--p)='x';
-    *(--p)='0';
-
-    uart_write_str(p);
-}
-
 void boot_q40(void)
 {
     // doing this will crash the machine ... stack problem?
     q40_led(0);
-    q40_led(1);
 
     /* TODO: ISA bus reset */
 
@@ -54,8 +31,8 @@ void boot_q40(void)
 
     uart_init();
     uart_write_str(copyright_msg);
-    uart_write_str("test value = ");
-    print_hex(0x1234ABCD);
-    uart_write_str("\n");
-
+    printf("printf test 1\n");
+    printf("printf test 2: %s\n", "it works!");
+    printf("test value = 0x%08x\n", 0x1234ABCD);
+    q40_led(1);
 }
