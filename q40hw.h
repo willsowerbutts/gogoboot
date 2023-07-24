@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
-void q40_led(bool on);
+void q40_led(int on);
+void q40_led_on(void);
+void q40_led_off(void);
 
 #endif
