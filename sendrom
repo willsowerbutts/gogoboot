@@ -1,9 +1,59 @@
 #!/usr/bin/env python3
 
+import os
+import select
 import serial
-import sys
 import struct
+import sys
+import termios
 import time
+
+class Replica1Terminal:
+    def __init__(self, port):
+        self.port = port
+        self.keyboard_fd = sys.stdin.fileno()
+        self.serial_fd = self.port.fileno()
+        self.terminal_defaults = termios.tcgetattr(self.keyboard_fd)
+
+    def getkeypress(self):
+        return os.read(self.keyboard_fd, 1).decode('latin-1')
+
+    def getserialbyte(self):
+        return self.port.read(1).decode('latin-1')
+
+    def terminal_unbuffered(self):
+        # put stdin into single-character mode
+        new = termios.tcgetattr(self.keyboard_fd)
+        new[3] = new[3] & ~termios.ICANON & ~termios.ECHO
+        new[6][termios.VMIN] = 1
+        new[6][termios.VTIME] = 0
+        termios.tcsetattr(self.keyboard_fd, termios.TCSANOW, new)
+
+    def terminal_restore(self):
+        termios.tcsetattr(self.keyboard_fd, termios.TCSAFLUSH, self.terminal_defaults)
+
+    def run(self):
+        self.terminal_unbuffered()
+        try:
+            while True:
+                iw, ow, ew = select.select([self.serial_fd, self.keyboard_fd], [], [], None)
+                if self.keyboard_fd in iw:
+                    keypress = self.getkeypress()
+                    self.process_keypress(keypress)
+                if self.serial_fd in iw:
+                    inbyte = self.getserialbyte()
+                    self.process_terminal(inbyte)
+        finally:
+            self.terminal_restore()
+
+    def process_keypress(self, key):
+        self.port.write(key.encode('latin-1'))
+
+    def process_terminal(self, byte):
+        sys.stdout.write(byte)
+        sys.stdout.flush()
+
+################################################################
 
 rom = open(sys.argv[2], 'rb').read()
 print(f"ROM length {len(rom)} bytes")
@@ -36,12 +86,7 @@ port.flush()
 # report progress
 taken = time.time() - start
 print('all sent in %.3f seconds.' % taken)
-print('----')
+print('---- entering terminal mode ----')
 
-# listen for boot messages
-while True:
-    b = port.read(1)
-    if b == b'':
-        break
-    sys.stdout.write(b.decode('latin-1'))
-    sys.stdout.flush()
+t = Replica1Terminal(port)
+t.run()
