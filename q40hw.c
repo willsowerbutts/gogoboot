@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <q40types.h>
+#include "q40isa.h"
 #include "q40hw.h"
 
 #define VIDEO_RAM_BASE  0xfe800000
@@ -7,10 +9,17 @@
 #define MASTER_DISPLAY  0x18
 
 #define Q40_REGISTER(offset, name) \
-    static volatile unsigned char * const (name) = (volatile unsigned char *)(MASTER_ADDRESS + (offset))
+    static volatile uint8_t * const (name) = (volatile uint8_t *)(MASTER_ADDRESS + (offset))
 
 Q40_REGISTER(MASTER_LED,     q40_master_led);
 Q40_REGISTER(MASTER_DISPLAY, q40_master_display);
+
+void q40_delay(uint32_t count)
+{
+    uint32_t x;
+    while(count--)
+        x += isa_read_byte(0x80);
+}
 
 void q40_led(bool on)
 {

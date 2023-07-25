@@ -19,8 +19,8 @@
     program.  If not, see <http://www.gnu.org/licenses/>.
 
 **********************************************************************/
-#ifndef _MYTYPES_H
-#define _MYTYPES_H 1
+#ifndef __Q40TYPES_DOT_H__
+#define __Q40TYPES_DOT_H__
 
 typedef signed char		int8_t;
 typedef signed short int	int16_t;
@@ -34,8 +34,15 @@ typedef unsigned long int	uint32_t;
 typedef unsigned long long	uint64_t;
 
 #ifndef NULL
-#define NULL ((void*)0)
+#define NULL ((void *)0)
 #endif
 
-#endif	/* _MYTYPES_H */
+#define ntohs(x)        (x)
+#define ntohl(x)        (x)
 
+#define cpu_to_le16(x)  ((uint16_t)le16_to_cpu(x))
+#define le16_to_cpu(x)  ((uint16_t)(__builtin_bswap16((uint16_t)(x))))
+#define cpu_to_le32(x)  ((uint32_t)le32_to_cpu(x))
+#define le32_to_cpu(x)  ((uint32_t)(__builtin_bswap32((uint32_t)(x))))
+
+#endif
