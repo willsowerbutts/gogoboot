@@ -86,7 +86,14 @@ static void q40_ide_read_sector_data(ide_controller_t *ctrl, void *ptr)
 {
     uint16_t *buffer = ptr;
 
-    for(int i=0; i<256; i++){
+    for(int i=0; i<256/8; i++){
+        *(buffer++) = __builtin_bswap16(*ctrl->data_reg);
+        *(buffer++) = __builtin_bswap16(*ctrl->data_reg);
+        *(buffer++) = __builtin_bswap16(*ctrl->data_reg);
+        *(buffer++) = __builtin_bswap16(*ctrl->data_reg);
+        *(buffer++) = __builtin_bswap16(*ctrl->data_reg);
+        *(buffer++) = __builtin_bswap16(*ctrl->data_reg);
+        *(buffer++) = __builtin_bswap16(*ctrl->data_reg);
         *(buffer++) = __builtin_bswap16(*ctrl->data_reg);
     }
 }
@@ -95,7 +102,14 @@ static void q40_ide_write_sector_data(ide_controller_t *ctrl, const void *ptr)
 {
     const uint16_t *buffer = ptr;
 
-    for(int i=0; i<256; i++){
+    for(int i=0; i<256/8; i++){
+        *ctrl->data_reg = __builtin_bswap16(*(buffer++));
+        *ctrl->data_reg = __builtin_bswap16(*(buffer++));
+        *ctrl->data_reg = __builtin_bswap16(*(buffer++));
+        *ctrl->data_reg = __builtin_bswap16(*(buffer++));
+        *ctrl->data_reg = __builtin_bswap16(*(buffer++));
+        *ctrl->data_reg = __builtin_bswap16(*(buffer++));
+        *ctrl->data_reg = __builtin_bswap16(*(buffer++));
         *ctrl->data_reg = __builtin_bswap16(*(buffer++));
     }
 }
@@ -105,7 +119,7 @@ int q40_ide_get_disk_count(void)
     return ide_disk_used;
 }
 
-bool q40_ide_read(int disknr, void *buff, uint32_t sector, int sector_count)
+static bool q40_ide_readwrite(int disknr, void *buff, uint32_t sector, int sector_count, bool is_write)
 {
     ide_disk_t *disk;
     ide_controller_t *ctrl;
@@ -143,14 +157,17 @@ bool q40_ide_read(int disknr, void *buff, uint32_t sector, int sector_count)
             return false;
 
         /* send command */
-        *ctrl->command_reg = IDE_CMD_READ_SECTOR;
+        *ctrl->command_reg = is_write ? IDE_CMD_WRITE_SECTOR : IDE_CMD_READ_SECTOR;
 
         /* read result */
         while(nsect > 0){
             /* unclear if we need to wait for DRQ on each sector? play it safe */
             if(!q40_ide_wait(ctrl, IDE_STATUS_DATAREQUEST))
                 return false;
-            q40_ide_read_sector_data(ctrl, buff);
+            if(is_write)
+                q40_ide_write_sector_data(ctrl, buff);
+            else
+                q40_ide_read_sector_data(ctrl, buff);
             buff += 512;
             nsect--;
         }
@@ -159,58 +176,14 @@ bool q40_ide_read(int disknr, void *buff, uint32_t sector, int sector_count)
     return true;
 }
 
+bool q40_ide_read(int disknr, void *buff, uint32_t sector, int sector_count)
+{
+    return q40_ide_readwrite(disknr, buff, sector, sector_count, false);
+}
+
 bool q40_ide_write(int disknr, const void *buff, uint32_t sector, int sector_count)
 {
-    ide_disk_t *disk;
-    ide_controller_t *ctrl;
-    int nsect;
-
-    if(disknr < 0 || disknr >= ide_disk_used){
-        printf("bad disk %d\n", disknr);
-        return false;
-    }
-
-    disk = &ide_disk[disknr];
-    ctrl = disk->ctrl;
-
-    while(sector_count > 0){
-        /* select device, program LBA */
-        *ctrl->device_reg = (uint8_t)(((sector >> 24) & 0x0F) | (disk->disk == 0 ? 0xE0 : 0xF0));
-        *ctrl->lbah_reg   = (uint8_t)( (sector >> 16) & 0xFF);
-        *ctrl->lbam_reg   = (uint8_t)( (sector >>  8) & 0xFF);
-        *ctrl->lbal_reg   = (uint8_t)( (sector      ) & 0xFF);
-
-        if(sector_count >= 256)
-            nsect = 256;
-        else
-            nsect = sector_count;
-
-        /* setup for next loop */
-        sector_count -= nsect;
-        sector += nsect;
-
-        /* program sector count */
-        *ctrl->nsect_reg  = nsect == 256 ? 0 : nsect;
-
-        /* wait for device to be ready */
-        if(!q40_ide_wait(ctrl, IDE_STATUS_READY))
-            return false;
-
-        /* send command */
-        *ctrl->command_reg = IDE_CMD_WRITE_SECTOR;
-
-        /* read result */
-        while(nsect > 0){
-            /* unclear if we need to wait for DRQ on each sector? play it safe */
-            if(!q40_ide_wait(ctrl, IDE_STATUS_DATAREQUEST))
-                return false;
-            q40_ide_write_sector_data(ctrl, buff);
-            buff += 512;
-            nsect--;
-        }
-    }
-
-    return true;
+    return q40_ide_readwrite(disknr, (void*)buff, sector, sector_count, true);
 }
 
 static void q40_ide_read_name(const uint8_t *id, char *buffer, int offset, int len)
@@ -220,7 +193,6 @@ static void q40_ide_read_name(const uint8_t *id, char *buffer, int offset, int l
 
     /* this reads the ASCII string out of the "identify" page pointed to by 'id'
      * 'buffer' must be at least 'len'+1 bytes */
-
     s = buffer;
     for(rem=len; rem>0; rem-=2){
         *(s++) = id[offset+1];
@@ -229,7 +201,7 @@ static void q40_ide_read_name(const uint8_t *id, char *buffer, int offset, int l
     }
     *(s++) = 0;
 
-    // remove trailing padding with spaces
+    // remove trailing spaces -- like rtrim()
     s = buffer + strlen(buffer);
     while(s > buffer && s[-1] == ' ')
         s--;
@@ -268,6 +240,7 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
 	return;
     }
 
+    memset(buffer, 0, sizeof(buffer)); // shut up the compiler's "buffer may be used uninitialised!" warning
     q40_ide_read_sector_data(ctrl, buffer);
 
     /* confirm disk has LBA support */
