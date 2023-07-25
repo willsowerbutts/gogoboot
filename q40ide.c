@@ -41,15 +41,17 @@ static const uint16_t controller_base_io_addr[] = {0x1f0,};
 
 static ide_controller_t ide_controller[NUM_CONTROLLERS];
 
-static ide_disk_t disk_info[FF_VOLUMES];
-static int q40_ide_init_done = 0;
+#define MAX_IDE_DISKS FF_VOLUMES
+static ide_disk_t ide_disk[MAX_IDE_DISKS];
+int ide_disk_used = 0;
+static bool q40_ide_init_done = false;
 
 static void q40_ide_controller_reset(ide_controller_t *ctrl)
 {
     printf("ide reset 0x%x:", ctrl->base_io);
     *ctrl->device_reg = 0xE0; /* select master */
     *ctrl->ctl_reg    = 0x06; /* assert reset, no interrupts */
-    q40_delay(1000000);
+    q40_delay(400000);
     *ctrl->ctl_reg    = 0x02; /* release reset, no interrupts */
     printf(" done\n");
 }
@@ -58,20 +60,15 @@ static bool q40_ide_wait(ide_controller_t *ctrl, uint8_t bits)
 {
     uint8_t status;
     int countdown = 4000000;
-    int ps = -1;
 
     do{
         status = *ctrl->status_reg;
 
-        if(status != ps){
-            ps = status;
-            printf("[%02x]", status);
-        }
-
         if((status & (IDE_STATUS_BUSY | IDE_STATUS_ERROR | bits)) == bits)
             return true;
 
-        if(((status & (IDE_STATUS_BUSY | IDE_STATUS_ERROR)) == IDE_STATUS_ERROR)){ /* error */
+        if(((status & (IDE_STATUS_BUSY | IDE_STATUS_ERROR)) == IDE_STATUS_ERROR) ||
+            (status == 0x00) || (status == 0xFF)){ /* error */
             printf("ide error, status=%x\n", status);
             return false;
         }
@@ -95,6 +92,8 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
     uint8_t sel, buffer[512];
     uint32_t sectors;
 
+    printf("ide probe 0x%x disk %d: ", ctrl->base_io, disk);
+
     switch(disk){
         case 0: sel = 0xE0; break;
         case 1: sel = 0xF0; break;
@@ -117,6 +116,16 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
 
     q40_ide_read_sector(ctrl, buffer);
 
+    if(!(buffer[99] & 0x02)) {
+        printf("LBA unsupported.\n");
+        return;
+    }
+
+    /* read out the disk's sector count */
+    sectors = le32_to_cpu(*((uint32_t*)&buffer[120]));
+
+    printf("%lu sectors (%lu MB)\n", sectors, sectors>>11);
+
     putch('\n');
 
     for(int i=0; i<512; i+=16){
@@ -127,16 +136,6 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
             putch((buffer[i+j] >= 0x20 && buffer[i+j] < 0x7f) ? buffer[i+j] : '.');
         putch('\n');
     }
-
-    if(!(buffer[99] & 0x02)) {
-        printf("LBA unsupported.\n");
-        return;
-    }
-
-    /* read out the disk's sector count */
-    sectors = le32_to_cpu(*((uint32_t*)&buffer[120]));
-
-    printf("%lu sectors (%lu MB)\n", sectors, sectors>>11);
 
     /* scan partitions */
     //blkdev_scan(blk, SWAPSCAN);
@@ -178,24 +177,20 @@ void q40_ide_init(void)
 {
     char path[4];
 
-    printf("q40_ide_init() done=%x\n", q40_ide_init_done);
-
-#if 0
     /* one per customer */
     if(q40_ide_init_done)
         return;
-    q40_ide_init_done = 1;
-#endif
+    q40_ide_init_done = true;
 
     printf("q40_ide_init()\n");
 
     /* reset status */
     for(int i=0; i<FF_VOLUMES; i++){
-        disk_info[i].fat_fs_status = STA_NOINIT;
-        disk_info[i].ctrl = NULL;
-        disk_info[i].disk = -1;
-        disk_info[i].sector_count = 0;
-        disk_info[i].present = false;
+        ide_disk[i].fat_fs_status = STA_NOINIT;
+        ide_disk[i].ctrl = NULL;
+        ide_disk[i].disk = -1;
+        ide_disk[i].sector_count = 0;
+        ide_disk[i].present = false;
     }
 
     /* initialise controllers */
@@ -208,7 +203,7 @@ void q40_ide_init(void)
         path[0] = '0' + i;
         path[1] = ':';
         path[2] = 0;
-        f_mount(&disk_info[i].fat_fs_workarea, path, 0); /* lazy mount */
+        f_mount(&ide_disk[i].fat_fs_workarea, path, 0); /* lazy mount */
     }
 }
 
@@ -217,7 +212,7 @@ DSTATUS disk_status (BYTE pdrv)
     if(pdrv >= FF_VOLUMES)
         return STA_NOINIT;
     else
-        return disk_info[pdrv].fat_fs_status;
+        return ide_disk[pdrv].fat_fs_status;
 }
 
 DSTATUS disk_initialize (BYTE pdrv)
