@@ -29,6 +29,11 @@ void uart_init(void)
     isa_write_byte(UART_ADDRESS+UART_MCR, 0x03);             /* set DTR, RTS */
 }
 
+bool uart_write_ready(void)
+{
+    return isa_read_byte(UART_ADDRESS+UART_LSR) & UART_LSR_THRE ? true : false;
+}
+
 void uart_write_byte(char b)
 {
     while(!(isa_read_byte(UART_ADDRESS+UART_LSR) & UART_LSR_THRE));
@@ -47,4 +52,23 @@ int uart_write_str(const char *str)
     }
 
     return r;
+}
+
+bool uart_read_ready(void)
+{
+    return isa_read_byte(UART_ADDRESS+UART_LSR) & UART_LSR_DR ? true : false;
+}
+
+int uart_read_byte(void)
+{
+    if(isa_read_byte(UART_ADDRESS+UART_LSR) & UART_LSR_DR)
+        return isa_read_byte(UART_ADDRESS+UART_RBR);
+    else
+        return -1;
+}
+
+uint8_t uart_read_byte_wait(void)
+{
+    while(!(isa_read_byte(UART_ADDRESS+UART_LSR) & UART_LSR_DR));
+    return isa_read_byte(UART_ADDRESS+UART_RBR);
 }
