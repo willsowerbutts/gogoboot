@@ -66,11 +66,8 @@ copy_data:
         dbra    %d0,copy_loop
 
         /* clear the .bss section */
-        lea.l   bss_end, %a0
-        move.l  %a0, %d2
         lea.l   bss_start, %a1
-        sub.l   %a1, %a0
-        move.l  %a0, %d0                /* num bytes to zap -- assumed always a multiple of 4 */
+        move.l  bss_size, %d0           /* num bytes to zap -- assumed always a multiple of 4 */
         lsr.l   #2, %d0                 /* convert bytes to longwords */
         br.s    zap_bss
 zap_loop:
