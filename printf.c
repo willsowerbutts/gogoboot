@@ -33,6 +33,11 @@ int putch(char ch)
     return (int)ch;
 }
 
+int putchar(int ch)
+{
+    return putch(ch);
+}
+
 int puts(const char *s)
 {
     int r;

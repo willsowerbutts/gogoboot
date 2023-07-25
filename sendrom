@@ -75,17 +75,19 @@ port.write(struct.pack('>I', 1+len(rom)))
 
 # send entire ROM contents
 sent = 0
+total=len(rom)
 while len(rom):
     chunk = rom[:512]
     rom = rom[512:]
     port.write(chunk)
     sent += len(chunk)
-    print(f'sent {sent}, remaining {len(rom)}')
+    sys.stdout.write(f'\rsent {sent}, remaining {len(rom)} - {100*sent/total:.1f}%  ')
+    sys.stdout.flush()
 port.flush()
 
 # report progress
 taken = time.time() - start
-print('all sent in %.3f seconds.' % taken)
+print(f'\rall sent in {taken:.3f} seconds.              ')
 print('---- entering terminal mode ----')
 
 t = Replica1Terminal(port)

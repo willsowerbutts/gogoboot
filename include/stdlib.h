@@ -8,6 +8,7 @@
 int printf(char const *fmt, ...);
 int puts(const char *s);
 int putch(char ch);
+int putchar(int ch);
 
 /* -- stdlib.c -- */
 

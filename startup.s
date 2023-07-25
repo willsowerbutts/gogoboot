@@ -4,6 +4,7 @@
         .globl  _start
         .globl  boot_q40
         .globl  copyright_msg
+        .globl  cpu_cache_disable
 
         dc.l    0x20000                 /* initial SP: 32KB of RAM between low ROM and "screen 0" video RAM */
         dc.l    _start                  /* initial PC */
@@ -78,5 +79,15 @@ zap_bss:
         /* halt */
 halted: stop #0x2700                    /* all done */
         br.s halted                     /* loop on NMI */
+
+cpu_cache_disable:
+        cpusha %bc              /* write back and invalidate all data/instruction cache entries */
+        nop
+        pflusha
+        nop
+        move.l #0x00000000, %d0 /* disable data, instruction caches */
+        movec %d0, %cacr
+        nop
+        rts
 
         .end
