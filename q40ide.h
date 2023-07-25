@@ -6,6 +6,9 @@
 #include <q40types.h>
 
 void q40_ide_init(void);
+int q40_ide_get_disk_count(void);
+bool q40_ide_read(int disk, void *buff, uint32_t sector, int sector_count);
+bool q40_ide_write(int disk, const void *buff, uint32_t sector, int sector_count);
 
 /* IDE status register bits */
 #define IDE_STATUS_BUSY         0x80
@@ -42,6 +45,17 @@ enum {
         ATA_REG_BYTEH           = ATA_REG_LBAH,
         ATA_REG_DEVSEL          = ATA_REG_DEVICE,
         ATA_REG_IRQ             = ATA_REG_NSECT,
+
+        /* identity page offsets and lengths (in bytes, not words) */
+        ATA_ID_FW_REV       = 2*23,
+        ATA_ID_FW_REV_LEN   = 8,
+        ATA_ID_PROD         = 2*27,
+        ATA_ID_PROD_LEN     = 40,
+        ATA_ID_SERNO        = 2*10,
+        ATA_ID_SERNO_LEN    = 20,
+        ATA_ID_MAX_MULTSECT = 2*47,
+        ATA_ID_MULTSECT     = 2*59,
+        ATA_ID_LBA_CAPACITY = 2*60,
 };
 
 #endif
