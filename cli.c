@@ -45,12 +45,12 @@ typedef struct
     const char *helpme;
 } cmd_entry_t;
 
-void do_cd(char *argv[], int argc);
-void do_ls(char *argv[], int argc);
-void do_dump(char *argv[], int argc);
-void help(char *argv[], int argc);
-void do_writemem(char *argv[], int argc);
-void handle_any_command(char *argv[], int argc);
+static void do_cd(char *argv[], int argc);
+static void do_ls(char *argv[], int argc);
+static void do_dump(char *argv[], int argc);
+static void help(char *argv[], int argc);
+static void do_writemem(char *argv[], int argc);
+static void handle_any_command(char *argv[], int argc);
 
 const cmd_entry_t cmd_table[] = {
     /* name         min max function */
@@ -89,7 +89,7 @@ static const char * const fatfs_errmsg[] =
     /* 19 */ "Given parameter is invalid"
 };
 
-void f_perror(int errno)
+static void f_perror(int errno)
 {
     if(errno >= 0 && errno <= 19)
         printf("Error: %s\n", fatfs_errmsg[errno]);
@@ -97,7 +97,7 @@ void f_perror(int errno)
         printf("Error: Unknown error %d!\n", errno);
 }
 
-void pretty_dump_memory(void *start, int len)
+static void pretty_dump_memory(void *start, int len)
 {
     int i, rem;
     unsigned char *ptr=(unsigned char *)start;
@@ -146,7 +146,7 @@ void pretty_dump_memory(void *start, int len)
     printf("  %s\n", linebuffer);
 }
 
-void do_dump(char *argv[], int argc)
+static void do_dump(char *argv[], int argc)
 {
     unsigned long start, count;
 
@@ -156,7 +156,7 @@ void do_dump(char *argv[], int argc)
     pretty_dump_memory((void*)start, count);
 }
 
-void help(char *argv[], int argc)
+static void help(char *argv[], int argc)
 {
     extern const cmd_entry_t cmd_table[];
     int i = 0;
@@ -182,7 +182,7 @@ static int fromhex(char c)
     return -1;
 }
 
-void do_writemem(char *argv[], int argc)
+static void do_writemem(char *argv[], int argc)
 {
     unsigned long value;
     unsigned char *ptr;
@@ -226,7 +226,7 @@ void do_writemem(char *argv[], int argc)
     }
 }
 
-void do_cd(char *argv[], int argc)
+static void do_cd(char *argv[], int argc)
 {
     FRESULT r;
 
@@ -235,7 +235,30 @@ void do_cd(char *argv[], int argc)
         f_perror(r);
 }
 
-void do_ls(char *argv[], int argc)
+static void select_working_drive(void)
+{
+    char path[4];
+    DIR fat_dir;
+
+#if FF_VOLUMES > 10
+#pragma error this code needs rewriting for FF_VOLUMES greater than 10
+#endif
+
+    for(int d=0; d<FF_VOLUMES; d++){
+        path[0] = '0' + d;
+        path[1] = ':';
+        path[2] = 0;
+        f_chdrive(path);
+        if(f_opendir(&fat_dir, "") == FR_OK){
+            f_closedir(&fat_dir);
+            return;
+        }
+    }
+
+    printf("No FAT filesystem found.\n");
+}
+
+static void do_ls(char *argv[], int argc)
 {
     FRESULT fr;
     const char *path, *filename;
@@ -316,7 +339,7 @@ void do_ls(char *argv[], int argc)
     }
 }
 
-bool handle_cmd_builtin(char *arg[], int numarg)
+static bool handle_cmd_builtin(char *arg[], int numarg)
 {
     FRESULT fr;
     const cmd_entry_t *cmd;
@@ -350,7 +373,7 @@ bool handle_cmd_builtin(char *arg[], int numarg)
     return false;
 }
 
-bool load_elf_executable(char *arg[], int numarg, FIL *fd)
+static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
 {
     int i, proghead_num;
     unsigned int bytes_read;
@@ -628,7 +651,7 @@ const char coff_header_bytes[2] = { 0x01, 0x50 };
 const char elf_header_bytes[4]  = { 0x7F, 0x45, 0x4c, 0x46 };
 const char m68k_header_bytes[2] = { 0x60, 0x1a };
 
-bool handle_cmd_executable(char *argv[], int argc)
+static bool handle_cmd_executable(char *argv[], int argc)
 {
     FIL fd;
     FRESULT fr;
@@ -680,7 +703,7 @@ bool handle_cmd_executable(char *argv[], int argc)
     return true;
 }
 
-void execute_cmd(char *linebuffer)
+static void execute_cmd(char *linebuffer)
 {
     char *p, *arg[MAXARG+1];
     int numarg;
@@ -715,21 +738,21 @@ void execute_cmd(char *linebuffer)
     handle_any_command(arg, numarg);
 }
 
-void handle_any_command(char *argv[], int argc) {
+static void handle_any_command(char *argv[], int argc) {
     if(argc > 0){
         if(!handle_cmd_builtin(argv, argc) && !handle_cmd_executable(argv, argc))
             printf("%s: Unknown command.  Try 'help'.\n", argv[0]);
     }
 }
 
-void rubout(void)
+static void rubout(void)
 {
     putch('\b');
     putch(' ');
     putch('\b');
 }
 
-int getline(char *line, int linesize)
+static int getline(char *line, int linesize)
 {
     int k = 0;
     signed char ch;
@@ -758,6 +781,9 @@ int getline(char *line, int linesize)
 
 void command_line_interpreter(void)
 {
+    /* select the first drive that is actually present */
+    select_working_drive();
+
     while(true){
         f_getcwd(cmd_buffer, LINELEN);
         printf("%s> ", cmd_buffer);

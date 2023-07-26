@@ -23,10 +23,11 @@ void command_line_interpreter(void);
  * - configure the other master chip's registers -- interrupt control?
  * - FAT filesystem
  * - command line interface
- * - SOFTROM feature clone, so we can test new ROMs
+ * - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
  * - linux loader
  * - NE2000 driver
  * - ultimately target a port back to kiss-68030?
+ * - store ROM config in RTC NVRAM? MAC address, serial port speed, etc?
  */
 
 extern char text_start, text_size;
@@ -49,6 +50,8 @@ void boot_q40(void)
     /* TODO: ISA bus reset ... requires some sort of delay function I think */
 
     uart_init();
+    for(int i=0; i<10; i++)
+        putch('\r');
     uart_write_str(copyright_msg);
 
     report_linker_layout();

@@ -11,7 +11,7 @@
 
 // debugging options:
 #undef ATA_DUMP_IDENTIFY_RESULT
-#define ATA_UNROLL_XFER_LOOPS
+#undef ATA_UNROLL_XFER_LOOPS
 
 typedef struct {
     uint16_t base_io;
@@ -255,7 +255,9 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
 	return;
     }
 
-    memset(buffer, 0, sizeof(buffer)); // shut up the compiler's "buffer may be used uninitialised!" warning
+#ifdef ATA_UNROLL_XFER_LOOPS
+    memset(buffer, 0x55, sizeof(buffer)); // shut up the compiler's "buffer may be used uninitialised!" warning
+#endif
     q40_ide_read_sector_data(ctrl, buffer);
 
     /* confirm disk has LBA support */
