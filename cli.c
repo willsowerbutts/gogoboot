@@ -508,8 +508,6 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
             // we need to make sure our RAM starts on a multiple of 256KB it seems
             meminfo->addr = (unsigned long)KERNEL_LOAD_OFFSET;
             meminfo->size = (unsigned long)(ram_size - KERNEL_LOAD_OFFSET);
-            printf("BI_MEMCHUNK addr=%lx, size=%lx\n", meminfo->addr, meminfo->size);
-            printf("BI_MEMCHUNK addr=%lx, size=%lx\n", meminfo->addr, meminfo->size);
 #endif
             bootinfo = (struct bi_record*)(((char*)bootinfo) + bootinfo->size);
 
