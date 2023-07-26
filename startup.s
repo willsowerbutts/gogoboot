@@ -4,6 +4,8 @@
         .globl  boot_q40
         .globl  copyright_msg
         .globl  cpu_cache_disable
+        .globl  cpu_cache_flush
+        .globl  vector_table
 
         .section .rom_header
         dc.l    0x20000                 /* initial SP: 32KB of RAM between low ROM and "screen 0" video RAM */
@@ -23,6 +25,10 @@ copyright_msg:
 _start:
         move.w #0x2700, %sr
         reset
+
+        /* load vector base register */
+        lea vector_table, %a0
+        movec %a0, %vbr
 
         cpusha %bc              /* write back and invalidate all data/instruction cache entries */
         nop
@@ -80,6 +86,11 @@ zap_bss:
         /* halt */
 halted: stop #0x2700                    /* all done */
         br.s halted                     /* loop on NMI */
+
+cpu_cache_flush:
+        cpusha %bc              /* write back and invalidate all data/instruction cache entries */
+        nop
+        rts
 
 cpu_cache_disable:
         cpusha %bc              /* write back and invalidate all data/instruction cache entries */

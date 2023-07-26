@@ -11,7 +11,7 @@ LIBS =
 COPT = -Os -malign-int -Wall -nostdinc -nostdlib -nolibc -m68040 -Wall -Werror -std=c18 -Iinclude -fdata-sections -ffunction-sections
 AOPT = -m68040 -alhmsg 
 
-ROMOBJ = boot.o q40uart.o q40hw.o startup.o q40ide.o printf.o stdlib.o strtoul.o ff.o cli.o
+ROMOBJ = boot.o q40uart.o q40hw.o startup.o vectors.o q40ide.o printf.o stdlib.o strtoul.o ff.o cli.o
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 

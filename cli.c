@@ -15,7 +15,7 @@
 #define MACHINE_IS_Q40
 
 #ifdef MACHINE_IS_KISS68030
-#define KERNEL_LOAD_OFFSET 0
+#define EXECUTABLE_LOAD_ADDRESS 0
 #define MACH_THIS MACH_KISS68030
 #define THIS_BOOTI_VERSION KISS68030_BOOTI_VERSION
 #define CPU_THIS CPU_68030
@@ -24,7 +24,7 @@
 #endif
 
 #ifdef MACHINE_IS_Q40
-#define KERNEL_LOAD_OFFSET 256*1024
+#define EXECUTABLE_LOAD_ADDRESS (256*1024)
 #define MACH_THIS MACH_Q40
 #define THIS_BOOTI_VERSION Q40_BOOTI_VERSION
 #define CPU_THIS CPU_68040
@@ -373,6 +373,30 @@ static bool handle_cmd_builtin(char *arg[], int numarg)
     return false;
 }
 
+static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
+{
+    unsigned int bytes_read;
+    void *load_address = (void*)(1*1024*1024); // 1MB
+    FRESULT fr;
+
+    f_lseek(fd, 0);
+    printf("Loading %lu bytes from file offset 0x%x to memory at 0x%x\n", f_size(fd), 0, (int)load_address);
+    fr = f_read(fd, (void*)load_address, f_size(fd), &bytes_read);
+    if(fr != FR_OK){
+        printf("%s: Cannot load: ", argv[0]);
+        f_perror(fr);
+        return false;
+    }
+
+    void (*entry)(void) = (void(*)(void))load_address;
+    printf("Loaded %d bytes. Entry at 0x%lx in supervisor mode\n", bytes_read, (long)load_address);
+    q40_led(false);
+    cpu_cache_disable(); // cpu_cache_flush();
+    entry();
+        
+    return true;
+}
+
 static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
 {
     int i, proghead_num;
@@ -442,7 +466,7 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
                     proghead.filesz -= 0x1000;
                     proghead.memsz -= 0x1000;
                 }
-                proghead.paddr += KERNEL_LOAD_OFFSET;
+                proghead.paddr += EXECUTABLE_LOAD_ADDRESS;
                 printf("Loading %lu bytes from file offset 0x%lx to memory at 0x%lx\n", proghead.filesz, proghead.offset, proghead.paddr);
                 f_lseek(fd, proghead.offset);
                 if(f_read(fd, (char*)proghead.paddr, proghead.filesz, &bytes_read) != FR_OK || 
@@ -528,8 +552,8 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
 #endif
 #ifdef MACHINE_IS_Q40
             // we need to make sure our RAM starts on a multiple of 256KB it seems
-            meminfo->addr = (unsigned long)KERNEL_LOAD_OFFSET;
-            meminfo->size = (unsigned long)(ram_size - KERNEL_LOAD_OFFSET);
+            meminfo->addr = (unsigned long)EXECUTABLE_LOAD_ADDRESS;
+            meminfo->size = (unsigned long)(ram_size - EXECUTABLE_LOAD_ADDRESS);
 #endif
             bootinfo = (struct bi_record*)(((char*)bootinfo) + bootinfo->size);
 
@@ -589,7 +613,7 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
              * - CPU in supervisor mode
              */
             cpu_cache_disable(); /* disable cache */
-            header.entry += KERNEL_LOAD_OFFSET;
+            header.entry += EXECUTABLE_LOAD_ADDRESS;
         }else{
             printf("hmmm. don't have a way to handle non-linux executables yet?\n");
             /* run_program(umode, (void*)header.entry); */
@@ -598,7 +622,6 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         void (*entry)(void) = (void(*)(void))header.entry;
         printf("Entry at 0x%lx in supervisor mode\n", (long)entry);
         entry();
-        //jump_to_executable((void*)header.entry);
     }
 
     return true;
@@ -685,7 +708,8 @@ static bool handle_cmd_executable(char *argv[], int argc)
         }else if(memcmp(buffer, coff_header_bytes, sizeof(coff_header_bytes)) == 0){
             printf("COFF: unsupported\n");
         }else if(memcmp(buffer, m68k_header_bytes, sizeof(m68k_header_bytes)) == 0){
-            printf("68K or SYS: unsupported\n");
+            printf("68K or SYS\n");
+            load_m68k_executable(argv, argc, &fd);
         }else{
             printf("unknown format.\n");
         }

@@ -21,6 +21,7 @@ void command_line_interpreter(void);
  * DONE - FAT filesystem
  * DONE - linux loader
  * - 68K exception handler
+ *   - trap #0 required for SMSQ/E -- should put us in supervisor mode, so basically a NOP.
  * - ISA bus reset
  * - some sort of timer (add interrupt support, then use the timer tick?)
  * - configure the other master chip's registers -- interrupt control?

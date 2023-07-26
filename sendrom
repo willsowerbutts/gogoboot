@@ -83,7 +83,7 @@ while len(rom):
     rom = rom[512:]
     port.write(chunk)
     sent += len(chunk)
-    sys.stdout.write(f'\rsent {sent}, remaining {len(rom)} - {100*sent/total:.1f}%  ')
+    sys.stdout.write(f'\rsent {sent:<8} {100*sent/total:>5.1f}%  ')
     sys.stdout.flush()
 port.flush()
 
