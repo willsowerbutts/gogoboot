@@ -466,7 +466,6 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     }
 
     if(loaded){
-        printf("loaded at 0x%x -- 0x%x\n", lowest, highest);
         /* check for linux kernel */
         bootver = (struct bootversion*)lowest;
         if(bootver->magic == BOOTINFOV_MAGIC){
@@ -556,7 +555,6 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
             bootinfo->tag = BI_COMMAND_LINE;
             bootinfo->size = sizeof(struct bi_record) + i;
             memcpy(bootinfo->data, kernel_cmdline, i);
-            printf("BI_COMMAND_LINE \"%s\"\n", (char*)bootinfo->data);
             bootinfo = (struct bi_record*)(((char*)bootinfo) + bootinfo->size);
 
             /* check for initrd */
@@ -590,9 +588,7 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
              * - CPU cache disabled
              * - CPU in supervisor mode
              */
-            printf("cpu_cache_disable: ");
             cpu_cache_disable(); /* disable cache */
-            printf("ok\n");
             header.entry += KERNEL_LOAD_OFFSET;
         }else{
             printf("hmmm. don't have a way to handle non-linux executables yet?\n");
