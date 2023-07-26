@@ -11,7 +11,6 @@
 
 // debugging options:
 #undef ATA_DUMP_IDENTIFY_RESULT
-#undef ATA_UNROLL_XFER_LOOPS
 
 typedef struct {
     uint16_t base_io;
@@ -83,33 +82,6 @@ static bool q40_ide_wait(ide_controller_t *ctrl, uint8_t bits)
     return false;
 }
 
-#ifdef ATA_UNROLL_XFER_LOOPS
-static void q40_ide_read_sector_data(ide_controller_t *ctrl, void *ptr)
-{
-    uint16_t *buffer = (uint16_t*)ptr;
-
-    for(int i=0; i<64; i++){
-        buffer[0] = __builtin_bswap16(*ctrl->data_reg);
-        buffer[1] = __builtin_bswap16(*ctrl->data_reg);
-        buffer[2] = __builtin_bswap16(*ctrl->data_reg);
-        buffer[3] = __builtin_bswap16(*ctrl->data_reg);
-        buffer += 4;
-    }
-}
-
-static void q40_ide_write_sector_data(ide_controller_t *ctrl, const void *ptr)
-{
-    const uint16_t *buffer = (uint16_t*)ptr;
-
-    for(int i=0; i<64; i++){
-        *ctrl->data_reg = __builtin_bswap16(buffer[0]);
-        *ctrl->data_reg = __builtin_bswap16(buffer[1]);
-        *ctrl->data_reg = __builtin_bswap16(buffer[2]);
-        *ctrl->data_reg = __builtin_bswap16(buffer[3]);
-        buffer += 4;
-    }
-}
-#else
 static void q40_ide_read_sector_data(ide_controller_t *ctrl, void *ptr)
 {
     uint16_t *buffer = ptr;
@@ -127,7 +99,6 @@ static void q40_ide_write_sector_data(ide_controller_t *ctrl, const void *ptr)
         *ctrl->data_reg = __builtin_bswap16(*(buffer++));
     }
 }
-#endif
 
 int q40_ide_get_disk_count(void)
 {
@@ -255,9 +226,6 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
 	return;
     }
 
-#ifdef ATA_UNROLL_XFER_LOOPS
-    memset(buffer, 0x55, sizeof(buffer)); // shut up the compiler's "buffer may be used uninitialised!" warning
-#endif
     q40_ide_read_sector_data(ctrl, buffer);
 
     /* confirm disk has LBA support */
