@@ -17,17 +17,19 @@ void command_line_interpreter(void);
  * DONE - blank the screen
  * DONE - measure installed RAM
  * DONE - IDE interface 
+ * DONE - command line interface
+ * DONE - FAT filesystem
+ * DONE - linux loader
  * - 68K exception handler
  * - ISA bus reset
  * - some sort of timer (add interrupt support, then use the timer tick?)
  * - configure the other master chip's registers -- interrupt control?
- * - FAT filesystem
- * - command line interface
  * - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
- * - linux loader
  * - NE2000 driver
+ * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for card memory limit)
  * - ultimately target a port back to kiss-68030?
  * - store ROM config in RTC NVRAM? MAC address, serial port speed, etc?
+ * - equivalent of LRESPR so I can boot SMSQ/E image from disk
  */
 
 extern char text_start, text_size;
