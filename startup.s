@@ -1,11 +1,11 @@
         .chip 68040
-        .text
 
         .globl  _start
         .globl  boot_q40
         .globl  copyright_msg
         .globl  cpu_cache_disable
 
+        .section .rom_header
         dc.l    0x20000                 /* initial SP: 32KB of RAM between low ROM and "screen 0" video RAM */
         dc.l    _start                  /* initial PC */
 
@@ -18,6 +18,7 @@ copyright_msg:
         .ascii  "Foundation, either version 3 of the License, or (at your option) any later\n"
         .ascii  "version.\n\n\0"
 
+        .text
         .even
 _start:
         move.w #0x2700, %sr

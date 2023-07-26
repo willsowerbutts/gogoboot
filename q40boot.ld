@@ -12,12 +12,14 @@ SECTIONS
 {
     .text : { 
         text_start = .;
-        *(.text.unlikely .text.*_unlikely .text.unlikely.*)
-        *(.text.exit .text.exit.*)
-        *(.text.startup .text.startup.*)
-        *(.text.hot .text.hot.*)
+        *(.rom_header)
+        *(.text.unlikely SORT(.text.*_unlikely) SORT(.text.unlikely.*))
+        *(.text.exit SORT(.text.exit.*))
+        *(.text.startup SORT(.text.startup.*))
+        *(.text.hot SORT(.text.hot.*))
         *(SORT(.text.sorted.*))
-        *(.text .stub .text.* .gnu.linkonce.t.*)
+        *(.text .stub)
+        *(SORT(.text.*) SORT(.gnu.linkonce.t.*))
         text_end = .;
     } >rom
     text_size = SIZEOF(.text);
@@ -25,7 +27,7 @@ SECTIONS
     /* .rodata : AT(text_end) { */
     .rodata : { 
         rodata_start = .;
-        *(.rodata .rodata.* .gnu.linkonce.r.*)
+        *(.rodata SORT(.rodata.*) SORT(.gnu.linkonce.r.*))
         rodata_end = .;
     } >rom 
     rodata_size = SIZEOF(.rodata);
@@ -33,7 +35,7 @@ SECTIONS
     /* .data : AT(rodata_end) {  */
     .data : { 
         data_start = .;
-        *(.data .data.* .gnu.linkonce.d.*)
+        *(.data SORT(.data.*) SORT(.gnu.linkonce.d.*))
         data_end = .;
     } >ram AT>rom
     data_size = SIZEOF(.data);
@@ -42,7 +44,7 @@ SECTIONS
     .bss : { 
         bss_start = .;
         *(.dynbss)
-        *(.bss .bss.* .gnu.linkonce.b.*)
+        *(.bss SORT(.bss.*) SORT(.gnu.linkonce.b.*))
         *(COMMON)
         bss_end = .;
     } >ram
