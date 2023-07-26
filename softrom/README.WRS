@@ -1,0 +1,11 @@
+WRS 2023-07-26
+
+This has a patched version of SOFTROM that loads at 57600 bps.
+
+The changes were made using the 'bvi' editor.
+
+The only code change is adjusting the value programmed into the UART divisor
+register from 0x000C (9600bps) to 0x0002 (57600bps).  I also tested 0x0001
+(115200bps) but this resulted in data underruns, failure and disappointment.
+
+A few text strings were also changed so the difference is obvious to the user.

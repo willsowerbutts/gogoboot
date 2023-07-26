@@ -55,14 +55,14 @@ class Replica1Terminal:
 
 ################################################################
 
-rom = open(sys.argv[2], 'rb').read()
+rom = open(sys.argv[3], 'rb').read()
 print(f"ROM length {len(rom)} bytes")
 
 if len(rom) >= (96*1024)-1:
     print("ROM too large! Aborted.")
     sys.exit(1)
 
-port = serial.Serial(sys.argv[1], 9600)
+port = serial.Serial(sys.argv[1], int(sys.argv[2]))
 start = time.time()
 
 # WRS: observed that the final byte sent is NOT loaded correctly by the SOFTROM
@@ -72,6 +72,8 @@ start = time.time()
 
 # send length+1 as little-endian 32-bit word
 port.write(struct.pack('>I', 1+len(rom))) 
+port.flush()
+time.sleep(0.1) # at least 50ms delay for SOFTROM to catch up
 
 # send entire ROM contents
 sent = 0

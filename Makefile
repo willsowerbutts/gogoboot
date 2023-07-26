@@ -24,7 +24,7 @@ ROMOBJ = boot.o q40uart.o q40hw.o startup.o q40ide.o printf.o stdlib.o strtoul.o
 all:	q40boot.rom
 
 test:	all
-	./sendrom /dev/ttyUSB0 q40boot.rom
+	./sendrom /dev/ttyUSB0 57600 q40boot.rom
 
 clean:
 	rm -f q40boot.rom q40boot.map *.o *.lst *.elf *.bin
