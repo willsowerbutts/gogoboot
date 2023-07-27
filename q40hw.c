@@ -3,47 +3,52 @@
 #include "q40isa.h"
 #include "q40hw.h"
 
-#define VIDEO_RAM_BASE  0xfe800000
-#define MASTER_ADDRESS  0xff000000
-#define MASTER_LED      0x30
-#define MASTER_DISPLAY  0x18
+unsigned int ram_size = 0;
 
-#define Q40_REGISTER(offset, name) \
-    static volatile uint8_t * const (name) = (volatile uint8_t *)(MASTER_ADDRESS + (offset))
+void q40_setup_interrupts(void)
+{
+    /* configure MASTER chip */
+    *q40_keyboard_interrupt_enable = 0;
+    *q40_isa_interrupt_enable = 0;
+    *q40_sample_interrupt_enable = 0;
+    *q40_keyboard_interrupt_ack = 0xff;
+    *q40_frame_interrupt_ack = 0xff;
+    *q40_sample_interrupt_ack = 0xff;
+    *q40_sample_rate = 0;
+    *q40_frame_rate = 1; /* 200Hz timer interrupts, please! */
+    cpu_set_ipl(1);      /* enable interrupt 2 and above */
+}
 
-Q40_REGISTER(MASTER_LED,     q40_master_led);
-Q40_REGISTER(MASTER_DISPLAY, q40_master_display);
+void q40_isa_reset(void)
+{
+    *q40_isa_bus_reset = 0xff;
+    q40_delay(400000);
+    *q40_isa_bus_reset = 0;
+}
 
 void q40_delay(uint32_t count)
 {
     uint32_t x;
     while(count--)
-        x += isa_read_byte(0x80);
+        x += *q40_interrupt_status;
 }
 
 void q40_led(bool on)
 {
-    *q40_master_led = on ? 0xff : 0;
+    *q40_led_control = on ? 0xff : 0;
 }
 
 void q40_graphics_init(int mode)
 {
-    // we only have four modes
+    // behold my field of modes, in it there grow but four
     mode &= 3;
 
     // program the display controller
-    *q40_master_display = mode;
+    *q40_display_control = mode;
 
     // clear entire video memory (1MB)
     memset((void*)VIDEO_RAM_BASE, 0, 1024*1024);
 }
-
-#define MAX_RAM_SIZE  128 /* MB */
-#define RAM_UNIT_SIZE (1024*1024)
-#define UNIT_ADDRESS(unit) ((uint32_t*)(unit * RAM_UNIT_SIZE - sizeof(uint32_t)))
-#define UNIT_TEST_VALUE(unit) ((uint32_t)(unit | ((~unit) << 16)))
-
-unsigned int ram_size = 0;
 
 void q40_measure_ram_size(void)
 {
@@ -53,6 +58,9 @@ void q40_measure_ram_size(void)
        RAM is actually fitted. Because the lowest address we
        write to is just below 1MB we avoid stomping on any of
        our code, data or stack which is all far below 1MB. */
+
+    #define UNIT_ADDRESS(unit) ((uint32_t*)(unit * RAM_UNIT_SIZE - sizeof(uint32_t)))
+    #define UNIT_TEST_VALUE(unit) ((uint32_t)(unit | ((~unit) << 16)))
 
     ram_size = 0;
 

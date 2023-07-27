@@ -33,7 +33,7 @@ vector_table:
         .long   unhandled_exception  /* 23 (reserved) */
         .long   unhandled_exception  /* 24 spurious interrupt */
         .long   unhandled_exception  /* 25 level 1 interrupt autovector */
-        .long   unhandled_exception  /* 26 level 2 interrupt autovector */
+        .long   interrupt_level_2    /* 26 level 2 interrupt autovector */
         .long   unhandled_exception  /* 27 level 3 interrupt autovector */
         .long   unhandled_exception  /* 28 level 4 interrupt autovector */
         .long   unhandled_exception  /* 29 level 5 interrupt autovector */
@@ -56,9 +56,16 @@ vector_table:
         .long   unhandled_exception  /* 46 trap 14 instruction */
         .long   unhandled_exception  /* 47 trap 15 instruction */
 
-trap_0:
-        /* SMSQ/E and QDOS use this vector for "enter supervisor mode";
+trap_0: /* SMSQ/E and QDOS use this vector for "enter supervisor mode";
            we're already in supervisor mode, so not much to do here! */
+        rte
+
+cpu_set_ipl:
+        uhhhhhhh?
+        rts
+
+interrupt_level_2:
+        uhhh?
         rte
 
 unhandled_exception:
