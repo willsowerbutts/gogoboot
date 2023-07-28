@@ -5,6 +5,7 @@
         .globl  copyright_msg
         .globl  cpu_cache_disable
         .globl  cpu_cache_flush
+        .globl  cpu_cache_invalidate
         .globl  cpu_set_ipl
         .globl  vector_table
 
@@ -89,6 +90,11 @@ halted: stop #0x2700                    /* all done */
         br.s halted                     /* loop on NMI */
 
 cpu_cache_flush:
+        cpusha %dc              /* write back data cache entries */
+        nop
+        rts
+
+cpu_cache_invalidate:
         cpusha %bc              /* write back and invalidate all data/instruction cache entries */
         nop
         rts

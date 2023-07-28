@@ -6,6 +6,8 @@
 unsigned int ram_size = 0;
 extern volatile uint32_t timer_ticks;
 
+const char * const weekday[8] = { "???", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+
 void q40_rtc_init(void)
 {
     q40_rtc_data_t data_prev, data;
@@ -18,9 +20,21 @@ void q40_rtc_init(void)
     data.hour    &= 0x3F;
     data.minute  &= 0x7F;
     data.second  &= 0x7F; /* clears the STOP bit, oscillator runs */
+
+    printf("%s 20%d%d-%d%d-%d%d %d%d:%d%d:%d%d ",
+            weekday[data.weekday],
+            data.year   >> 4 & 0x0F, data.year   & 0x0F,
+            data.month  >> 4 & 0x0F, data.month  & 0x0F,
+            data.day    >> 4 & 0x0F, data.day    & 0x0F,
+            data.hour   >> 4 & 0x0F, data.hour   & 0x0F,
+            data.minute >> 4 & 0x0F, data.minute & 0x0F,
+            data.second >> 4 & 0x0F, data.second & 0x0F);
+
     /* write back only if we changed anything */
-    if(memcmp(&data, &data_prev, sizeof(data)))
+    if(memcmp(&data, &data_prev, sizeof(data))){
+        printf("(started RTC oscillator) ");
         q40_rtc_write_clock(&data);
+    }
 }
 
 uint8_t q40_rtc_read_nvram(int offset)
@@ -117,7 +131,7 @@ void q40_setup_interrupts(void)
 #elif TIMER_HZ == 50
     *q40_frame_rate = 0;
 #else
-    #error Unsupported TIMER_HZ value (try 50 or 200)
+    #error Unsupported TIMER_HZ value (use 50 or 200)
 #endif
     cpu_set_ipl(1);      /* enable interrupt 2 and above */
 }
@@ -144,14 +158,15 @@ void q40_led(bool on)
 
 void q40_graphics_init(int mode)
 {
-    // behold my field of modes, in it there grow but four
+    // behold my field of modes, for in it there grow but four
     mode &= 3;
 
     // program the display controller
     *q40_display_control = mode;
 
     // clear entire video memory (1MB)
-    memset((void*)VIDEO_RAM_BASE, 0, 1024*1024);
+    memset((void*)VIDEO_RAM_BASE, 0xaa, 1024*1024);
+    cpu_cache_flush(); // if we don't flush the data cache, video corruption results
 }
 
 void q40_measure_ram_size(void)

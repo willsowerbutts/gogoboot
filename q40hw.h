@@ -16,6 +16,7 @@ void q40_setup_interrupts(void);
 /* in startup.s */
 void cpu_cache_disable(void);
 void cpu_cache_flush(void);
+void cpu_cache_invalidate(void);
 void cpu_set_ipl(int ipl);
 
 /* RTC */
@@ -61,7 +62,7 @@ void timer_wait(timer_t timeout);
 #define MASTER_ADDRESS  0xff000000
 #define RTC_ADDRESS     0xff020000
 
-#define MAX_RAM_SIZE  128 /* MB */
+#define MAX_RAM_SIZE  32 /* MB -- code needs adjusting to support 128MB boards */
 #define RAM_UNIT_SIZE (1024*1024) /* smallest granularity */
 
 #define Q40_RTC_NVRAM(offset) ((volatile uint8_t *)(RTC_ADDRESS + (4 * offset)))

@@ -55,6 +55,7 @@ static void q40_ide_controller_reset(ide_controller_t *ctrl)
     *ctrl->ctl_reg    = 0x06; /* assert reset, no interrupts */
     delay_ms(100);
     *ctrl->ctl_reg    = 0x02; /* release reset, no interrupts */
+    delay_ms(50);
     printf(" done\n");
 }
 

@@ -391,7 +391,7 @@ static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
     void (*entry)(void) = (void(*)(void))load_address;
     printf("Loaded %d bytes. Entry at 0x%lx in supervisor mode\n", bytes_read, (long)load_address);
     q40_led(false);
-    cpu_cache_disable(); // cpu_cache_flush();
+    cpu_cache_flush(); // cpu_cache_flush();
     entry();
         
     return true;
