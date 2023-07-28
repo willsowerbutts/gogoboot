@@ -20,10 +20,7 @@ void command_line_interpreter(void);
  * DONE - command line interface
  * DONE - FAT filesystem
  * DONE - linux loader
-
- * *** some sort of timer (add interrupt support, then use the timer tick?) ***
-   WE NEED A TIMER! BUILD A TIMER! MAKE IT TICK!
-
+ * DONE - some sort of timer (add interrupt support, then use the timer tick?)
  * - 68K exception handler
  *   - trap #0 required for SMSQ/E -- should put us in supervisor mode, so basically a NOP.
  * - ISA bus reset
@@ -34,6 +31,7 @@ void command_line_interpreter(void);
  * - ultimately target a port back to kiss-68030?
  * - store ROM config in RTC NVRAM? MAC address, serial port speed, etc? store as series of strings; cksum at start.
  * - equivalent of LRESPR so I can boot SMSQ/E image from disk -- started, but crashes. Write to SMSQ/E maintainer?
+ * - serial interrupts (at least on receive)
  * - ZMODEM! https://github.com/spk121/libzmodem ?
  * - gzip/gunzip?
  */
@@ -61,6 +59,14 @@ void boot_q40(void)
 
     report_linker_layout();
 
+    printf("Setup interrupts: ");
+    q40_setup_interrupts(); /* do this VERY early: timers depend upon it */
+    printf("done\n");
+
+    printf("Initialise RTC: ");
+    q40_rtc_init();
+    printf("done\n");
+
     q40_measure_ram_size();
     printf("RAM installed: %d MB\n", ram_size>>20);
 
@@ -68,13 +74,10 @@ void boot_q40(void)
     q40_graphics_init(3);
     printf("done\n");
 
-    printf("Setup interrupts: ");
-    q40_setup_interrupts();
-    printf("done\n");
-
     q40_ide_init();
 
     q40_led(true);
+
     command_line_interpreter();
 
     q40_led(false);

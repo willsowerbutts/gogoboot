@@ -5,6 +5,7 @@
         .globl  copyright_msg
         .globl  cpu_cache_disable
         .globl  cpu_cache_flush
+        .globl  cpu_set_ipl
         .globl  vector_table
 
         .section .rom_header
@@ -100,6 +101,11 @@ cpu_cache_disable:
         move.l #0x00000000, %d0 /* disable data, instruction caches */
         movec %d0, %cacr
         nop
+        rts
+
+cpu_set_ipl:
+        /* FIXME this needs to take the IPL from the argument on the stack */
+        move.w #0x2100, %sr
         rts
 
         .end

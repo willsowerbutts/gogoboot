@@ -1,8 +1,9 @@
         .chip 68040
 
         .globl  vector_table
+        .globl  timer_ticks
 
-        .text
+        .section .text
         .align 4
 
 /* 68040 exception vector table */
@@ -60,16 +61,24 @@ trap_0: /* SMSQ/E and QDOS use this vector for "enter supervisor mode";
            we're already in supervisor mode, so not much to do here! */
         rte
 
-cpu_set_ipl:
-        uhhhhhhh?
-        rts
-
 interrupt_level_2:
-        uhhh?
+        move.l %d0, -(%sp)
+        moveb 0xff000000, %d0           /* load interrupt status */
+        movew %d0, %ccr
+        bpls interrupt_level_2_done     /* branch if bit 3 = 0 */
+        st 0xff000024                   /* frame interrupt ack/clear */
+        addq.l #1,(timer_ticks) 
+interrupt_level_2_done:
+        move.l (%sp)+, %d0
         rte
 
 unhandled_exception:
         stop #2701
         br.s unhandled_exception
+
+        .section .bss
+        .align 4
+timer_ticks:
+        .zero 4
 
         .end

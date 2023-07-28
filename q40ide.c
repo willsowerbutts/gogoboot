@@ -53,7 +53,7 @@ static void q40_ide_controller_reset(ide_controller_t *ctrl)
     printf("IDE reset controller at 0x%x:", ctrl->base_io);
     *ctrl->device_reg = 0xE0; /* select master */
     *ctrl->ctl_reg    = 0x06; /* assert reset, no interrupts */
-    q40_delay(400000);
+    delay_ms(100);
     *ctrl->ctl_reg    = 0x02; /* release reset, no interrupts */
     printf(" done\n");
 }
@@ -61,10 +61,12 @@ static void q40_ide_controller_reset(ide_controller_t *ctrl)
 static bool q40_ide_wait(ide_controller_t *ctrl, uint8_t bits)
 {
     uint8_t status;
-    int countdown = 4000000;
+    timer_t timeout;
 
     /* read alt status once to ensure we meet timing for reading status */
     status = *ctrl->altstatus_reg;
+
+    timeout = set_timer_sec(3); 
 
     do{
         status = *ctrl->status_reg;
@@ -76,7 +78,7 @@ static bool q40_ide_wait(ide_controller_t *ctrl, uint8_t bits)
             (status == 0x00) || (status == 0xFF)){ /* error */
             return false;
         }
-    }while(countdown--);
+    }while(!timer_expired(timeout));
 
     printf("IDE timeout, status=%x\n", status);
     return false;

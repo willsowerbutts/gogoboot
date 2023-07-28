@@ -553,7 +553,12 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
 #ifdef MACHINE_IS_Q40
             // we need to make sure our RAM starts on a multiple of 256KB it seems
             meminfo->addr = (unsigned long)EXECUTABLE_LOAD_ADDRESS;
-            meminfo->size = (unsigned long)(ram_size - EXECUTABLE_LOAD_ADDRESS);
+            if(ram_size > 32*1024*1024){
+                printf("WARNING: load_elf_executable needs modification to support >32MB RAM on Q40\n");
+                printf("WARNING: limiting BI_MEMCHUNK to 32MB\n");
+                meminfo->size = (unsigned long)(32*1024*1024 - EXECUTABLE_LOAD_ADDRESS);
+            }else
+                meminfo->size = (unsigned long)(ram_size - EXECUTABLE_LOAD_ADDRESS);
 #endif
             bootinfo = (struct bi_record*)(((char*)bootinfo) + bootinfo->size);
 
