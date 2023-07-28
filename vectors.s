@@ -130,8 +130,8 @@ timer_ticks:
 
         .section .rodata
 bad_interrupt_message:
-        .ascii "!BAD INT \0"
+        .ascii ":( BAD INT \0"
 unhandled_exception_message:
-        .ascii "!UNHANDLED EXCEPTION\0"
+        .ascii ":( UNHANDLED EXCEPTION\0"
 
         .end

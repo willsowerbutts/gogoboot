@@ -21,17 +21,17 @@ void command_line_interpreter(void);
  * DONE - FAT filesystem
  * DONE - linux loader
  * DONE - some sort of timer (add interrupt support, then use the timer tick?)
- * - 68K exception handler
- *   - trap #0 required for SMSQ/E -- should put us in supervisor mode, so basically a NOP.
- * - ISA bus reset
- * - configure the other master chip's registers -- interrupt control?
- * - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
- * - NE2000 driver
+ * DONE - 68K exception handler
+ * DONE   - trap #0 required for SMSQ/E -- should put us in supervisor mode, so basically a NOP.
+ * DONE - ISA bus reset
+ * DONE - configure the other master chip's registers -- interrupt control?
+ * NEXT UP >>> - NE2000 driver
  * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for card memory limit)
+ * - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
  * - ultimately target a port back to kiss-68030?
  * - store ROM config in RTC NVRAM? MAC address, serial port speed, etc? store as series of strings; cksum at start.
  * - equivalent of LRESPR so I can boot SMSQ/E image from disk -- started, but crashes. Write to SMSQ/E maintainer?
- * - serial interrupts (at least on receive)
+ * - serial interrupts (at least on receive, pretty much required for zmodem to disk I expect)
  * - ZMODEM! https://github.com/spk121/libzmodem ?
  * - gzip/gunzip?
  */
@@ -55,20 +55,19 @@ void boot_q40(void)
     q40_isa_reset();
     uart_init();
 
-    uart_write_str(copyright_msg);
-
+    printf(copyright_msg);
     report_linker_layout();
 
     printf("Setup interrupts: ");
-    q40_setup_interrupts(); /* do this VERY early: timers depend upon it */
+    q40_setup_interrupts(); /* do this early to get timers ticking */
     printf("done\n");
 
     printf("Initialise RTC: ");
     q40_rtc_init();
-    printf("done\n");
 
+    printf("\nRAM installed: ");
     q40_measure_ram_size();
-    printf("RAM installed: %d MB\n", ram_size>>20);
+    printf("%d MB\n", ram_size>>20);
 
     printf("Initialise video: ");
     q40_graphics_init(3);

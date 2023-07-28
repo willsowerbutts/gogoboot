@@ -122,9 +122,6 @@ void q40_setup_interrupts(void)
     *q40_keyboard_interrupt_enable = 0;
     *q40_isa_interrupt_enable = 0;
     *q40_sample_interrupt_enable = 0;
-    *q40_keyboard_interrupt_ack = 0xff;
-    *q40_frame_interrupt_ack = 0xff;
-    *q40_sample_interrupt_ack = 0xff;
     *q40_sample_rate = 0;
 #if TIMER_HZ == 200
     *q40_frame_rate = 1;
@@ -133,6 +130,9 @@ void q40_setup_interrupts(void)
 #else
     #error Unsupported TIMER_HZ value (use 50 or 200)
 #endif
+    *q40_keyboard_interrupt_ack = 0xff;
+    *q40_frame_interrupt_ack = 0xff;
+    *q40_sample_interrupt_ack = 0xff;
     cpu_set_ipl(1);      /* enable interrupt 2 and above */
 }
 
@@ -166,7 +166,10 @@ void q40_graphics_init(int mode)
 
     // clear entire video memory (1MB)
     memset((void*)VIDEO_RAM_BASE, 0xaa, 1024*1024);
-    cpu_cache_flush(); // if we don't flush the data cache, video corruption results
+
+    // the CPU caches video memory so we need to force it to write the updates out
+    // otherwise we get weird artefacts on the screen that hang around forever!
+    cpu_cache_flush();
 }
 
 void q40_measure_ram_size(void)
