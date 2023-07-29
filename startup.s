@@ -64,22 +64,24 @@ _start:
         movec %d0, %cacr
         nop
 
-        /* load .data section into RAM from ROM */
+        /* load .data section into RAM from ROM -- note limited to 256KB */
         lea.l   data_load_start, %a0    /* source address */
         lea.l   data_start, %a1         /* dest address */
-        move.l  data_size, %d0          /* num bytes to copy */
+        move.l  #(data_size+3), %d0     /* num bytes to copy */
+        lsr.l   #2, %d0                 /* convert to longwords (div 4) */
         br.s    copy_data
 copy_loop:
-        move.b  (%a0)+,(%a1)+
+        move.l  (%a0)+,(%a1)+
 copy_data:
         dbra    %d0,copy_loop
 
-        /* clear the .bss section */
+        /* clear the .bss section -- note limited to 256KB */
         lea.l   bss_start, %a1
-        move.l  bss_size, %d0            /* num bytes to zap  */
+        move.l  #(bss_size+3), %d0      /* num bytes to zap; round up  */
+        lsr.l   #2, %d0                 /* convert to longwords (div 4) */
         br.s    zap_bss
 zap_loop:
-        clr.b   (%a1)+
+        clr.l   (%a1)+
 zap_bss:
         dbra    %d0, zap_loop
 
