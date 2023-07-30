@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <q40types.h>
+#include "tinyalloc.h"
 #include "q40isa.h"
 #include "q40hw.h"
 #include "net.h"
@@ -19,6 +20,7 @@ static void push_packet_ready(int len);
 
 #undef  DEBUG                   /* extra-chatty mode */
 #define NE2000_16BIT_PIO        /* use 16-bit PIO data transfer instead of 8-bit? */
+#define PACKET_MAXLEN 1600      /* largest size we will process */
 
 #ifdef DEBUG
 #define DEBUG_FUNCTION() do { printf("%s\n", __FUNCTION__); } while (0)
@@ -36,12 +38,8 @@ static void push_packet_ready(int len);
 #define PRINTK(args...)
 #endif
 
-#define PACKET_COUNT   (32768/PACKET_BUFFER_SIZE)
 static dp83902a_priv_data_t nic;                /* just one instance of the card supported */
 static uint8_t dev_addr[6];                     /* MAC address for card found */
-static uint8_t pbuf[PACKET_COUNT][PACKET_BUFFER_SIZE];      /* buffered packet data */
-static int plen[PACKET_COUNT];                     /* buffered packet lengths */
-int pkt_buffered_first, pkt_buffered_count;     /* ring buffer: start + length */
 
 static bool dp83902a_init(void)
 {
@@ -572,19 +570,19 @@ static bool get_prom(void)
 static void push_packet_ready(int len)
 {
     PRINTK("pushed len = %d\n", len);
-    if (len>=PACKET_BUFFER_SIZE) {
+    if (len>=PACKET_MAXLEN) {
         printf("ne2000: rx too big\n");
         return;
     }
-    if(pkt_buffered_count == PACKET_COUNT){
+
+    packet_t *packet = net_alloc(len);
+    if(!packet){
         printf("ne2000: no free rx buffer\n");
         return;
     }
-    /* push packet into tail of ring buffer */
-    int rxpkt = (pkt_buffered_first + pkt_buffered_count) % PACKET_COUNT;
-    plen[rxpkt] = len;
-    dp83902a_recv(pbuf[rxpkt], len);
-    pkt_buffered_count++;
+    packet->length = len;
+    dp83902a_recv(packet->data, packet->length);
+    net_rx(packet);
 }
 
 // list of ISA port addresses to test
@@ -606,8 +604,6 @@ bool eth_init(void)
         nic.tx_buf2 = 0x48; /* 2KB */
         nic.rx_buf_start = 0x50; /* 12KB */
         nic.rx_buf_end = 0x80;
-        pkt_buffered_first = 0;
-        pkt_buffered_count = 0;
 
         if (!dp83902a_init())
             continue;
@@ -628,29 +624,9 @@ void eth_halt(void)
     dp83902a_stop();
 }
 
-uint8_t *eth_rx(int *length)
+void eth_pump(void)
 {
-    if(!nic.base){
-        *length = 0;
-        return NULL;
-    }
-
-    /* pump the card if we have reasonable space free */
-    if(pkt_buffered_count <= (PACKET_COUNT/2))
-        dp83902a_poll();
-
-    /* nothing received and waiting */
-    if(pkt_buffered_count == 0){
-        *length = 0;
-        return NULL;
-    }
-
-    /* pop a packet from the head of the ring buffer */
-    uint8_t *r = pbuf[pkt_buffered_first];
-    *length = plen[pkt_buffered_first];
-    pkt_buffered_count--;
-    pkt_buffered_first = (pkt_buffered_first + 1) % PACKET_COUNT;
-    return r;
+    dp83902a_poll();
 }
 
 bool eth_tx(uint8_t *packet, int length)
@@ -661,12 +637,13 @@ bool eth_tx(uint8_t *packet, int length)
 
     dp83902a_poll();
 
-    if (length>=PACKET_BUFFER_SIZE) {
+    if (length>=PACKET_MAXLEN) {
         printf("ne2000: tx too big\n");
         return false;
     }
     if(nic.tx1 && nic.tx2){
         printf("ne2000: no free tx buffer\n");
+        /* should probably have a timeout here ... ? */
         return false;
     }else{
         dp83902a_send(packet, length);

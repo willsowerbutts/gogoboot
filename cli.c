@@ -773,22 +773,6 @@ static void handle_any_command(char *argv[], int argc) {
     }
 }
 
-static void handle_network(void)
-{
-    uint8_t *pkt;
-    int len;
-
-    do{
-        pkt = eth_rx(&len);
-
-        if(pkt){
-            printf("eth_rx() = 0x%0x, len=%d\n", (int)pkt, len);
-            pretty_dump_memory(pkt, len);
-
-        }
-    }while(pkt);
-}
-
 static void rubout(void)
 {
     putch('\b');
@@ -802,7 +786,7 @@ static int getline(char *line, int linesize)
     int ch;
 
     do {
-        handle_network();
+        net_pump(); /* call this regularly */
         ch = uart_read_byte();
 
         if(ch >= 0){
@@ -833,7 +817,7 @@ void command_line_interpreter(void)
     while(true){
         f_getcwd(cmd_buffer, LINELEN);
         printf("%s> ", cmd_buffer);
-        getline(cmd_buffer, LINELEN);
+        getline(cmd_buffer, LINELEN); /* periodically calls network_pump() */
         execute_cmd(cmd_buffer);
     }
 }

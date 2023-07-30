@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <q40types.h>
 
-#define TIMER_HZ                200
+#define TIMER_HZ                200     // choose 50 or 200
 #define TIMER_MS_PER_TICK       (1000/TIMER_HZ)
 
 void q40_graphics_init(int mode);
