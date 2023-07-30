@@ -621,11 +621,13 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
             bootinfo->size = sizeof(struct bi_record);
 
             /* Linux expects us to enter with:
-             * - interrupts disabled (_run_us_mode does this for us)
+             * - interrupts disabled
              * - CPU cache disabled
              * - CPU in supervisor mode
              */
-            cpu_cache_disable(); /* disable cache */
+            eth_halt();
+            cpu_cache_disable();
+            cpu_interrupts_off();
             header.entry += EXECUTABLE_LOAD_ADDRESS;
         }else{
             printf("hmmm. don't have a way to handle non-linux executables yet?\n");

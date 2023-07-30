@@ -6,7 +6,8 @@
         .globl  cpu_cache_disable
         .globl  cpu_cache_flush
         .globl  cpu_cache_invalidate
-        .globl  cpu_set_ipl
+        .globl  cpu_interrupts_on
+        .globl  cpu_interrupts_off
         .globl  vector_table
 
         .section .rom_header
@@ -111,9 +112,12 @@ cpu_cache_disable:
         nop
         rts
 
-cpu_set_ipl:
-        /* FIXME this needs to take the IPL from the argument on the stack */
-        move.w #0x2100, %sr
+cpu_interrupts_on:
+        and.w #0xf8ff, %sr
+        rts
+
+cpu_interrupts_off:
+        or.w #0x0700, %sr
         rts
 
         .end

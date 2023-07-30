@@ -133,7 +133,7 @@ void q40_setup_interrupts(void)
     *q40_keyboard_interrupt_ack = 0xff;
     *q40_frame_interrupt_ack = 0xff;
     *q40_sample_interrupt_ack = 0xff;
-    cpu_set_ipl(1);      /* enable interrupt 2 and above */
+    cpu_interrupts_on();
 }
 
 static void q40_delay(uint32_t count)

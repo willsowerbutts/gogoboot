@@ -17,7 +17,8 @@ void q40_setup_interrupts(void);
 void cpu_cache_disable(void);
 void cpu_cache_flush(void);
 void cpu_cache_invalidate(void);
-void cpu_set_ipl(int ipl);
+void cpu_interrupts_on(void);
+void cpu_interrupts_off(void);
 
 /* RTC */
 #define Q40_RTC_NVRAM_SIZE (2040) /* bytes */

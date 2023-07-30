@@ -56,7 +56,7 @@ class Replica1Terminal:
 ################################################################
 
 rom = open(sys.argv[3], 'rb').read()
-print(f"ROM length {len(rom)} bytes")
+print(f"ROM length {len(rom)} bytes ({len(rom)/1024:.1f}KB)")
 
 if len(rom) >= (96*1024)-1:
     print("ROM too large! Aborted.")
