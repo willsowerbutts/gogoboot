@@ -4,9 +4,10 @@
 #include "q40ide.h"
 #include "q40isa.h"
 #include "q40uart.h"
+#include "net.h"
+#include "cli.h"
 
 extern const char copyright_msg[];
-void command_line_interpreter(void);
 
 /* TODO:
  * DONE - 040 cache modes
@@ -74,6 +75,10 @@ void boot_q40(void)
     printf("done\n");
 
     q40_ide_init();
+
+    printf("Initialise ethernet: ");
+    eth_init();
+    printf("done\n");
 
     q40_led(true);
 

@@ -4,7 +4,7 @@
 #include <q40types.h>
 
 #define ISA_BASE_ADDR 0xff400000
-#define ISA_XLATE_ADDR_BYTE(addr) ((volatile uint8_t*)(ISA_BASE_ADDR+1+((addr)<<2)))
+#define ISA_XLATE_ADDR_BYTE(addr) ((volatile uint8_t *)(ISA_BASE_ADDR+1+((addr)<<2)))
 #define ISA_XLATE_ADDR_WORD(addr) ((volatile uint16_t*)(ISA_BASE_ADDR + ((addr)<<2)))
 
 static inline uint16_t isa_read_word(uint16_t addr)

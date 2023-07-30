@@ -11,6 +11,7 @@
 #include "ff.h"
 #include "elf.h"
 #include "bootinfo.h"
+#include "net.h"
 
 #define MACHINE_IS_Q40
 
@@ -51,6 +52,7 @@ static void do_dump(char *argv[], int argc);
 static void help(char *argv[], int argc);
 static void do_writemem(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
+static void do_ethrx(char *argv[], int argc);
 
 const cmd_entry_t cmd_table[] = {
     /* name         min max function */
@@ -62,6 +64,7 @@ const cmd_entry_t cmd_table[] = {
     {"ls",          0,  1,  &do_ls,	     "synonym for DIR"	},
     {"writemem",    2,  0,  &do_writemem,    "write memory <addr> [byte ...]" },
     {"wm",          2,  0,  &do_writemem,    "synonym for WRITEMEM"},
+    {"ethrx",       0,  0,  &do_ethrx,       "experimental!"},
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -97,7 +100,7 @@ static void f_perror(int errno)
         printf("Error: Unknown error %d!\n", errno);
 }
 
-static void pretty_dump_memory(void *start, int len)
+void pretty_dump_memory(void *start, int len)
 {
     int i, rem;
     unsigned char *ptr=(unsigned char *)start;
@@ -154,6 +157,11 @@ static void do_dump(char *argv[], int argc)
     count = strtoul(argv[1], NULL, 16);
 
     pretty_dump_memory((void*)start, count);
+}
+
+static void do_ethrx(char *argv[], int argc)
+{
+    eth_rx();
 }
 
 static void help(char *argv[], int argc)
