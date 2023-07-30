@@ -84,7 +84,6 @@ void boot_q40(void)
 
     printf("Initialise ethernet: ");
     eth_init();
-    printf("done\n");
 
     q40_led(true);
 

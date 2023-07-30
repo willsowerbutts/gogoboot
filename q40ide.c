@@ -229,6 +229,7 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
 	return;
     }
 
+    memset(buffer, 0, sizeof(buffer)); /* this keeps the compiler happy */
     q40_ide_read_sector_data(ctrl, buffer);
 
     /* confirm disk has LBA support */
