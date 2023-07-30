@@ -52,7 +52,6 @@ static void do_dump(char *argv[], int argc);
 static void help(char *argv[], int argc);
 static void do_writemem(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
-static void do_ethrx(char *argv[], int argc);
 
 const cmd_entry_t cmd_table[] = {
     /* name         min max function */
@@ -64,7 +63,6 @@ const cmd_entry_t cmd_table[] = {
     {"ls",          0,  1,  &do_ls,	     "synonym for DIR"	},
     {"writemem",    2,  0,  &do_writemem,    "write memory <addr> [byte ...]" },
     {"wm",          2,  0,  &do_writemem,    "synonym for WRITEMEM"},
-    {"ethrx",       0,  0,  &do_ethrx,       "experimental!"},
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -157,21 +155,6 @@ static void do_dump(char *argv[], int argc)
     count = strtoul(argv[1], NULL, 16);
 
     pretty_dump_memory((void*)start, count);
-}
-
-static void do_ethrx(char *argv[], int argc)
-{
-    uint8_t *pkt;
-    int len;
-
-    while(true){
-        pkt = eth_rx(&len);
-
-        if(pkt){
-            printf("eth_rx() = 0x%0x, len=%d\n", (int)pkt, len);
-            pretty_dump_memory(pkt, len);
-        }
-    }
 }
 
 static void help(char *argv[], int argc)
@@ -790,6 +773,22 @@ static void handle_any_command(char *argv[], int argc) {
     }
 }
 
+static void handle_network(void)
+{
+    uint8_t *pkt;
+    int len;
+
+    do{
+        pkt = eth_rx(&len);
+
+        if(pkt){
+            printf("eth_rx() = 0x%0x, len=%d\n", (int)pkt, len);
+            pretty_dump_memory(pkt, len);
+
+        }
+    }while(pkt);
+}
+
 static void rubout(void)
 {
     putch('\b');
@@ -800,24 +799,26 @@ static void rubout(void)
 static int getline(char *line, int linesize)
 {
     int k = 0;
-    signed char ch;
+    int ch;
 
     do {
-        ch = uart_read_byte_wait();
+        handle_network();
+        ch = uart_read_byte();
 
-        if (ch >= 32 && ch < 127) {
-            line[k++] = ch;
-            putch(ch);
-        } else if (ch == '\r' || ch == '\n') {
-            ch = 0;
-            putch('\n');
-        } else if ( (ch == '\b' || ch == 0177) && k>0) {
-            rubout();
-            --k;
-        } else if (ch == ('X' & 037) /* Ctrl-X */) {
-            while (k) { rubout(); --k; }
-        } else putch('G' & 037); /* beep! */
-
+        if(ch >= 0){
+            if (ch >= 32 && ch < 127) {
+                line[k++] = ch;
+                putch(ch);
+            } else if (ch == '\r' || ch == '\n') {
+                ch = 0;
+                putch('\n');
+            } else if ( (ch == '\b' || ch == 0177) && k>0) {
+                rubout();
+                --k;
+            } else if (ch == ('X' & 037) /* Ctrl-X */) {
+                while (k) { rubout(); --k; }
+            } else putch('G' & 037); /* beep! */
+        }
     } while (ch && k < linesize-1);
 
     line[k] = 0;

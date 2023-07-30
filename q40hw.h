@@ -87,6 +87,4 @@ Q40_MASTER_REGISTER(0x30, q40_led_control);                    /* write-only */
 Q40_MASTER_REGISTER(0x34, q40_isa_bus_reset);                  /* write-only */
 Q40_MASTER_REGISTER(0x38, q40_frame_rate);                     /* write-only */
 
-#define CONFIG_DRIVER_NE2000_BASE (0x300)
-
 #endif

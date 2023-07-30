@@ -17,10 +17,8 @@
 /* forward definition of function used for the uboot interface */
 static void push_packet_ready(int len);
 
-/* timeout for tx/rx in s */
-#define NUMPKTBUF   6
-
-#define DEBUG
+#undef  DEBUG                   /* extra-chatty mode */
+#define NE2000_16BIT_PIO        /* use 16-bit PIO data transfer instead of 8-bit? */
 
 #ifdef DEBUG
 #define DEBUG_FUNCTION() do { printf("%s\n", __FUNCTION__); } while (0)
@@ -38,10 +36,11 @@ static void push_packet_ready(int len);
 #define PRINTK(args...)
 #endif
 
+#define PACKET_COUNT   (32768/PACKET_BUFFER_SIZE)
 static dp83902a_priv_data_t nic;                /* just one instance of the card supported */
 static uint8_t dev_addr[6];                     /* MAC address for card found */
-static uint8_t pbuf[NUMPKTBUF][MAXPKTLEN];      /* buffered packet data */
-static int plen[NUMPKTBUF];                     /* buffered packet lengths */
+static uint8_t pbuf[PACKET_COUNT][PACKET_BUFFER_SIZE];      /* buffered packet data */
+static int plen[PACKET_COUNT];                     /* buffered packet lengths */
 int pkt_buffered_first, pkt_buffered_count;     /* ring buffer: start + length */
 
 static bool dp83902a_init(void)
@@ -50,7 +49,7 @@ static bool dp83902a_init(void)
 
     DEBUG_FUNCTION();
 
-    if (!nic.base)
+    if (!nic.base || !nic.data)
         return false;  /* No device found */
 
     DEBUG_LINE();
@@ -63,7 +62,8 @@ static bool dp83902a_init(void)
         nic.esa[i] = isa_read_byte(nic.base + DP_P1_PAR0+i);
     isa_write_byte(nic.base + DP_CR, DP_CR_NODMA | DP_CR_PAGE0);  /* Select page 0 */
 
-    printf("NE2000 - ESA: %02x:%02x:%02x:%02x:%02x:%02x\n",
+    printf("NE2000 at 0x%x, MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+            nic.base,
             nic.esa[0], nic.esa[1], nic.esa[2],
             nic.esa[3], nic.esa[4], nic.esa[5] );
 
@@ -94,7 +94,12 @@ static void dp83902a_start(uint8_t *enaddr)
     DEBUG_FUNCTION();
 
     isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_STOP); /* Brutal */
-    isa_write_byte(nic.base + DP_DCR, DP_DCR_INIT);
+#ifdef NE2000_16BIT_PIO
+    // DP_DCR_BOS does not seem to affect the actual byte order the card uses ... ?
+    isa_write_byte(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4 | DP_DCR_WTS /* | DP_DCR_BOS */);
+#else
+    isa_write_byte(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4);
+#endif
     isa_write_byte(nic.base + DP_RBCH, 0);               /* Remote byte count */
     isa_write_byte(nic.base + DP_RBCL, 0);
     isa_write_byte(nic.base + DP_RCR, DP_RCR_MON);       /* Accept no packets */
@@ -153,9 +158,6 @@ static void dp83902a_start_xmit(int start_page, int len)
 static void dp83902a_send(void *data, int total_len)
 {
     int len, start_page, pkt_len, i, isr;
-#ifdef DEBUG
-    int dx;
-#endif
 
     DEBUG_FUNCTION();
 
@@ -173,10 +175,6 @@ static void dp83902a_send(void *data, int total_len)
         nic.tx2_len = pkt_len;
         nic.tx_next = nic.tx_buf1;
     }
-
-#ifdef DEBUG
-    printf("TX prep page %d len %d\n", start_page, pkt_len);
-#endif
 
     isa_write_byte(nic.base + DP_ISR, DP_ISR_RDC);  /* Clear end of DMA */
 
@@ -205,19 +203,18 @@ static void dp83902a_send(void *data, int total_len)
     isa_write_byte(nic.base + DP_CR, DP_CR_WDMA | DP_CR_START);
 
     /* Put data into buffer */
-#ifdef DEBUG
-    printf(" sg buf %08lx len %08x\n ", (unsigned long) data, len);
-    dx = 0;
-#endif
+#ifdef NE2000_16BIT_PIO
+    uint16_t *txptr = (uint16_t*)data;
+    len = (len+1) >> 1;
+#else
     uint8_t *txptr = (uint8_t*)data;
-    while (len > 0) {
-#ifdef DEBUG
-        printf(" %02x", *txptr);
-        if (0 == (++dx % 16))
-            printf("\n ");
 #endif
+    for(i=0; i<len; i++){
+#ifdef NE2000_16BIT_PIO
+        isa_write_word(nic.data, __builtin_bswap16(*(txptr++)));
+#else
         isa_write_byte(nic.data, *(txptr++));
-        len--;
+#endif
     }
 #ifdef DEBUG
     printf("\n");
@@ -226,10 +223,19 @@ static void dp83902a_send(void *data, int total_len)
 #ifdef DEBUG
         printf("  + %d bytes of padding\n", pkt_len - total_len);
 #endif
+#ifdef NE2000_16BIT_PIO
+        len = len << 1;
+        len = (pkt_len - len) >> 1;
+#else
+        len = pkt_len - len;
+#endif
         /* Padding to 802.3 length was required */
-        for (i = total_len;  i < pkt_len;) {
-            i++;
+        for(i=0; i<len; i++){
+#ifdef NE2000_16BIT_PIO
+            isa_write_word(nic.data, 0);
+#else
             isa_write_byte(nic.data, 0);
+#endif
         }
     }
 
@@ -307,9 +313,15 @@ static void dp83902a_RxEvent(void)
         CYGACC_CALL_IF_DELAY_US(10);
 #endif
 
+#ifdef NE2000_16BIT_PIO
+        for (i = 0;  i < sizeof(rcv_hdr)/2; i++) {
+            ((uint16_t*)rcv_hdr)[i] = __builtin_bswap16(isa_read_word(nic.data));
+        }
+#else
         for (i = 0;  i < sizeof(rcv_hdr);) {
             rcv_hdr[i++] = isa_read_byte(nic.data);
         }
+#endif
 
 #ifdef DEBUG
         printf("rx hdr %02x %02x %02x %02x\n",
@@ -333,19 +345,6 @@ static void dp83902a_RxEvent(void)
    */
 static void dp83902a_recv(uint8_t *data, int len)
 {
-    int mlen;
-    uint8_t saved_char = 0;
-    bool saved;
-#ifdef DEBUG
-    int dx;
-#endif
-
-    DEBUG_FUNCTION();
-
-#ifdef DEBUG
-    printf("Rx packet %d length %d\n", nic.rx_next, len);
-#endif
-
     /* Read incoming packet data */
     isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
     isa_write_byte(nic.base + DP_RBCL, len & 0xFF);
@@ -358,35 +357,18 @@ static void dp83902a_recv(uint8_t *data, int len)
     CYGACC_CALL_IF_DELAY_US(10);
 #endif
 
-    saved = false;
-    if (data) {
-        mlen = len;
-#ifdef DEBUG
-        printf(" sg buf %08lx len %08x \n", (unsigned long) data, mlen);
-        dx = 0;
+#ifdef NE2000_16BIT_PIO
+    uint16_t *dptr = (uint16_t*)data;
+    len = (len+1) >> 1;
+#else
+    uint8_t *dptr = data;
 #endif
-        while (0 < mlen) {
-            /* Saved byte from previous loop? */
-            if (saved) {
-                *data++ = saved_char;
-                mlen--;
-                saved = false;
-                continue;
-            }
 
-            {
-                uint8_t tmp;
-                tmp = isa_read_byte(nic.data);
-#ifdef DEBUG
-                printf(" %02x", tmp);
-                if (0 == (++dx % 16)) printf("\n ");
-#endif
-                *data++ = tmp;;
-                mlen--;
-            }
-        }
-#ifdef DEBUG
-        printf("\n");
+    for(int i=0; i<len; i++){
+#ifdef NE2000_16BIT_PIO
+        *(dptr++) = __builtin_bswap16(isa_read_word(nic.data));
+#else
+        *(dptr++) = isa_read_byte(nic.data);
 #endif
     }
 }
@@ -519,9 +501,9 @@ static void pcnet_reset_8390(void)
     isa_write_byte(nic.base + PCNET_RESET, isa_read_byte(nic.base + PCNET_RESET));
 
     for (i = 0; i < 100; i++) {
+        delay_ms(5);
         if ((r = (isa_read_byte(nic.base + EN0_ISR) & ENISR_RESET)) != 0)
             break;
-        delay_ms(5);
     }
     isa_write_byte(nic.base + EN0_ISR, 0xff); /* Ack all interrupts */
 }
@@ -529,8 +511,8 @@ static void pcnet_reset_8390(void)
 static const struct {
     uint8_t value, offset;
 } get_prom_program_seq[] = {
-    {E8390_NODMA+E8390_PAGE0+E8390_STOP, E8390_CMD}, /* Select page 0*/
-    {0x48,      EN0_DCFG},      /* Set byte-wide (0x48) access. */
+    {E8390_NODMA+E8390_PAGE0+E8390_STOP, E8390_CMD}, /* Select page 0 */
+    { DP_DCR_LS | DP_DCR_FIFO_4, DP_DCR},
     {0x00,      EN0_RCNTLO},    /* Clear the count regs. */
     {0x00,      EN0_RCNTHI},
     {0x00,      EN0_IMR},       /* Mask completion irq. */
@@ -590,43 +572,55 @@ static bool get_prom(void)
 static void push_packet_ready(int len)
 {
     PRINTK("pushed len = %d\n", len);
-    if (len>=MAXPKTLEN) {
+    if (len>=PACKET_BUFFER_SIZE) {
         printf("ne2000: rx too big\n");
         return;
     }
-    if(pkt_buffered_count == NUMPKTBUF){
+    if(pkt_buffered_count == PACKET_COUNT){
         printf("ne2000: no free rx buffer\n");
         return;
     }
     /* push packet into tail of ring buffer */
-    int rxpkt = (pkt_buffered_first + pkt_buffered_count) % NUMPKTBUF;
+    int rxpkt = (pkt_buffered_first + pkt_buffered_count) % PACKET_COUNT;
     plen[rxpkt] = len;
     dp83902a_recv(pbuf[rxpkt], len);
     pkt_buffered_count++;
 }
 
+// list of ISA port addresses to test
+static uint16_t const portlist[] = {
+        0x300, 0x280, 0x320, 0x340, 0x360, 0x380, 
+        0 /* list terminator */
+};
+
 bool eth_init(void)
 {
-    nic.base = CONFIG_DRIVER_NE2000_BASE;
+    for(int i=0; portlist[i]; i++){
+        nic.base = portlist[i];
+        nic.data = nic.base + DP_DATAPORT;
 
-    if(!get_prom())
-        return false;
+        if(!get_prom())
+            continue;
 
-    nic.data = nic.base + DP_DATAPORT;
-    nic.tx_buf1 = 0x40; /* 2KB */
-    nic.tx_buf2 = 0x48; /* 2KB */
-    nic.rx_buf_start = 0x50; /* 12KB */
-    nic.rx_buf_end = 0x80;
+        nic.tx_buf1 = 0x40; /* 2KB */
+        nic.tx_buf2 = 0x48; /* 2KB */
+        nic.rx_buf_start = 0x50; /* 12KB */
+        nic.rx_buf_end = 0x80;
+        pkt_buffered_first = 0;
+        pkt_buffered_count = 0;
 
-    pkt_buffered_first = 0;
-    pkt_buffered_count = 0;
+        if (!dp83902a_init())
+            continue;
 
-    if (!dp83902a_init())
-        return false;
+        dp83902a_start(dev_addr);
 
-    dp83902a_start(dev_addr);
+        return true;
+    }
 
-    return true;
+    printf("No NE2000 card found\n");
+    nic.base = nic.data = 0;
+
+    return false;
 }
 
 void eth_halt(void)
@@ -636,8 +630,13 @@ void eth_halt(void)
 
 uint8_t *eth_rx(int *length)
 {
+    if(!nic.base){
+        *length = 0;
+        return NULL;
+    }
+
     /* pump the card if we have reasonable space free */
-    if(pkt_buffered_count <= (NUMPKTBUF/2))
+    if(pkt_buffered_count <= (PACKET_COUNT/2))
         dp83902a_poll();
 
     /* nothing received and waiting */
@@ -650,15 +649,19 @@ uint8_t *eth_rx(int *length)
     uint8_t *r = pbuf[pkt_buffered_first];
     *length = plen[pkt_buffered_first];
     pkt_buffered_count--;
-    pkt_buffered_first = (pkt_buffered_first + 1) % NUMPKTBUF;
+    pkt_buffered_first = (pkt_buffered_first + 1) % PACKET_COUNT;
     return r;
 }
 
 bool eth_tx(uint8_t *packet, int length)
 {
+    if(!nic.base){
+        return false;
+    }
+
     dp83902a_poll();
 
-    if (length>=MAXPKTLEN) {
+    if (length>=PACKET_BUFFER_SIZE) {
         printf("ne2000: tx too big\n");
         return false;
     }

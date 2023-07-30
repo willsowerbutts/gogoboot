@@ -205,8 +205,6 @@ static void dp83902a_poll(void);
 #define DP_DCR_FIFO_4 0x40
 #define DP_DCR_FIFO_6 0x60
 
-#define DP_DCR_INIT   (DP_DCR_LS|DP_DCR_FIFO_4)
-
 /* Interrupt status register */
 
 #define DP_ISR_RxP    0x01   /* Packet received */

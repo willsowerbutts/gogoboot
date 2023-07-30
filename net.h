@@ -3,7 +3,7 @@
 
 #include <q40types.h>
 
-#define MAXPKTLEN 2000
+#define PACKET_BUFFER_SIZE 1600
 
 /* ethernet -- startup and shutdown */
 bool eth_init(void); // returns true if card found

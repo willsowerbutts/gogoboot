@@ -26,9 +26,9 @@ extern const char copyright_msg[];
  * DONE   - trap #0 required for SMSQ/E -- should put us in supervisor mode, so basically a NOP.
  * DONE - ISA bus reset
  * DONE - configure the other master chip's registers -- interrupt control?
- * NEXT UP >>> - NE2000 driver
+ * DONE - NE2000 driver
+ * DONE - NE2000 driver to use 16-bit transfers
  * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for card memory limit)
- * - NE2000 driver to use 16-bit transfers
  * - linux ne2000 driver: stop interrupt probing (=crashes machine)
  * - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
  * - ultimately target a port back to kiss-68030?
@@ -50,6 +50,10 @@ void report_linker_layout(void)
     printf("  .rodata  0x%08x length 0x%08x\n", (int)&rodata_start, (int)&rodata_size); 
     printf("  .data    0x%08x length 0x%08x (load from 0x%08x)\n", (int)&data_start, (int)&data_size, (int)&data_load_start);
     printf("  .bss     0x%08x length 0x%08x\n\n", (int)&bss_start, (int)&bss_size);
+
+    if((int)(&bss_start) + (int)(&bss_size) >= 256*1024){
+        printf("!!! WARNING !!! BSS may conflict with kernel load address!\n");
+    }
 }
 
 void boot_q40(void)
