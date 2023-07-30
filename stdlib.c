@@ -237,18 +237,6 @@ int toupper(int c)
 #ifdef __GNUC__
 __attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
 #endif
-size_t strlen(const char *t)
-{
-        size_t ct = 0;
-        while (*t++)
-                ct++;
-        return ct;
-}
-
-#if 0 /* simple memcpy/memmove/memset */
-#ifdef __GNUC__
-__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
-#endif
 void *memcpy(void *dest, const void *src, size_t len)
 {
         uint8_t *dp = dest;
@@ -275,6 +263,17 @@ void *memset(void *dest, int data, size_t len)
 #ifdef __GNUC__
 __attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
 #endif
+size_t strlen(const char *t)
+{
+        size_t ct = 0;
+        while (*t++)
+                ct++;
+        return ct;
+}
+
+#ifdef __GNUC__
+__attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
+#endif
 void *memmove(void *dest, const void *src, size_t len)
 {
         uint8_t *dp = dest;
@@ -291,4 +290,3 @@ void *memmove(void *dest, const void *src, size_t len)
         }
         return dest;
 }
-#endif
