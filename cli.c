@@ -161,7 +161,15 @@ static void do_dump(char *argv[], int argc)
 
 static void do_ethrx(char *argv[], int argc)
 {
-    eth_rx();
+    void *pkt;
+    int len;
+
+    pkt = eth_rx(&len);
+
+    if(pkt){
+        printf("eth_rx() = 0x%0x, len=%d\n", (int)pkt, len);
+        pretty_dump_memory(pkt, len);
+    }
 }
 
 static void help(char *argv[], int argc)
