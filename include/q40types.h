@@ -33,6 +33,11 @@ typedef unsigned short int	uint16_t;
 typedef unsigned long int	uint32_t;
 typedef unsigned long long	uint64_t;
 
+typedef int                     intptr_t;
+typedef unsigned int            uintptr_t;
+
+typedef uint32_t                size_t;
+
 #ifndef NULL
 #define NULL ((void *)0)
 #endif
