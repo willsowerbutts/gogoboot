@@ -28,6 +28,8 @@ extern const char copyright_msg[];
  * DONE - configure the other master chip's registers -- interrupt control?
  * NEXT UP >>> - NE2000 driver
  * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for card memory limit)
+ * - NE2000 driver to use 16-bit transfers
+ * - linux ne2000 driver: stop interrupt probing (=crashes machine)
  * - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
  * - ultimately target a port back to kiss-68030?
  * - store ROM config in RTC NVRAM? MAC address, serial port speed, etc? store as series of strings; cksum at start.

@@ -87,38 +87,21 @@ are GPL, so this is, of course, GPL.
 // #define DP_IN_DATA(b, d)        (d) = isa_read_byte((int)((b)))
 // #define DP_OUT_DATA(b, d)             isa_write_byte((int)((b)), (d))
 
-#define DP_IN(B, O, D)          do{printf("<%x>", (int)(B)+(O)); (D) = isa_read_byte((int)((B)+(O)));}while(0)
-#define DP_OUT(B, O, D)               do{printf("<%x=%x>", (int)(B)+(O), (D)); isa_write_byte((int)((B)+(O)), (D));}while(0)
-#define DP_IN_DATA(B, D)        (D) = isa_read_byte((int)((B)))
-#define DP_OUT_DATA(B, D)             isa_write_byte((int)((B)), (D))
-
-
-/* here is all the data */
-#define cyg_uint8 uint8_t
-#define cyg_uint16 uint16_t
-#define u_int unsigned int
-#define u_char unsigned char
-// #define bool int
-
-#define false 0
-#define true 1
-
 #undef  CYGHWR_NS_DP83902A_PLF_BROKEN_TX_DMA
 // #define CYGACC_CALL_IF_DELAY_US(X) my_udelay(X)
 #define CYGACC_CALL_IF_DELAY_US(X) delay_ms(((X)+999/1000))
 
 typedef struct dp83902a_priv_data {
-    cyg_uint8* base;
-    cyg_uint8* data;
-    cyg_uint8* reset;
+    uint16_t base;
+    uint16_t data;
     int tx_next;           /* First free Tx page */
     int tx_int;            /* Expecting interrupt from this buffer */
     int rx_next;           /* First free Rx page */
     int tx1, tx2;          /* Page numbers for Tx buffers */
-    unsigned long tx1_key, tx2_key;   /* Used to ack when packet sent */
+    /* unsigned long tx1_key, tx2_key;   // Used to ack when packet sent */
     int tx1_len, tx2_len;
-    bool tx_started, running, hardwired_esa;
-    cyg_uint8 esa[6];
+    bool tx_started, running;
+    uint8_t esa[6];
     void* plf_priv;
 
     /* Buffer allocation */
