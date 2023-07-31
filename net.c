@@ -64,6 +64,8 @@ packet_t *packet_queue_pophead(packet_queue_t *q)
 
 packet_t *packet_alloc(int data_size)
 {
+    if(data_size >= PACKET_MAXLEN)
+        printf("net: packet_alloc(%d): too big!\n", data_size);
     packet_t *p=malloc(sizeof(packet_t) + data_size);
     p->next = 0;
     p->length = data_size;

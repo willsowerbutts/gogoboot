@@ -70,27 +70,6 @@ are GPL, so this is, of course, GPL.
 
 */
 
-/*
- ------------------------------------------------------------------------
- Macros for accessing DP registers
- These can be overridden by the platform header
-*/
-
-// #define DP_IN(_b_, _o_, _d_)  (_d_) = *( (volatile unsigned char *) ((_b_)+(_o_)))
-// #define DP_OUT(_b_, _o_, _d_) *( (volatile unsigned char *) ((_b_)+(_o_))) = (_d_)
-// 
-// #define DP_IN_DATA(_b_, _d_)  (_d_) = *( (volatile unsigned char *) ((_b_)))
-// #define DP_OUT_DATA(_b_, _d_) *( (volatile unsigned char *) ((_b_))) = (_d_)
-//
-// #define DP_IN(b, o, d)          (d) = isa_read_byte((int)((b)+(o)))
-// #define DP_OUT(b, o, d)               isa_write_byte((int)((b)+(o)), (d))
-// #define DP_IN_DATA(b, d)        (d) = isa_read_byte((int)((b)))
-// #define DP_OUT_DATA(b, d)             isa_write_byte((int)((b)), (d))
-
-#undef  CYGHWR_NS_DP83902A_PLF_BROKEN_TX_DMA
-// #define CYGACC_CALL_IF_DELAY_US(X) my_udelay(X)
-#define CYGACC_CALL_IF_DELAY_US(X) delay_ms(((X)+999/1000))
-
 typedef struct dp83902a_priv_data {
     uint16_t base;
     uint16_t data;

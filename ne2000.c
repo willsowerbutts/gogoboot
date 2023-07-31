@@ -20,7 +20,6 @@ static void push_packet_ready(int len);
 
 #undef  DEBUG                   /* extra-chatty mode */
 #define NE2000_16BIT_PIO        /* use 16-bit PIO data transfer instead of 8-bit? */
-#define PACKET_MAXLEN 1600      /* largest size we will process */
 
 #ifdef DEBUG
 #define DEBUG_FUNCTION() do { printf("%s\n", __FUNCTION__); } while (0)
@@ -191,12 +190,6 @@ static void dp83902a_send(void *data, int total_len)
     isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_RDMA | DP_CR_START);
     tmp = isa_read_byte(nic.data);
 
-#ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_TX_DMA
-    /* Stall for a bit before continuing to work around random data */
-    /* corruption problems on some platforms. */
-    CYGACC_CALL_IF_DELAY_US(1);
-#endif
-
 #ifdef NE2000_16BIT_PIO
     /* round up pkt_len for word writes */
     if(pkt_len & 1)
@@ -249,13 +242,6 @@ static void dp83902a_send(void *data, int total_len)
 #endif
         }
     }
-
-#ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_TX_DMA
-    /* After last data write, delay for a bit before accessing the */
-    /* device again, or we may get random data corruption in the last */
-    /* datum (on some platforms). */
-    CYGACC_CALL_IF_DELAY_US(1);
-#endif
 
     /* Wait for DMA to complete */
     do {
@@ -320,9 +306,6 @@ static void dp83902a_RxEvent(void)
         nic.rx_next = pkt;
         isa_write_byte(nic.base + DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
         isa_write_byte(nic.base + DP_CR, DP_CR_RDMA | DP_CR_START);
-#ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_RX_DMA
-        CYGACC_CALL_IF_DELAY_US(10);
-#endif
 
 #ifdef NE2000_16BIT_PIO
         for (i = 0;  i < sizeof(rcv_hdr)/2; i++) {
@@ -364,9 +347,6 @@ static void dp83902a_recv(uint8_t *data, int len)
     isa_write_byte(nic.base + DP_RSAH, nic.rx_next);
     isa_write_byte(nic.base + DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
     isa_write_byte(nic.base + DP_CR, DP_CR_RDMA | DP_CR_START);
-#ifdef CYGHWR_NS_DP83902A_PLF_BROKEN_RX_DMA
-    CYGACC_CALL_IF_DELAY_US(10);
-#endif
 
 #ifdef NE2000_16BIT_PIO
     uint16_t *dptr = (uint16_t*)data;
@@ -434,7 +414,6 @@ static void dp83902a_Overflow(void)
 
     /* Issue a stop command and wait 1.6ms for it to complete. */
     isa_write_byte(nic.base + DP_CR, DP_CR_STOP | DP_CR_NODMA);
-    CYGACC_CALL_IF_DELAY_US(1600);
 
     /* Clear the remote byte counter registers. */
     isa_write_byte(nic.base + DP_RBCL, 0);

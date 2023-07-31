@@ -13,6 +13,8 @@ struct packet_t {
     // do NOT add more members here
 };
 
+#define PACKET_MAXLEN 1600      /* largest size we will process */
+
 typedef struct {
     packet_t *head;
     packet_t *tail;
