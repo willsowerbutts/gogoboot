@@ -21,18 +21,22 @@ typedef struct {
 /* ne2000.c */
 bool eth_init(void); // returns true if card found
 void eth_halt(void);
-void eth_pump(void);
-bool eth_tx(uint8_t *packet, int length); /* returns true on success */
+void eth_pump(void); // called from net_pump
+
+/* net.c -- interface with ne2000.c */
+void net_eth_push(packet_t *packet);
+packet_t *net_eth_pull(void);
 
 /* net.c */
 void net_init(void);
 void net_pump(void);
-void net_rx(packet_t *packet);
-packet_t *net_alloc(int data_size);
-void net_free(packet_t *packet);
+void net_tx(packet_t *packet);
+packet_t *packet_alloc(int data_size);
+void packet_free(packet_t *packet);
 packet_queue_t *packet_queue_alloc(void);
 void packet_queue_free(packet_queue_t *q);
 void packet_queue_addtail(packet_queue_t *q, packet_t *p);
+packet_t *packet_queue_peekhead(packet_queue_t *q);
 packet_t *packet_queue_pophead(packet_queue_t *q);
 
 /* dhcp.c */

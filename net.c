@@ -5,12 +5,12 @@
 #include "net.h"
 
 static packet_queue_t *net_rxqueue;
-static bool net_initialised = false;
+static packet_queue_t *net_txqueue;
 
 void net_init(void)
 {
-    net_initialised = true;
     net_rxqueue = packet_queue_alloc();
+    net_txqueue = packet_queue_alloc();
     dhcp_init();
 }
 
@@ -23,6 +23,9 @@ packet_queue_t *packet_queue_alloc(void)
 
 void packet_queue_free(packet_queue_t *q)
 {
+    packet_t *p;
+    while((p = packet_queue_pophead(q)))
+        packet_free(p);
     free(q);
 }
 
@@ -36,6 +39,11 @@ void packet_queue_addtail(packet_queue_t *q, packet_t *p)
     }else{
         q->head = q->tail = p;
     }
+}
+
+packet_t *packet_queue_peekhead(packet_queue_t *q)
+{
+    return q->head;
 }
 
 packet_t *packet_queue_pophead(packet_queue_t *q)
@@ -54,40 +62,54 @@ packet_t *packet_queue_pophead(packet_queue_t *q)
     return p;
 }
 
-packet_t *net_alloc(int data_size)
+packet_t *packet_alloc(int data_size)
 {
-    return malloc(sizeof(packet_t) + data_size);
+    packet_t *p=malloc(sizeof(packet_t) + data_size);
+    p->next = 0;
+    p->length = data_size;
+    return p;
 }
 
-void net_free(packet_t *packet)
+void packet_free(packet_t *packet)
 {
     free(packet);
 }
 
 void net_rx_processing(packet_t *packet)
 {
-    printf("received packet, length %d:\n", packet->length);
-    pretty_dump_memory(packet->data, packet->length);
-    net_free(packet);
+    // printf("received packet, length %d:\n", packet->length);
+    // pretty_dump_memory(packet->data, packet->length);
     /* filter the packet into a queue for the receiving app ... */
+    packet_free(packet);
 }
 
 void net_pump(void)
 {
-    if(!net_initialised)
-        return;
+    packet_t *p;
 
     eth_pump();
 
-    packet_t *p;
-    while((p = packet_queue_pophead(net_rxqueue))){
+    while(true){
+        p = packet_queue_pophead(net_rxqueue);
+        if(!p)
+            break;
         net_rx_processing(p);
     }
 
     dhcp_pump();
 }
 
-void net_rx(packet_t *packet)
+void net_eth_push(packet_t *packet)
 {
     packet_queue_addtail(net_rxqueue, packet);
+}
+
+packet_t *net_eth_pull(void)
+{
+    return packet_queue_pophead(net_txqueue);
+}
+
+void net_tx(packet_t *packet)
+{
+    packet_queue_addtail(net_txqueue, packet);
 }

@@ -11,6 +11,7 @@
 #include "ff.h"
 #include "elf.h"
 #include "bootinfo.h"
+#include "tinyalloc.h"
 #include "net.h"
 
 #define MACHINE_IS_Q40
@@ -51,6 +52,8 @@ static void do_ls(char *argv[], int argc);
 static void do_dump(char *argv[], int argc);
 static void help(char *argv[], int argc);
 static void do_writemem(char *argv[], int argc);
+static void do_heapinfo(char *argv[], int argc);
+static void do_txtest(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
 
 const cmd_entry_t cmd_table[] = {
@@ -63,6 +66,8 @@ const cmd_entry_t cmd_table[] = {
     {"ls",          0,  1,  &do_ls,	     "synonym for DIR"	},
     {"writemem",    2,  0,  &do_writemem,    "write memory <addr> [byte ...]" },
     {"wm",          2,  0,  &do_writemem,    "synonym for WRITEMEM"},
+    {"heapinfo",    0,  0,  &do_heapinfo,    "info on internal malloc state" },
+    {"txtest",      0,  0,  &do_txtest,      "[development] tx test" },
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -181,6 +186,33 @@ static int fromhex(char c)
     if(c >= 'A' && c <= 'F')
         return 10 + c - 'A';
     return -1;
+}
+
+const char testpattern[] = {
+    // dst mac, src max, ethertype
+    0x00, 0x0d, 0xb9, 0x5a, 0x4b, 0x5c, 0x00, 0x00, 0xE8, 0xCF, 0x2E, 0x39, 0x08, 0xf1, 
+    // payload
+    0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x40, 0x41, 0x42, 0x43, 0x69, 
+    0x42, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 
+};
+
+static void do_heapinfo(char *argv[], int argc)
+{
+    printf("internal heap (tinyalloc):\nfree: %ld\nused: %ld, fresh: %ld\n",
+            ta_num_free(), ta_num_used(), ta_num_fresh());
+    printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
+}
+
+static void do_txtest(char *argv[], int argc)
+{
+    for(int i=0; i<50; i++){
+        packet_t *p = packet_alloc(sizeof(testpattern));
+        memcpy(p->data, testpattern, sizeof(testpattern));
+
+        uint16_t *s = (uint16_t*)(p->data + sizeof(testpattern) - 4);
+        *s = i;
+        net_tx(p);
+    }
 }
 
 static void do_writemem(char *argv[], int argc)

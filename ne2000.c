@@ -165,14 +165,18 @@ static void dp83902a_send(void *data, int total_len)
 
     start_page = nic.tx_next;
     if (nic.tx_next == nic.tx_buf1) {
+        PRINTK("tx1 ");
         nic.tx1 = start_page;
         nic.tx1_len = pkt_len;
         nic.tx_next = nic.tx_buf2;
     } else {
+        PRINTK("tx2 ");
         nic.tx2 = start_page;
         nic.tx2_len = pkt_len;
         nic.tx_next = nic.tx_buf1;
     }
+
+    PRINTK("total_len=%d pkt_len=%d ", total_len, pkt_len);
 
     isa_write_byte(nic.base + DP_ISR, DP_ISR_RDC);  /* Clear end of DMA */
 
@@ -193,6 +197,12 @@ static void dp83902a_send(void *data, int total_len)
     CYGACC_CALL_IF_DELAY_US(1);
 #endif
 
+#ifdef NE2000_16BIT_PIO
+    /* round up pkt_len for word writes */
+    if(pkt_len & 1)
+        pkt_len++;
+#endif
+
     /* Send data to device buffer(s) */
     isa_write_byte(nic.base + DP_RSAL, 0);
     isa_write_byte(nic.base + DP_RSAH, start_page);
@@ -203,7 +213,9 @@ static void dp83902a_send(void *data, int total_len)
     /* Put data into buffer */
 #ifdef NE2000_16BIT_PIO
     uint16_t *txptr = (uint16_t*)data;
-    len = (len+1) >> 1;
+    if(len & 1)
+        len++;
+    len = len >> 1;
 #else
     uint8_t *txptr = (uint8_t*)data;
 #endif
@@ -214,18 +226,19 @@ static void dp83902a_send(void *data, int total_len)
         isa_write_byte(nic.data, *(txptr++));
 #endif
     }
-#ifdef DEBUG
-    printf("\n");
-#endif
+
+    /* pad with zeroes if required */
     if (total_len < pkt_len) {
+#ifdef NE2000_16BIT_PIO
+        len = len << 1;
+#endif
+        len = pkt_len - len;
 #ifdef DEBUG
         printf("  + %d bytes of padding\n", pkt_len - total_len);
 #endif
 #ifdef NE2000_16BIT_PIO
-        len = len << 1;
-        len = (pkt_len - len) >> 1;
+        len = len >> 1;
 #else
-        len = pkt_len - len;
 #endif
         /* Padding to 802.3 length was required */
         for(i=0; i<len; i++){
@@ -379,8 +392,10 @@ static void dp83902a_TxEvent(void)
 
     tsr = isa_read_byte(nic.base + DP_TSR);
     if (nic.tx_int == 1) {
+        PRINTK("f1 ");
         nic.tx1 = 0;
     } else {
+        PRINTK("f2 ");
         nic.tx2 = 0;
     }
 
@@ -575,14 +590,14 @@ static void push_packet_ready(int len)
         return;
     }
 
-    packet_t *packet = net_alloc(len);
+    packet_t *packet = packet_alloc(len);
     if(!packet){
         printf("ne2000: no free rx buffer\n");
         return;
     }
     packet->length = len;
     dp83902a_recv(packet->data, packet->length);
-    net_rx(packet);
+    net_eth_push(packet);
 }
 
 // list of ISA port addresses to test
@@ -621,32 +636,42 @@ bool eth_init(void)
 
 void eth_halt(void)
 {
-    dp83902a_stop();
+    if(nic.base)
+        dp83902a_stop();
 }
 
-void eth_pump(void)
-{
-    dp83902a_poll();
-}
-
-bool eth_tx(uint8_t *packet, int length)
+static bool eth_tx(uint8_t *packet, int length)
 {
     if(!nic.base){
         return false;
     }
-
-    dp83902a_poll();
-
     if (length>=PACKET_MAXLEN) {
         printf("ne2000: tx too big\n");
         return false;
     }
     if(nic.tx1 && nic.tx2){
-        printf("ne2000: no free tx buffer\n");
-        /* should probably have a timeout here ... ? */
         return false;
     }else{
         dp83902a_send(packet, length);
         return true;
+    }
+}
+
+void eth_pump(void)
+{
+    packet_t *packet;
+
+    if(!nic.base)
+        return;
+
+    dp83902a_poll();
+
+    while(!(nic.tx1 && nic.tx2)){ // can transmit?
+        packet = net_eth_pull();
+        if(!packet)
+            break;
+        if(!eth_tx(packet->data, packet->length))
+            printf("ne2000: eth_tx failed\n");
+        packet_free(packet);
     }
 }

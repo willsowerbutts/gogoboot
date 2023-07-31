@@ -31,7 +31,7 @@ bool networking;
  * DONE - NE2000 driver
  * DONE - NE2000 driver to use 16-bit transfers
  * DONE - back to back transmits do not work?
- * - during tx of short packet, we're dumping crap out of the buffer too -- fix and replace with 00s
+ * DONE - during tx of short packet, we're dumping crap out of the buffer too -- fix and replace with 00s
  * - DHCP -- perform in the background
  * - would be nice if getline in the CLI somehow recovers after we overwrite it ...
  * - set and store environment vars in NVRAM (we have malloc now!)
