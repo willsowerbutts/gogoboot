@@ -30,7 +30,10 @@ bool networking;
  * DONE - configure the other master chip's registers -- interrupt control?
  * DONE - NE2000 driver
  * DONE - NE2000 driver to use 16-bit transfers
+ * DONE - back to back transmits do not work?
+ * - during tx of short packet, we're dumping crap out of the buffer too -- fix and replace with 00s
  * - DHCP -- perform in the background
+ * - would be nice if getline in the CLI somehow recovers after we overwrite it ...
  * - set and store environment vars in NVRAM (we have malloc now!)
  * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for card memory limit)
  * - linux ne2000 driver: stop interrupt probing (=crashes machine)
@@ -60,9 +63,11 @@ void report_linker_layout(void)
     }
 }
 
+#define MAXHEAP (4 << 20) /* 4MB */
+
 static unsigned int heap_init(void)
 {
-    int ram, heap;
+    int heap;
     void *base;
 
     // this is an attempt to leave enough space
@@ -71,12 +76,9 @@ static unsigned int heap_init(void)
     // shame that talloc cannot allocate from
     // the top downwards.
 
-    ram = ram_size >> 20;
-    heap = ram / 2;
-    if(ram > 16)
-        heap = ram - 8;
-
-    heap <<= 20;
+    heap = ram_size / 4;  /* not more than 25% of RAM */
+    if(heap > MAXHEAP)    /* and not too much */
+        heap = MAXHEAP;
 
     base = (void*)ram_size - heap;
     ta_init(base, (void*)ram_size-1, 256, 16, 8);
@@ -93,7 +95,7 @@ void boot_q40(void)
     printf(copyright_msg);
     report_linker_layout();
 
-    printf("\nRAM installed: ");
+    printf("RAM installed: ");
     q40_measure_ram_size();
     unsigned int heap_base = heap_init();
     printf("%d MB, %d MB heap at 0x%08x\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
@@ -105,7 +107,7 @@ void boot_q40(void)
     printf("Initialise RTC: ");
     q40_rtc_init();
 
-    printf("Initialise video: ");
+    printf("\nInitialise video: ");
     q40_graphics_init(3);
     printf("done\n");
 
