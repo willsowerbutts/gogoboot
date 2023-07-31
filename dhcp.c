@@ -48,46 +48,16 @@ uint8_t const dhcp_dhcpdiscover_options[] = {
     0xff                          
 };
 
+macaddr_t macaddr_broadcast = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+uint32_t  ipv4_broadcast = 0xffffffff;
+
 packet_t *create_dhcpdiscover(void)
 {
-    packet_t *p = packet_alloc(sizeof(ethernet_header_t) + 
-                               sizeof(ipv4_header_t) +
-                               sizeof(udp_header_t) +
-                               sizeof(dhcp_message_t) +
-                               sizeof(dhcp_dhcpdiscover_options));
+    packet_t *p = packet_create_udp(&macaddr_broadcast, ipv4_broadcast,
+            sizeof(dhcp_message_t) + sizeof(dhcp_dhcpdiscover_options),
+            68, 67);
 
-    ethernet_header_t *e = (ethernet_header_t*)p->data;
-    ipv4_header_t *i = (ipv4_header_t*)e->payload;
-    udp_header_t *u = (udp_header_t*)i->payload;
-    dhcp_message_t *d = (dhcp_message_t*)u->payload;
-
-    // set up ethernet header
-    memset(e->destination_mac, 0xff, 6);
-    memcpy(e->source_mac, eth_get_interface_mac(), 6);
-    e->ethertype = htons(ethertype_ipv4);
-
-    // set up ipv4 header
-    i->version_length = 0x45;   // we don't use options so length = 5 x 4 = 20 bytes
-    i->diffserv_ecn = 0;
-    i->length = htons(sizeof(ipv4_header_t) + 
-                      sizeof(udp_header_t) +
-                      sizeof(dhcp_message_t) +
-                      sizeof(dhcp_dhcpdiscover_options));
-    i->id = htons(q40_read_timer_ticks() & 0xffff);
-    i->flags_and_frags = htons(0x4000); // don't fragment
-    i->ttl = DEFAULT_TTL;
-    i->protocol = ip_proto_udp;
-    i->source_ip = htonl(0);
-    i->destination_ip = htonl(0xffffffff);
-    net_compute_ipv4_checksum(i);
-
-    // set up udp header
-    u->source_port = htons(68);
-    u->destination_port = htons(67);
-    u->length = htons(sizeof(udp_header_t) + 
-                      sizeof(dhcp_message_t) +
-                      sizeof(dhcp_dhcpdiscover_options));
-    u->checksum = 0; // udp checksum is optional, skip it for now
+    dhcp_message_t *d = (dhcp_message_t*)p->user_data;
 
     d->op = 1;          // BOOTREQUEST
     d->htype = 1;       // 10M ethernet

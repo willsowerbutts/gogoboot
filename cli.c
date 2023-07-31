@@ -207,9 +207,9 @@ static void do_txtest(char *argv[], int argc)
 {
     for(int i=0; i<50; i++){
         packet_t *p = packet_alloc(sizeof(testpattern));
-        memcpy(p->data, testpattern, sizeof(testpattern));
+        memcpy(p->buffer, testpattern, sizeof(testpattern));
 
-        uint16_t *s = (uint16_t*)(p->data + sizeof(testpattern) - 4);
+        uint16_t *s = (uint16_t*)(p->buffer + sizeof(testpattern) - 4);
         *s = i;
         net_tx(p);
     }

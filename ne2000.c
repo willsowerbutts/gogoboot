@@ -575,7 +575,7 @@ static void push_packet_ready(int len)
         return;
     }
     packet->length = len;
-    dp83902a_recv(packet->data, packet->length);
+    dp83902a_recv(packet->buffer, packet->length);
     net_eth_push(packet);
 }
 
@@ -636,9 +636,9 @@ static bool eth_tx(uint8_t *packet, int length)
     }
 }
 
-const uint8_t *eth_get_interface_mac(void)
+const macaddr_t *eth_get_interface_mac(void)
 {
-    return dev_addr;
+    return (const macaddr_t *)dev_addr;
 }
 
 void eth_pump(void)
@@ -654,7 +654,7 @@ void eth_pump(void)
         packet = net_eth_pull();
         if(!packet)
             break;
-        if(!eth_tx(packet->data, packet->length))
+        if(!eth_tx(packet->buffer, packet->length))
             printf("ne2000: eth_tx failed\n");
         packet_free(packet);
     }

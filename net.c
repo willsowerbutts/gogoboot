@@ -1,6 +1,7 @@
 #include <q40types.h>
 #include <stdlib.h>
 #include "tinyalloc.h"
+#include "q40hw.h"
 #include "cli.h"
 #include "net.h"
 
@@ -43,6 +44,9 @@ void packet_queue_addtail(packet_queue_t *q, packet_t *p)
 
 packet_t *packet_queue_peekhead(packet_queue_t *q)
 {
+    // like a pop but we don't remove it from the queue.
+    // this can be used to check if the queue is empty 
+    // without committing to taking a packet from it.
     return q->head;
 }
 
@@ -69,6 +73,81 @@ packet_t *packet_alloc(int data_size)
     packet_t *p=malloc(sizeof(packet_t) + data_size);
     p->next = 0;
     p->length_alloc = p->length = data_size;
+    p->eth = (ethernet_header_t*)p->buffer;
+    return p;
+}
+
+packet_t *packet_create_ipv4(macaddr_t *dest_mac, uint32_t dest_ipv4, int data_size, int proto)
+{
+    int hsize;
+
+    switch(proto){
+        case ip_proto_tcp: hsize = sizeof(tcp_header_t); break;
+        case ip_proto_udp: hsize = sizeof(udp_header_t); break;
+        // case ip_proto_icmp: size += sizeof(icmp_header_t); break;
+        default: printf("proto=%d?", proto); return NULL;
+    }
+
+    packet_t *p = packet_alloc(sizeof(ethernet_header_t) +
+                               sizeof(ipv4_header_t) +
+                               hsize + data_size);
+
+    // set up ethernet header
+    memcpy(&p->eth->destination_mac, dest_mac, 6);
+    memcpy(&p->eth->source_mac, eth_get_interface_mac(), 6);
+    p->eth->ethertype = htons(ethertype_ipv4);
+
+    // set up ipv4 header
+    p->ipv4 = (ipv4_header_t*)p->eth->payload;
+    p->ipv4->version_length = 0x45;   // we don't use options so length = 5 x 4 = 20 bytes
+    p->ipv4->diffserv_ecn = 0;
+    p->ipv4->length = htons(sizeof(ipv4_header_t) + hsize + data_size);
+    p->ipv4->id = htons(q40_read_timer_ticks() & 0xffff);
+    p->ipv4->flags_and_frags = htons(0x4000); // don't fragment
+    p->ipv4->ttl = DEFAULT_TTL;
+    p->ipv4->protocol = proto;
+    p->ipv4->source_ip = 0; // TODO ? net_get_interface_ipv4();
+    p->ipv4->destination_ip = htonl(dest_ipv4);
+    net_compute_ipv4_checksum(p->ipv4);
+
+    switch(proto){
+        case ip_proto_tcp:
+            p->tcp = (tcp_header_t*)p->ipv4->payload;
+            break;
+        case ip_proto_udp:
+            p->udp = (udp_header_t*)p->ipv4->payload;
+            break;
+    }
+
+    return p;
+}
+
+packet_t *packet_create_tcp(macaddr_t *dest_mac, uint32_t dest_ipv4, int data_size, 
+        uint16_t source_port, uint16_t destination_port)
+{
+    packet_t *p = packet_create_ipv4(dest_mac, dest_ipv4, data_size, ip_proto_udp);
+
+    // set up tcp header
+    // p->tcp->... = ...;
+
+    // p->user_data needs to be computed depending on tcp option headers present.
+
+    return p;
+}
+
+packet_t *packet_create_udp(macaddr_t *dest_mac, uint32_t dest_ipv4, int data_size, 
+        uint16_t source_port, uint16_t destination_port)
+{
+    packet_t *p = packet_create_ipv4(dest_mac, dest_ipv4, data_size, ip_proto_udp);
+
+    // set up udp header
+    p->udp->source_port = htons(source_port);
+    p->udp->destination_port = htons(destination_port);
+    p->udp->length = htons(sizeof(udp_header_t) + data_size);
+    p->udp->checksum = 0; // udp checksum is optional, skip it for now
+
+    p->user_data = (uint8_t*)p->udp->payload;
+
     return p;
 }
 
