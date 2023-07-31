@@ -21,12 +21,35 @@ typedef uint32_t                size_t;
 #define NULL ((void *)0)
 #endif
 
-#define ntohs(x)        (x)
-#define ntohl(x)        (x)
-
+/* network byte ordering functions */
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define ntohl(x)        ((uint32_t)(x))
+#define ntohs(x)        ((uint16_t)(x))
+#define htonl(x)        ((uint32_t)(x))
+#define htons(x)        ((uint16_t)(x))
 #define cpu_to_le16(x)  ((uint16_t)le16_to_cpu(x))
 #define le16_to_cpu(x)  ((uint16_t)(__builtin_bswap16((uint16_t)(x))))
 #define cpu_to_le32(x)  ((uint32_t)le32_to_cpu(x))
 #define le32_to_cpu(x)  ((uint32_t)(__builtin_bswap32((uint32_t)(x))))
+#define cpu_to_be16(x)  ((uint16_t)(x))
+#define be16_to_cpu(x)  ((uint16_t)(x))
+#define cpu_to_be32(x)  ((uint32_t)(x))
+#define be32_to_cpu(x)  ((uint32_t)(x))
+#else
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define ntohl(x)        (__builtin_bswap_32((uint32_t)(x)))
+#define ntohs(x)        (__builtin_bswap_16((uint16_t)(x)))
+#define htonl(x)        (__builtin_bswap_32((uint32_t)(x)))
+#define htons(x)        (__builtin_bswap_16((uint16_t)(x)))
+#define cpu_to_le16(x)  ((uint16_t)(x))
+#define le16_to_cpu(x)  ((uint16_t)(x))
+#define cpu_to_le32(x)  ((uint32_t)(x))
+#define le32_to_cpu(x)  ((uint32_t)(x))
+#define cpu_to_be16(x)  ((uint16_t)be16_to_cpu(x))
+#define be16_to_cpu(x)  ((uint16_t)(__builtin_bswap16((uint16_t)(x))))
+#define cpu_to_be32(x)  ((uint32_t)be32_to_cpu(x))
+#define be32_to_cpu(x)  ((uint32_t)(__builtin_bswap32((uint32_t)(x))))
+#endif
+#endif
 
 #endif

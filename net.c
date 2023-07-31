@@ -68,7 +68,7 @@ packet_t *packet_alloc(int data_size)
         printf("net: packet_alloc(%d): too big!\n", data_size);
     packet_t *p=malloc(sizeof(packet_t) + data_size);
     p->next = 0;
-    p->length = data_size;
+    p->length_alloc = p->length = data_size;
     return p;
 }
 
@@ -114,4 +114,35 @@ packet_t *net_eth_pull(void)
 void net_tx(packet_t *packet)
 {
     packet_queue_addtail(net_txqueue, packet);
+}
+
+static uint16_t compute_checksum(uint16_t *addr, unsigned int count) 
+{
+    uint32_t sum = 0;
+
+    while (count > 1) {
+        sum += * addr++;
+        count -= 2;
+    }
+
+    //if any bytes left, pad the bytes and add
+    if(count > 0) {
+        sum += ((*addr)&htons(0xFF00));
+    }
+
+    //Fold sum to 16 bits: add carrier to result
+    while (sum>>16) {
+        sum = (sum & 0xffff) + (sum >> 16);
+    }
+
+    //one's complement
+    sum = ~sum;
+    return ((unsigned short)sum);
+}
+
+
+void net_compute_ipv4_checksum(ipv4_header_t *ipv4)
+{
+    ipv4->checksum = 0; // set to zero for checksum computation
+    ipv4->checksum = htons(compute_checksum((uint16_t*)ipv4, sizeof(ipv4_header_t)));
 }

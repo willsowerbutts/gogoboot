@@ -114,8 +114,8 @@ void boot_q40(void)
     q40_ide_init();
 
     printf("Initialise ethernet: ");
-    net_init();
     eth_init();
+    net_init(); // do this only after the ethernet is up
 
     q40_led(true);
 

@@ -636,6 +636,11 @@ static bool eth_tx(uint8_t *packet, int length)
     }
 }
 
+const uint8_t *eth_get_interface_mac(void)
+{
+    return dev_addr;
+}
+
 void eth_pump(void)
 {
     packet_t *packet;
