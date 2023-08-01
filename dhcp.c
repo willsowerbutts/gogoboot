@@ -50,7 +50,7 @@ uint8_t const dhcp_dhcpdiscover_options[] = {
 
 packet_t *create_dhcpdiscover(void)
 {
-    packet_t *p = packet_create_udp(ipv4_broadcast, 68, 67,
+    packet_t *p = packet_create_udp(ipv4_broadcast, 67, 68,
             sizeof(dhcp_message_t) + sizeof(dhcp_dhcpdiscover_options));
 
     dhcp_message_t *d = (dhcp_message_t*)p->user_data;
