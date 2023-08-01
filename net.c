@@ -7,12 +7,15 @@
 
 macaddr_t const macaddr_broadcast = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 macaddr_t macaddr_interface; // MAC address of our interface
+uint32_t ipv4_addr_interface = 0; // IPv4 address of our interface
 
 static packet_queue_t *net_txqueue;
+static packet_queue_t *net_txqueue_arp_lookup;
 
 void net_init(void)
 {
     net_txqueue = packet_queue_alloc();
+    net_txqueue_arp_lookup = packet_queue_alloc();
     dhcp_init();
 }
 
@@ -20,7 +23,7 @@ void net_pump(void)
 {
     eth_pump(); // calls net_eth_push
     dhcp_pump();
-    // arp_pump();
+    // arp_pump(); <-- process net_txqueue_arp_lookup in here
 }
 
 bool net_process_icmp(packet_t *packet)
@@ -39,6 +42,7 @@ bool net_process_icmp(packet_t *packet)
         memcpy(m, packet->eth->destination_mac, sizeof(macaddr_t));
         memcpy(packet->eth->destination_mac, packet->eth->source_mac, sizeof(macaddr_t));
         memcpy(packet->eth->source_mac, m, sizeof(macaddr_t));
+        packet->flags |= packet_flag_destination_mac_valid;
 
         // recompute checksums
         net_compute_ipv4_checksum(packet);
@@ -132,13 +136,25 @@ badpkt:
 
 void net_tx(packet_t *packet)
 {
-    // if(!flags & FLAG_DEST_MAC_SET)
-    //     packet_queue_addtail(net_txqueue_do_arp, packet);
-    // else
-    packet_queue_addtail(net_txqueue, packet);
+    if(packet->flags & packet_flag_destination_mac_valid)
+        packet_queue_addtail(net_txqueue, packet);
+    else{
+        printf("net_txqueue_arp_lookup is a queue to nowhere\n");
+        packet_queue_addtail(net_txqueue_arp_lookup, packet);
+    }
 }
 
 packet_t *net_eth_pull(void) // called by ne2000.c
 {
     return packet_queue_pophead(net_txqueue);
+}
+
+const macaddr_t *net_get_interface_mac(void)
+{
+    return &macaddr_interface;
+}
+
+uint32_t net_get_interface_ipv4(void)
+{
+    return ipv4_addr_interface;
 }

@@ -5,6 +5,8 @@
 #include <stdbool.h>
 
 typedef struct packet_t packet_t;
+typedef struct packet_queue_t packet_queue_t;
+typedef struct packet_consumer_t packet_consumer_t;
 typedef struct ethernet_header_t ethernet_header_t;
 typedef struct ipv4_header_t ipv4_header_t;
 typedef struct udp_header_t udp_header_t;
@@ -14,10 +16,11 @@ typedef uint8_t macaddr_t[6];
 
 extern macaddr_t const macaddr_broadcast;
 extern macaddr_t macaddr_interface;
+static const uint32_t ipv4_broadcast = 0xffffffff;
 
 struct packet_t {
     packet_t *next;             // used by packet_queue_t to create linked lists
-    // uint32_t flags; FLAG_DEST_MAC_SET etc?
+    uint32_t flags;
     ethernet_header_t *eth;     // always set
     // arp_header_t *arp;       // set for arp
     ipv4_header_t *ipv4;        // set for ipv4 (all except arp)
@@ -29,6 +32,8 @@ struct packet_t {
     uint16_t length;            // length used by data[] (length <= length_alloc)
     uint8_t buffer[];           // must be final member of data structure
 };
+
+static const uint32_t packet_flag_destination_mac_valid = 1;
 
 struct __attribute__((packed, aligned(2))) ethernet_header_t {
     macaddr_t destination_mac;
@@ -94,21 +99,34 @@ struct __attribute__((packed, aligned(2))) tcp_header_t {
 #define PACKET_MAXLEN 1600      /* largest size we will process */
 #define DEFAULT_TTL 64
 
-typedef struct {
+struct packet_queue_t {
     packet_t *head;
     packet_t *tail;
-} packet_queue_t;
+};
+
+struct packet_consumer_t {
+    packet_consumer_t *next; // for linked lists
+    packet_queue_t *queue;
+    uint32_t match_local_ip;
+    uint32_t match_remote_ip;
+    uint16_t match_local_port;
+    uint16_t match_remote_port;
+    uint16_t match_ethertype;
+    uint8_t  match_ipv4_protocol;
+    // ??? callback for HERE'S YOUR DATA
+    // ??? callback + timer for WAKE UP THERE'S NO DATA YET
+};
 
 /* ne2000.c */
 bool eth_init(void); // returns true if card found
 void eth_halt(void);
 void eth_pump(void); // called from net_pump
-const macaddr_t *eth_get_interface_mac(void);
 
 /* net.c -- interface with ne2000.c */
 void net_eth_push(packet_t *packet);
 packet_t *net_eth_pull(void);
-const uint32_t net_get_default_ip(void);
+const macaddr_t *net_get_interface_mac(void);
+uint32_t net_get_interface_ipv4(void);
 
 /* net.c */
 void net_init(void);
@@ -117,17 +135,19 @@ void net_tx(packet_t *packet);
 
 /* packet.c */
 packet_t *packet_alloc(int buffer_size);
-packet_t *packet_create_tcp(const macaddr_t *dest_mac, uint32_t dest_ipv4, int data_size, 
-        uint16_t source_port, uint16_t destination_port);
-packet_t *packet_create_udp(const macaddr_t *dest_mac, uint32_t dest_ipv4, int data_size, 
-        uint16_t source_port, uint16_t destination_port);
+packet_t *packet_create_tcp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size);
+packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size);
+void packet_set_destination_mac(packet_t *packet, const macaddr_t *mac);
 void packet_free(packet_t *packet);
 
 packet_queue_t *packet_queue_alloc(void);
+void packet_queue_free(packet_queue_t *q);
 void packet_queue_addtail(packet_queue_t *q, packet_t *p);
 packet_t *packet_queue_peekhead(packet_queue_t *q);
 packet_t *packet_queue_pophead(packet_queue_t *q);
-void packet_queue_free(packet_queue_t *q);
+
+packet_consumer_t *packet_consumer_alloc(void);
+void packet_consumer_free(packet_consumer_t *c);
 
 void net_compute_ipv4_checksum(packet_t *packet);
 void net_compute_icmp_checksum(packet_t *packet);

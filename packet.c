@@ -7,6 +7,20 @@
 
 static int packet_count = 0;
 
+packet_consumer_t *packet_consumer_alloc(void)
+{
+    packet_consumer_t *c = malloc(sizeof(packet_consumer_t));
+    memset(c, 0, sizeof(packet_consumer_t));
+    c->queue = packet_queue_alloc();
+    return c;
+}
+
+void packet_consumer_free(packet_consumer_t *c)
+{
+    packet_queue_free(c->queue);
+    free(c);
+}
+
 packet_queue_t *packet_queue_alloc(void)
 {
     packet_queue_t *q = malloc(sizeof(packet_queue_t));
@@ -68,17 +82,19 @@ packet_t *packet_alloc(int data_size)
         printf("packet_count=%d\n", packet_count);
 
     packet_t *p=malloc(sizeof(packet_t) + data_size);
-    p->next = 0;
+    memset(p, 0, sizeof(packet_t)); // do not zero out the data, just the header
     p->length_alloc = p->length = data_size;
     p->eth = (ethernet_header_t*)p->buffer;
-    p->ipv4 = 0;
-    p->udp = 0;
-    p->tcp = 0;
-    p->icmp = 0;
     return p;
 }
 
-packet_t *packet_create_ipv4(const macaddr_t *dest_mac, uint32_t dest_ipv4, int data_size, int proto)
+void packet_set_destination_mac(packet_t *packet, const macaddr_t *mac)
+{
+    memcpy(packet->eth->destination_mac, mac, sizeof(macaddr_t));
+    packet->flags |= packet_flag_destination_mac_valid;
+}
+
+static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto)
 {
     int hsize;
 
@@ -94,9 +110,10 @@ packet_t *packet_create_ipv4(const macaddr_t *dest_mac, uint32_t dest_ipv4, int 
                                hsize + data_size);
 
     // set up ethernet header
-    memcpy(&p->eth->destination_mac, dest_mac, 6);
-    memcpy(&p->eth->source_mac, eth_get_interface_mac(), 6);
+    memcpy(&p->eth->source_mac, net_get_interface_mac(), 6);
     p->eth->ethertype = htons(ethertype_ipv4);
+    if(dest_ipv4 == ipv4_broadcast)
+        packet_set_destination_mac(p, &macaddr_broadcast);
 
     // set up ipv4 header
     p->ipv4 = (ipv4_header_t*)p->eth->payload;
@@ -107,7 +124,7 @@ packet_t *packet_create_ipv4(const macaddr_t *dest_mac, uint32_t dest_ipv4, int 
     p->ipv4->flags_and_frags = htons(0x4000); // don't fragment
     p->ipv4->ttl = DEFAULT_TTL;
     p->ipv4->protocol = proto;
-    p->ipv4->source_ip = 0; // TODO ? net_get_interface_ipv4();
+    p->ipv4->source_ip = htonl(net_get_interface_ipv4());
     p->ipv4->destination_ip = htonl(dest_ipv4);
     net_compute_ipv4_checksum(p);
 
@@ -123,10 +140,9 @@ packet_t *packet_create_ipv4(const macaddr_t *dest_mac, uint32_t dest_ipv4, int 
     return p;
 }
 
-packet_t *packet_create_tcp(const macaddr_t *dest_mac, uint32_t dest_ipv4, int data_size, 
-        uint16_t source_port, uint16_t destination_port)
+packet_t *packet_create_tcp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size)
 {
-    packet_t *p = packet_create_ipv4(dest_mac, dest_ipv4, data_size, ip_proto_udp);
+    packet_t *p = packet_create_ipv4(dest_ipv4, data_size, ip_proto_udp);
 
     printf("packet_create_tcp is incomplete!\n");
 
@@ -138,10 +154,9 @@ packet_t *packet_create_tcp(const macaddr_t *dest_mac, uint32_t dest_ipv4, int d
     return p;
 }
 
-packet_t *packet_create_udp(const macaddr_t *dest_mac, uint32_t dest_ipv4, int data_size, 
-        uint16_t source_port, uint16_t destination_port)
+packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size)
 {
-    packet_t *p = packet_create_ipv4(dest_mac, dest_ipv4, data_size, ip_proto_udp);
+    packet_t *p = packet_create_ipv4(dest_ipv4, data_size, ip_proto_udp);
 
     // set up udp header
     p->udp->source_port = htons(source_port);

@@ -48,13 +48,10 @@ uint8_t const dhcp_dhcpdiscover_options[] = {
     0xff                          
 };
 
-uint32_t  ipv4_broadcast = 0xffffffff;
-
 packet_t *create_dhcpdiscover(void)
 {
-    packet_t *p = packet_create_udp(&macaddr_broadcast, ipv4_broadcast,
-            sizeof(dhcp_message_t) + sizeof(dhcp_dhcpdiscover_options),
-            68, 67);
+    packet_t *p = packet_create_udp(ipv4_broadcast, 68, 67,
+            sizeof(dhcp_message_t) + sizeof(dhcp_dhcpdiscover_options));
 
     dhcp_message_t *d = (dhcp_message_t*)p->user_data;
 
@@ -66,7 +63,7 @@ packet_t *create_dhcpdiscover(void)
     d->secs = ntohs(0);        // we can do better here, surely?
     d->flags = ntohs(0);
     d->ciaddr = d->yiaddr = d->siaddr = d->giaddr = htonl(0);
-    memcpy(d->chaddr, eth_get_interface_mac(), 6);
+    memcpy(d->chaddr, net_get_interface_mac(), 6);
     memset(d->chaddr+6, 0, 10 + 64 + 128); // zero residue of chaddr, plus sname and file fields together
     memcpy(d->options, dhcp_dhcpdiscover_options, sizeof(dhcp_dhcpdiscover_options));
     net_compute_udp_checksum(p);
