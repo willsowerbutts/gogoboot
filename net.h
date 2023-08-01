@@ -112,15 +112,20 @@ struct packet_queue_t {
 
 struct packet_consumer_t {
     packet_consumer_t *next; // for linked lists
-    packet_queue_t *queue;
+    void *consumer_private;  // for consumer's use
+
     uint32_t match_local_ip;
     uint32_t match_remote_ip;
     uint16_t match_local_port;
     uint16_t match_remote_port;
     uint16_t match_ethertype;
     uint8_t  match_ipv4_protocol;
-    // ??? process_queue callback (for HERE'S YOUR DATA)
-    // ??? timer_expired callback (for WAKE UP THERE'S NO DATA YET)
+
+    packet_queue_t *queue;
+    void (*queue_pump)(packet_consumer_t *consumer);
+
+    timer_t timer;
+    void (*timer_expired)(packet_consumer_t *consumer);
 };
 
 /* ne2000.c */
@@ -174,7 +179,6 @@ void dhcp_pump(void);
 
 /* icmp.c */
 void net_icmp_init(void);
-void net_icmp_pump(void);
 void net_icmp_send_unreachable(packet_t *packet);
 
 #endif

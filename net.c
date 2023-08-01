@@ -31,7 +31,17 @@ void net_pump(void)
 {
     eth_pump(); // calls net_eth_push
     dhcp_pump();
-    // arp_pump(); <-- process net_txqueue_arp_lookup in here
+
+    packet_consumer_t *consumer = net_packet_consumer_head;
+    while(consumer){
+        if(consumer->queue_pump && packet_queue_peekhead(consumer->queue))
+            consumer->queue_pump(consumer);
+        if(consumer->timer_expired && consumer->timer && timer_expired(consumer->timer))
+            consumer->timer_expired(consumer);
+        consumer = consumer->next;
+    }
+
+    // arp_pump(); <-- process net_txqueue_arp_lookup in here // or do this via callback?
 }
 
 void net_add_packet_consumer(packet_consumer_t *c)
@@ -168,8 +178,10 @@ void net_tx(packet_t *packet)
 
 packet_t *net_eth_pull(void) // called by ne2000.c
 {
-    packet_tx_count++;
-    return packet_queue_pophead(net_txqueue);
+    packet_t *p = packet_queue_pophead(net_txqueue);
+    if(p)
+        packet_tx_count++;
+    return p;
 }
 
 const macaddr_t *net_get_interface_mac(void)

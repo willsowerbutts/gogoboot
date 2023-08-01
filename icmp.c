@@ -6,14 +6,6 @@
 static packet_consumer_t *icmp_consumer;
 static timer_t icmp_throttle_timer = 0;
 
-void net_icmp_init(void)
-{
-    packet_consumer_t *icmp_consumer = packet_consumer_alloc();
-    icmp_consumer->match_ethertype = ethertype_ipv4;
-    icmp_consumer->match_ipv4_protocol = ip_proto_icmp;
-    net_add_packet_consumer(icmp_consumer);
-}
-
 void net_icmp_send_unreachable(packet_t *packet)
 {
     if(!timer_expired(icmp_throttle_timer))
@@ -21,6 +13,8 @@ void net_icmp_send_unreachable(packet_t *packet)
 
     // rate limit how fast we send ICMP unreachable messages
     icmp_throttle_timer = set_timer_ms(100);
+
+    // TODO check that the destination ip address matches?
 
     packet_t *unreach = packet_create_icmp(ntohl(packet->ipv4->source_ip), sizeof(ipv4_header_t) + 8);
 
@@ -31,17 +25,17 @@ void net_icmp_send_unreachable(packet_t *packet)
     // fill in ICMP message
     unreach->icmp->type = 3; // Destination Unreachable
     unreach->icmp->code = 3; // Port Unreachable
-    memcpy(unreach->icmp->payload, unreach->ipv4, sizeof(ipv4_header_t) + 8);
+    memcpy(unreach->icmp->payload, packet->ipv4, sizeof(ipv4_header_t) + 8);
     net_compute_icmp_checksum(unreach);
 
     net_tx(unreach);
 }
 
-void net_icmp_pump(void)
+static void net_icmp_pump(packet_consumer_t *c)
 {
     packet_t *packet;
 
-    while((packet = packet_queue_pophead(icmp_consumer->queue))){
+    while((packet = packet_queue_pophead(c->queue))){
         if(packet->icmp->type == 8){ // echo request
                                      // convert echo request to echo reply (per RFC792!)
             packet->icmp->type = 0; // echo reply
@@ -69,4 +63,13 @@ void net_icmp_pump(void)
             packet_free(packet);
         }
     }
+}
+
+void net_icmp_init(void)
+{
+    icmp_consumer = packet_consumer_alloc();
+    icmp_consumer->match_ethertype = ethertype_ipv4;
+    icmp_consumer->match_ipv4_protocol = ip_proto_icmp;
+    icmp_consumer->queue_pump = net_icmp_pump;
+    net_add_packet_consumer(icmp_consumer);
 }
