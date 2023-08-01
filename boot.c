@@ -35,13 +35,19 @@ bool networking;
  * - DHCP -- perform in the background
  * - would be nice if getline in the CLI somehow recovers after we overwrite it ...
  * - set and store environment vars in NVRAM (we have malloc now!)
- * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for card memory limit)
+ *   - store ROM config in RTC NVRAM? serial port speed, boot script filename, etc? store as series of strings; cksum at end. store backwards in nvram.
+ *   - printenv, set, save commands
+ * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
  * - linux ne2000 driver: stop interrupt probing (=crashes machine)
  * - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
- * - ultimately target a port back to kiss-68030?
- * - store ROM config in RTC NVRAM? MAC address, serial port speed, etc? store as series of strings; cksum at start.
- * - equivalent of LRESPR so I can boot SMSQ/E image from disk -- started, but crashes. Write to SMSQ/E maintainer?
- * - serial interrupts (at least on receive, pretty much required for zmodem to disk I expect)
+ * - build system: multiple targets
+ *   - port back to kiss-68030
+ *     - 030 cache modes
+ *     - ns202 interrupts
+ *     - move int handlers -> C?
+ * - add "linux" command - make loading a kernel an explicit command (linux [filename] [-i initrd] [kcmdline])
+ * - add LRESPR command - so I can boot SMSQ/E image from disk -- started, but crashes. Write to SMSQ/E maintainer?
+ * - serial interrupts (at least on receive? pretty much required for zmodem to disk I expect)
  * - ZMODEM! https://github.com/spk121/libzmodem ?
  * - gzip/gunzip?
  */
@@ -59,7 +65,7 @@ void report_linker_layout(void)
     printf("  .bss     0x%08x length 0x%08x\n\n", (int)&bss_start, (int)&bss_size);
 
     if((int)(&bss_start) + (int)(&bss_size) >= 256*1024){
-        printf("!!! WARNING !!! BSS may conflict with kernel load address!\n");
+        printf("!!! WARNING !!! BSS conflict with kernel load address!\n");
     }
 }
 
