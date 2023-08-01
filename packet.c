@@ -5,8 +5,6 @@
 #include "cli.h"
 #include "net.h"
 
-static int packet_count = 0;
-
 packet_consumer_t *packet_consumer_alloc(void)
 {
     packet_consumer_t *c = malloc(sizeof(packet_consumer_t));
@@ -38,7 +36,12 @@ void packet_queue_free(packet_queue_t *q)
 
 void packet_queue_addtail(packet_queue_t *q, packet_t *p)
 {
-    p->next = NULL;
+    if(p->next){
+        p->next = NULL;
+        printf("packet_queue_addtail: p->next set?\n");
+    }
+    if(!q)
+        printf("null packet_queue?\n");
 
     if(q->tail){
         q->tail->next = p;
@@ -53,12 +56,17 @@ packet_t *packet_queue_peekhead(packet_queue_t *q)
     // like a pop but we don't remove it from the queue.
     // this can be used to check if the queue is empty 
     // without committing to taking a packet from it.
+    if(!q)
+        printf("null packet_queue?\n");
     return q->head;
 }
 
 packet_t *packet_queue_pophead(packet_queue_t *q)
 {
     packet_t *p;
+
+    if(!q)
+        printf("null packet_queue?\n");
 
     if(!q->head)
         return NULL;
@@ -77,9 +85,9 @@ packet_t *packet_alloc(int data_size)
     if(data_size >= PACKET_MAXLEN)
         printf("net: packet_alloc(%d): too big!\n", data_size);
 
-    packet_count++;
-    if(packet_count > 10)
-        printf("packet_count=%d\n", packet_count);
+    packet_alive_count++;
+    if(packet_alive_count > 10)
+        printf("packet_alive_count=%ld\n", packet_alive_count);
 
     packet_t *p=malloc(sizeof(packet_t) + data_size);
     memset(p, 0, sizeof(packet_t)); // do not zero out the data, just the header
@@ -99,15 +107,13 @@ static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto
     int hsize;
 
     switch(proto){
-        case ip_proto_tcp: hsize = sizeof(tcp_header_t); break;
-        case ip_proto_udp: hsize = sizeof(udp_header_t); break;
-        // case ip_proto_icmp: size += sizeof(icmp_header_t); break;
+        case ip_proto_tcp:  hsize = sizeof(tcp_header_t);  break;
+        case ip_proto_udp:  hsize = sizeof(udp_header_t);  break;
+        case ip_proto_icmp: hsize = sizeof(icmp_header_t); break;
         default: printf("proto=%d?", proto); return NULL;
     }
 
-    packet_t *p = packet_alloc(sizeof(ethernet_header_t) +
-                               sizeof(ipv4_header_t) +
-                               hsize + data_size);
+    packet_t *p = packet_alloc(sizeof(ethernet_header_t) + sizeof(ipv4_header_t) + hsize + data_size);
 
     // set up ethernet header
     memcpy(&p->eth->source_mac, net_get_interface_mac(), 6);
@@ -128,6 +134,7 @@ static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto
     p->ipv4->destination_ip = htonl(dest_ipv4);
     net_compute_ipv4_checksum(p);
 
+    // set up protocol header
     switch(proto){
         case ip_proto_tcp:
             p->tcp = (tcp_header_t*)p->ipv4->payload;
@@ -135,8 +142,18 @@ static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto
         case ip_proto_udp:
             p->udp = (udp_header_t*)p->ipv4->payload;
             break;
+        case ip_proto_icmp:
+            p->icmp = (icmp_header_t*)p->ipv4->payload;
+            break;
     }
 
+    return p;
+}
+
+packet_t *packet_create_icmp(uint32_t dest_ipv4, int data_size)
+{
+    packet_t *p = packet_create_ipv4(dest_ipv4, data_size, ip_proto_icmp);
+    p->user_data = (uint8_t*)p->icmp->payload;
     return p;
 }
 
@@ -172,9 +189,7 @@ packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint1
 void packet_free(packet_t *packet)
 {
     free(packet);
-    packet_count--;
-    if(packet_count < 0)
-        printf("packet_count=%d\n", packet_count);
+    packet_alive_count--;
 }
 
 static uint32_t checksum_update(uint32_t sum, uint16_t *addr, unsigned int count)
@@ -229,7 +244,7 @@ uint16_t net_compute_udp_checksum_inner(packet_t *packet)
     sum = checksum_update(0, (uint16_t*)&packet->ipv4->source_ip, sizeof(uint32_t)*2);
     sum += packet->ipv4->protocol;
     sum += packet->udp->length; // yes, this field is summed twice!
-    // ... then the real udp header + data
+                                // ... then the real udp header + data
     sum = checksum_update(sum, (uint16_t*)packet->udp, packet->udp->length);
     return htons(checksum_complete(sum));
 }

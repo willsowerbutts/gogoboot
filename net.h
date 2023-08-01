@@ -18,6 +18,12 @@ extern macaddr_t const macaddr_broadcast;
 extern macaddr_t macaddr_interface;
 static const uint32_t ipv4_broadcast = 0xffffffff;
 
+extern uint32_t packet_alive_count;
+extern uint32_t packet_discard_count;
+extern uint32_t packet_bad_cksum_count;
+extern uint32_t packet_rx_count;
+extern uint32_t packet_tx_count;
+
 struct packet_t {
     packet_t *next;             // used by packet_queue_t to create linked lists
     uint32_t flags;
@@ -39,7 +45,7 @@ struct __attribute__((packed, aligned(2))) ethernet_header_t {
     macaddr_t destination_mac;
     macaddr_t source_mac;
     uint16_t ethertype;
-    uint8_t payload[];          // 46 -- 1500 octets
+    uint8_t payload[]; // 46 -- 1500 octets
 };
 
 static const uint16_t ethertype_ipv4 = 0x0800;
@@ -113,8 +119,8 @@ struct packet_consumer_t {
     uint16_t match_remote_port;
     uint16_t match_ethertype;
     uint8_t  match_ipv4_protocol;
-    // ??? callback for HERE'S YOUR DATA
-    // ??? callback + timer for WAKE UP THERE'S NO DATA YET
+    // ??? process_queue callback (for HERE'S YOUR DATA)
+    // ??? timer_expired callback (for WAKE UP THERE'S NO DATA YET)
 };
 
 /* ne2000.c */
@@ -127,6 +133,8 @@ void net_eth_push(packet_t *packet);
 packet_t *net_eth_pull(void);
 const macaddr_t *net_get_interface_mac(void);
 uint32_t net_get_interface_ipv4(void);
+void net_add_packet_consumer(packet_consumer_t *c);
+void net_remove_packet_consumer(packet_consumer_t *c);
 
 /* net.c */
 void net_init(void);
@@ -137,6 +145,7 @@ void net_tx(packet_t *packet);
 packet_t *packet_alloc(int buffer_size);
 packet_t *packet_create_tcp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size);
 packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size);
+packet_t *packet_create_icmp(uint32_t dest_ipv4, int data_size);
 void packet_set_destination_mac(packet_t *packet, const macaddr_t *mac);
 void packet_free(packet_t *packet);
 
@@ -162,5 +171,10 @@ bool net_verify_tcp_checksum(packet_t *packet);
 /* dhcp.c */
 void dhcp_init(void);
 void dhcp_pump(void);
+
+/* icmp.c */
+void net_icmp_register(void);
+void net_icmp_pump(void);
+void net_icmp_send_unreachable(packet_t *packet);
 
 #endif

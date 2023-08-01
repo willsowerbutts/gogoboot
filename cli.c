@@ -53,7 +53,7 @@ static void do_dump(char *argv[], int argc);
 static void help(char *argv[], int argc);
 static void do_writemem(char *argv[], int argc);
 static void do_heapinfo(char *argv[], int argc);
-static void do_txtest(char *argv[], int argc);
+static void do_netinfo(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
 
 const cmd_entry_t cmd_table[] = {
@@ -67,7 +67,7 @@ const cmd_entry_t cmd_table[] = {
     {"writemem",    2,  0,  &do_writemem,    "write memory <addr> [byte ...]" },
     {"wm",          2,  0,  &do_writemem,    "synonym for WRITEMEM"},
     {"heapinfo",    0,  0,  &do_heapinfo,    "info on internal malloc state" },
-    {"txtest",      0,  0,  &do_txtest,      "[development] tx test" },
+    {"netinfo",     0,  0,  &do_netinfo,     "network statistics" },
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -188,14 +188,6 @@ static int fromhex(char c)
     return -1;
 }
 
-const char testpattern[] = {
-    // dst mac, src max, ethertype
-    0x00, 0x0d, 0xb9, 0x5a, 0x4b, 0x5c, 0x00, 0x00, 0xE8, 0xCF, 0x2E, 0x39, 0x08, 0xf1, 
-    // payload
-    0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x40, 0x41, 0x42, 0x43, 0x69, 
-    0x42, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 
-};
-
 static void do_heapinfo(char *argv[], int argc)
 {
     printf("internal heap (tinyalloc):\nfree: %ld\nused: %ld, fresh: %ld\n",
@@ -203,16 +195,13 @@ static void do_heapinfo(char *argv[], int argc)
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
 }
 
-static void do_txtest(char *argv[], int argc)
+static void do_netinfo(char *argv[], int argc)
 {
-    for(int i=0; i<50; i++){
-        packet_t *p = packet_alloc(sizeof(testpattern));
-        memcpy(p->buffer, testpattern, sizeof(testpattern));
-
-        uint16_t *s = (uint16_t*)(p->buffer + sizeof(testpattern) - 4);
-        *s = i;
-        net_tx(p);
-    }
+    printf("packet_rx_count         %ld\n", packet_rx_count);
+    printf("packet_tx_count         %ld\n", packet_tx_count);
+    printf("packet_alive_count      %ld\n", packet_alive_count);
+    printf("packet_discard_count    %ld\n", packet_discard_count);
+    printf("packet_bad_cksum_count  %ld\n", packet_bad_cksum_count);
 }
 
 static void do_writemem(char *argv[], int argc)

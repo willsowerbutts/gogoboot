@@ -12,7 +12,7 @@ COPT = -Os -malign-int -Wall -nostdinc -nostdlib -nolibc -march=68040 -mcpu=6804
 AOPT = -m68040 -alhmsg 
 
 ROMOBJ = boot.o q40uart.o q40hw.o startup.o vectors.o q40ide.o printf.o stdlib.o \
-	 strtoul.o ff.o cli.o ne2000.o net.o dhcp.o packet.o \
+	 strtoul.o ff.o cli.o ne2000.o net.o dhcp.o packet.o icmp.o \
 	 tinyalloc.o memcpy.o memmove.o memset.o
 
 .SUFFIXES:   .c .s .o .out .hex .bin
