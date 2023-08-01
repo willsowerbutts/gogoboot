@@ -38,7 +38,7 @@ static void push_packet_ready(int len);
 #endif
 
 static dp83902a_priv_data_t nic;                /* just one instance of the card supported */
-static uint8_t dev_addr[6];                     /* MAC address for card found */
+static uint8_t *dev_addr = macaddr_interface;
 
 static bool dp83902a_init(void)
 {
@@ -574,7 +574,6 @@ static void push_packet_ready(int len)
         printf("ne2000: no free rx buffer\n");
         return;
     }
-    packet->length = len;
     dp83902a_recv(packet->buffer, packet->length);
     net_eth_push(packet);
 }

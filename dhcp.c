@@ -48,7 +48,6 @@ uint8_t const dhcp_dhcpdiscover_options[] = {
     0xff                          
 };
 
-macaddr_t macaddr_broadcast = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 uint32_t  ipv4_broadcast = 0xffffffff;
 
 packet_t *create_dhcpdiscover(void)
