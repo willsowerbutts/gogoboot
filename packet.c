@@ -162,13 +162,12 @@ void packet_free(packet_t *packet)
         printf("packet_count=%d\n", packet_count);
 }
 
-static uint16_t compute_checksum(uint16_t *addr, unsigned int count) 
+static uint32_t checksum_update(uint32_t sum, uint16_t *addr, unsigned int count)
 {
-    uint32_t sum = 0;
-
-    while (count > 1) {
-        sum += * addr++;
-        count -= 2;
+    // sum words
+    while(count){
+        sum += *(addr++);
+        count-=2;
     }
 
     //if any bytes left, pad the bytes and add
@@ -176,26 +175,77 @@ static uint16_t compute_checksum(uint16_t *addr, unsigned int count)
         sum += ((*addr)&htons(0xFF00));
     }
 
-    //Fold sum to 16 bits: add carrier to result
+    return sum;
+}
+
+static uint16_t checksum_complete(uint32_t sum)
+{
+    // Fold sum to 16 bits: add carrier to result
     while (sum>>16) {
         sum = (sum & 0xffff) + (sum >> 16);
     }
+    // one's complement
+    return ((unsigned short)~sum);
+}
 
-    //one's complement
-    sum = ~sum;
-    return ((unsigned short)sum);
+static uint16_t checksum_compute(uint16_t *addr, unsigned int count) 
+{
+    return checksum_complete(checksum_update(0, addr, count));
 }
 
 void net_compute_icmp_checksum(packet_t *packet)
 {
     packet->icmp->checksum = 0;
-    packet->icmp->checksum = htons(compute_checksum((uint16_t*)packet->icmp,
+    packet->icmp->checksum = htons(checksum_compute((uint16_t*)packet->icmp,
                 ntohs(packet->ipv4->length) - sizeof(ipv4_header_t)));
 }
 
 void net_compute_ipv4_checksum(packet_t *packet)
 {
     packet->ipv4->checksum = 0; // set to zero for checksum computation
-    packet->ipv4->checksum = htons(compute_checksum((uint16_t*)packet->ipv4, 
+    packet->ipv4->checksum = htons(checksum_compute((uint16_t*)packet->ipv4, 
                 sizeof(ipv4_header_t)));
+}
+
+uint16_t net_compute_udp_checksum_inner(packet_t *packet)
+{
+    uint32_t sum;
+    // we have to sum a "pseudo-header"
+    sum = checksum_update(0, (uint16_t*)&packet->ipv4->source_ip, sizeof(uint32_t)*2);
+    sum += packet->ipv4->protocol;
+    sum += packet->udp->length; // yes, this field is summed twice!
+    // ... then the real udp header + data
+    sum = checksum_update(sum, (uint16_t*)packet->udp, packet->udp->length);
+    return htons(checksum_complete(sum));
+}
+
+void net_compute_udp_checksum(packet_t *packet)
+{
+    uint16_t cs;
+    packet->udp->checksum = 0;
+    cs = net_compute_udp_checksum_inner(packet);
+    if(cs == 0) 
+        cs = 0xffff; // per RFC768
+    packet->udp->checksum = htons(cs);
+}
+
+bool net_verify_ipv4_checksum(packet_t *packet)
+{
+    return (checksum_compute((uint16_t*)packet->ipv4, sizeof(ipv4_header_t)) == 0);
+}
+
+bool net_verify_udp_checksum(packet_t *packet)
+{
+    return (packet->udp->checksum == 0 || net_compute_udp_checksum_inner(packet) == 0);
+}
+
+bool net_verify_tcp_checksum(packet_t *packet)
+{
+    printf("write net_verify_tcp_checksum!\n");
+    return true;
+}
+
+bool net_verify_icmp_checksum(packet_t *packet)
+{
+    return (checksum_compute((uint16_t*)packet->icmp, ntohs(packet->ipv4->length) - sizeof(ipv4_header_t)) == 0);
 }

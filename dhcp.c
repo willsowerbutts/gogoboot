@@ -69,6 +69,7 @@ packet_t *create_dhcpdiscover(void)
     memcpy(d->chaddr, eth_get_interface_mac(), 6);
     memset(d->chaddr+6, 0, 10 + 64 + 128); // zero residue of chaddr, plus sname and file fields together
     memcpy(d->options, dhcp_dhcpdiscover_options, sizeof(dhcp_dhcpdiscover_options));
+    net_compute_udp_checksum(p);
 
     return p;
 }

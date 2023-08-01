@@ -17,6 +17,7 @@ extern macaddr_t macaddr_interface;
 
 struct packet_t {
     packet_t *next;             // used by packet_queue_t to create linked lists
+    // uint32_t flags; FLAG_DEST_MAC_SET etc?
     ethernet_header_t *eth;     // always set
     // arp_header_t *arp;       // set for arp
     ipv4_header_t *ipv4;        // set for ipv4 (all except arp)
@@ -114,6 +115,7 @@ void net_init(void);
 void net_pump(void);
 void net_tx(packet_t *packet);
 
+/* packet.c */
 packet_t *packet_alloc(int buffer_size);
 packet_t *packet_create_tcp(const macaddr_t *dest_mac, uint32_t dest_ipv4, int data_size, 
         uint16_t source_port, uint16_t destination_port);
@@ -130,6 +132,12 @@ void packet_queue_free(packet_queue_t *q);
 void net_compute_ipv4_checksum(packet_t *packet);
 void net_compute_icmp_checksum(packet_t *packet);
 void net_compute_udp_checksum(packet_t *packet);
+void net_compute_tcp_checksum(packet_t *packet);
+
+bool net_verify_ipv4_checksum(packet_t *packet);
+bool net_verify_icmp_checksum(packet_t *packet);
+bool net_verify_udp_checksum(packet_t *packet);
+bool net_verify_tcp_checksum(packet_t *packet);
 
 /* dhcp.c */
 void dhcp_init(void);
