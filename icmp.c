@@ -1,10 +1,12 @@
 #include <q40types.h>
 #include <stdlib.h>
+#include "q40hw.h"
 #include "net.h"
 
-packet_consumer_t *icmp_consumer;
+static packet_consumer_t *icmp_consumer;
+static timer_t icmp_throttle_timer = 0;
 
-void net_icmp_register(void)
+void net_icmp_init(void)
 {
     packet_consumer_t *icmp_consumer = packet_consumer_alloc();
     icmp_consumer->match_ethertype = ethertype_ipv4;
@@ -14,6 +16,12 @@ void net_icmp_register(void)
 
 void net_icmp_send_unreachable(packet_t *packet)
 {
+    if(!timer_expired(icmp_throttle_timer))
+        return;
+
+    // rate limit how fast we send ICMP unreachable messages
+    icmp_throttle_timer = set_timer_ms(100);
+
     packet_t *unreach = packet_create_icmp(ntohl(packet->ipv4->source_ip), sizeof(ipv4_header_t) + 8);
 
     // fill in dest MAC (TODO - let the ARP code figure this out?)

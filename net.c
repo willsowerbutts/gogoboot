@@ -23,7 +23,7 @@ void net_init(void)
 {
     net_txqueue = packet_queue_alloc();
     net_txqueue_arp_lookup = packet_queue_alloc();
-    net_icmp_register();
+    net_icmp_init();
     dhcp_init();
 }
 

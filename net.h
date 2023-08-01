@@ -173,7 +173,7 @@ void dhcp_init(void);
 void dhcp_pump(void);
 
 /* icmp.c */
-void net_icmp_register(void);
+void net_icmp_init(void);
 void net_icmp_pump(void);
 void net_icmp_send_unreachable(packet_t *packet);
 
