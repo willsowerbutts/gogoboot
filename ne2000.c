@@ -38,34 +38,6 @@ static void push_packet_ready(int len);
 #endif
 
 static dp83902a_priv_data_t nic;                /* just one instance of the card supported */
-static uint8_t *dev_addr = macaddr_interface;
-
-static bool dp83902a_init(void)
-{
-    int i;
-
-    DEBUG_FUNCTION();
-
-    if (!nic.base || !nic.data)
-        return false;  /* No device found */
-
-    DEBUG_LINE();
-
-    /* Prepare ESA */
-    isa_write_byte(nic.base + DP_CR, DP_CR_NODMA | DP_CR_PAGE1);  /* Select page 1 */
-
-    /* Use the address from the serial EEPROM */
-    for (i = 0; i < 6; i++)
-        nic.esa[i] = isa_read_byte(nic.base + DP_P1_PAR0+i);
-    isa_write_byte(nic.base + DP_CR, DP_CR_NODMA | DP_CR_PAGE0);  /* Select page 0 */
-
-    printf("NE2000 at 0x%x, MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
-            nic.base,
-            nic.esa[0], nic.esa[1], nic.esa[2],
-            nic.esa[3], nic.esa[4], nic.esa[5] );
-
-    return true;
-}
 
 static void dp83902a_stop(void)
 {
@@ -84,7 +56,7 @@ static void dp83902a_stop(void)
    called whenever something "hardware oriented" changes and should leave
    the hardware ready to send/receive packets.
    */
-static void dp83902a_start(uint8_t *enaddr)
+static void dp83902a_start(macaddr_t enaddr)
 {
     int i;
 
@@ -545,15 +517,12 @@ static bool get_prom(void)
      * check that the MAC address is not all 0 or 1 bits
      */
     for (j = 0; j < 6; j++){
-        dev_addr[j] = prom[j<<1];
-        if(dev_addr[j] != 0xff)
+        interface_macaddr[j] = prom[j<<1];
+        if(interface_macaddr[j] != 0xff)
             all_ones = false;
-        if(dev_addr[j] != 0x00)
+        if(interface_macaddr[j] != 0x00)
             all_zero = false;
     }
-
-    PRINTK("MAC address is %02x:%02x:%02x:%02x:%02x:%02x\n",
-            dev_addr[0],dev_addr[1],dev_addr[2],dev_addr[3],dev_addr[4],dev_addr[5]);
 
     if(all_zero || all_ones)
         return false;
@@ -598,10 +567,12 @@ bool eth_init(void)
         nic.rx_buf_start = 0x50; /* 12KB */
         nic.rx_buf_end = 0x80;
 
-        if (!dp83902a_init())
-            continue;
+        printf("NE2000 at 0x%x, MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+                nic.base,
+                interface_macaddr[0], interface_macaddr[1], interface_macaddr[2],
+                interface_macaddr[3], interface_macaddr[4], interface_macaddr[5]);
 
-        dp83902a_start(dev_addr);
+        dp83902a_start(interface_macaddr);
 
         return true;
     }

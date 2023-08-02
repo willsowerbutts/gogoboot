@@ -197,11 +197,37 @@ static void do_heapinfo(char *argv[], int argc)
 
 static void do_netinfo(char *argv[], int argc)
 {
-    printf("packet_rx_count         %ld\n", packet_rx_count);
-    printf("packet_tx_count         %ld\n", packet_tx_count);
-    printf("packet_alive_count      %ld\n", packet_alive_count);
-    printf("packet_discard_count    %ld\n", packet_discard_count);
-    printf("packet_bad_cksum_count  %ld\n", packet_bad_cksum_count);
+    int prefixlen = 0;
+    uint32_t mask = interface_subnet_mask;
+    while(mask){
+        prefixlen++;
+        mask <<= 1;
+    }
+
+    printf("IPv4 address: %d.%d.%d.%d/%d\n", 
+            (int)(interface_ipv4_address >> 24 & 0xff),
+            (int)(interface_ipv4_address >> 16 & 0xff),
+            (int)(interface_ipv4_address >>  8 & 0xff),
+            (int)(interface_ipv4_address       & 0xff),
+            prefixlen);
+    printf("Gateway: %d.%d.%d.%d\n", 
+            (int)(interface_gateway >> 24 & 0xff),
+            (int)(interface_gateway >> 16 & 0xff),
+            (int)(interface_gateway >>  8 & 0xff),
+            (int)(interface_gateway       & 0xff));
+    printf("DNS server: %d.%d.%d.%d\n", 
+            (int)(interface_dns_server >> 24 & 0xff),
+            (int)(interface_dns_server >> 16 & 0xff),
+            (int)(interface_dns_server >>  8 & 0xff),
+            (int)(interface_dns_server       & 0xff));
+
+    printf("packet_rx_count %ld\n", packet_rx_count);
+    printf("packet_tx_count %ld\n", packet_tx_count);
+    printf("packet_alive_count %ld\n", packet_alive_count);
+    printf("packet_discard_count %ld\n", packet_discard_count);
+    printf("packet_bad_cksum_count %ld\n", packet_bad_cksum_count);
+
+    net_dump_packet_sinks();
 }
 
 static void do_writemem(char *argv[], int argc)

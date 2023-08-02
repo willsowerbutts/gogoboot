@@ -5,9 +5,13 @@
 #include "cli.h"
 #include "net.h"
 
-macaddr_t const macaddr_broadcast = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-macaddr_t macaddr_interface; // MAC address of our interface
-uint32_t ipv4_addr_interface = 0; // IPv4 address of our interface
+macaddr_t const broadcast_macaddr = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+macaddr_t interface_macaddr; // MAC address of our interface
+
+uint32_t interface_ipv4_address = 0; // IPv4 address of our interface
+uint32_t interface_subnet_mask = 0; 
+uint32_t interface_gateway = 0; 
+uint32_t interface_dns_server = 0; 
 
 static packet_sink_t *net_packet_sink_head = NULL;
 static packet_queue_t *net_txqueue = NULL;
@@ -79,14 +83,23 @@ void net_remove_packet_sink(packet_sink_t *s)
     printf("net_remove_packet_sink: can't find it?\n");
 }
 
-const macaddr_t *net_get_interface_mac(void)
+void net_dump_packet_sinks(void) // used by "netinfo" command
 {
-    return &macaddr_interface;
-}
+    packet_sink_t *sink = net_packet_sink_head;
+    while(sink){
+        printf("sink@0x%lx: local_ip=0x%lx, remote_ip=0x%lx, local_port=%d, remote_port=%d, ethertype=0x%x, protocol=0x%x, queue_len=%d, timer=%ld\n",
+                (long)sink,
+                sink->match_local_ip,
+                sink->match_remote_ip,
+                sink->match_local_port,
+                sink->match_remote_port,
+                sink->match_ethertype,
+                sink->match_ipv4_protocol,
+                packet_queue_length(sink->queue),
+                sink->timer ? sink->timer - q40_read_timer_ticks() : -1);
+        sink = sink->next;
+    }
 
-uint32_t net_get_interface_ipv4(void)
-{
-    return ipv4_addr_interface;
 }
 
 // --- receive pipe ---
@@ -102,7 +115,7 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
     packet_rx_count++;
 
     // check that the destination MAC is either our MAC, or a multicast MAC
-    if(memcmp(packet->eth->destination_mac, macaddr_interface, sizeof(macaddr_t)) == 0 ||
+    if(memcmp(packet->eth->destination_mac, interface_macaddr, sizeof(macaddr_t)) == 0 ||
        packet->eth->destination_mac[0] & 1){ // test multicast bit
         // determine protocol and verify checksums
         switch(ntohs(packet->eth->ethertype)){
@@ -185,29 +198,22 @@ bad_cksum:
 
 void net_tx(packet_t *packet)
 {
-    printf("net_tx\n");
     if(packet->eth->ethertype == ethertype_ipv4){
-        printf("net_compute_ipv4_checksum\n");
         net_compute_ipv4_checksum(packet);
         switch(packet->ipv4->protocol){
             case ip_proto_tcp:
-                printf("net_compute_tcp_checksum\n");
                 net_compute_tcp_checksum(packet);
                 break;
             case ip_proto_udp:
-                printf("net_compute_udp_checksum\n");
                 net_compute_udp_checksum(packet);
-                printf("net_compute_udp_checksum done!\n");
                 break;
             case ip_proto_icmp:
-                printf("net_compute_icmp_checksum\n");
                 net_compute_icmp_checksum(packet);
                 break;
         }
     }
-    printf("net_tx 2\n");
 
-    pretty_dump_memory(packet->buffer, packet->buffer_length);
+    // pretty_dump_memory(packet->buffer, packet->buffer_length);
 
     if(packet->flags & packet_flag_destination_mac_valid)
         packet_queue_addtail(net_txqueue, packet);

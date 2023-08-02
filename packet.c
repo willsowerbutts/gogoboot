@@ -26,6 +26,20 @@ packet_queue_t *packet_queue_alloc(void)
     return q;
 }
 
+int packet_queue_length(packet_queue_t *q)
+{
+    int l = 0;
+    packet_t *p;
+
+    p = q->head;
+    while(p){
+        l++;
+        p = p->next;
+    }
+
+    return l;
+}
+
 void packet_queue_free(packet_queue_t *q)
 {
     packet_t *p;
@@ -107,10 +121,12 @@ static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto
     packet_t *p = packet_alloc(sizeof(ethernet_header_t) + sizeof(ipv4_header_t) + data_size);
 
     // set up ethernet header
-    memcpy(&p->eth->source_mac, net_get_interface_mac(), 6);
+    memcpy(&p->eth->source_mac, interface_macaddr, 6);
     p->eth->ethertype = htons(ethertype_ipv4);
+
+    // we can skip ARP for broadcast
     if(dest_ipv4 == ipv4_broadcast)
-        packet_set_destination_mac(p, &macaddr_broadcast);
+        packet_set_destination_mac(p, &broadcast_macaddr);
 
     // set up ipv4 header
     p->ipv4 = (ipv4_header_t*)p->eth->payload;
@@ -121,7 +137,7 @@ static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto
     p->ipv4->flags_and_frags = htons(0x4000); // don't fragment
     p->ipv4->ttl = DEFAULT_TTL;
     p->ipv4->protocol = proto;
-    p->ipv4->source_ip = htonl(net_get_interface_ipv4());
+    p->ipv4->source_ip = htonl(interface_ipv4_address);
     p->ipv4->destination_ip = htonl(dest_ipv4);
 
     return p;

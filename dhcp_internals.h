@@ -38,6 +38,7 @@ static const uint8_t dhcp_opt_subnet_mask   = 0x01;
 static const uint8_t dhcp_opt_gateway       = 0x03;
 static const uint8_t dhcp_opt_dns_server    = 0x06;
 static const uint8_t dhcp_opt_domain_name   = 0x15;
+static const uint8_t dhcp_opt_requested_ip  = 0x32;
 static const uint8_t dhcp_opt_lease_time    = 0x33;
 static const uint8_t dhcp_opt_message_type  = 0x35;
 static const uint8_t dhcp_opt_server_id     = 0x36;

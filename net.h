@@ -14,9 +14,14 @@ typedef struct tcp_header_t tcp_header_t;
 typedef struct icmp_header_t icmp_header_t;
 typedef uint8_t macaddr_t[6];
 
-extern macaddr_t const macaddr_broadcast;
-extern macaddr_t macaddr_interface;
+extern macaddr_t const broadcast_macaddr;
 static const uint32_t ipv4_broadcast = 0xffffffff;
+
+extern macaddr_t interface_macaddr;
+extern uint32_t interface_ipv4_address;
+extern uint32_t interface_subnet_mask;
+extern uint32_t interface_gateway;
+extern uint32_t interface_dns_server;
 
 extern uint32_t packet_alive_count;
 extern uint32_t packet_discard_count;
@@ -136,8 +141,6 @@ void eth_pump(void); // called from net_pump
 /* net.c -- interface with ne2000.c */
 void net_eth_push(packet_t *packet);
 packet_t *net_eth_pull(void);
-const macaddr_t *net_get_interface_mac(void);
-uint32_t net_get_interface_ipv4(void);
 void net_add_packet_sink(packet_sink_t *c);
 void net_remove_packet_sink(packet_sink_t *c);
 
@@ -145,6 +148,7 @@ void net_remove_packet_sink(packet_sink_t *c);
 void net_init(void);
 void net_pump(void);
 void net_tx(packet_t *packet);
+void net_dump_packet_sinks(void);
 
 /* packet.c */
 packet_t *packet_alloc(int buffer_size);
@@ -156,6 +160,7 @@ void packet_free(packet_t *packet);
 
 packet_queue_t *packet_queue_alloc(void);
 void packet_queue_free(packet_queue_t *q);
+int packet_queue_length(packet_queue_t *q);
 void packet_queue_addtail(packet_queue_t *q, packet_t *p);
 packet_t *packet_queue_peekhead(packet_queue_t *q);
 packet_t *packet_queue_pophead(packet_queue_t *q);
