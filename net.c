@@ -9,7 +9,7 @@ macaddr_t const macaddr_broadcast = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 macaddr_t macaddr_interface; // MAC address of our interface
 uint32_t ipv4_addr_interface = 0; // IPv4 address of our interface
 
-static packet_consumer_t *net_packet_consumer_head = NULL;
+static packet_sink_t *net_packet_sink_head = NULL;
 static packet_queue_t *net_txqueue = NULL;
 static packet_queue_t *net_txqueue_arp_lookup = NULL;
 
@@ -29,39 +29,42 @@ void net_init(void)
 
 void net_pump(void)
 {
-    eth_pump(); // calls net_eth_push
-    dhcp_pump();
+    // pump the hardware driver
+    eth_pump(); // calls net_eth_push, net_eth_pull
 
-    packet_consumer_t *consumer = net_packet_consumer_head;
-    while(consumer){
-        if(consumer->queue_pump && packet_queue_peekhead(consumer->queue))
-            consumer->queue_pump(consumer);
-        if(consumer->timer_expired && consumer->timer && timer_expired(consumer->timer))
-            consumer->timer_expired(consumer);
-        consumer = consumer->next;
+    // pump each sink with data waiting or an expired timer
+    packet_sink_t *sink = net_packet_sink_head;
+    while(sink){
+        if(sink->cb_queue_pump && packet_queue_peekhead(sink->queue)){
+            sink->cb_queue_pump(sink);
+        }
+        if(sink->cb_timer_expired && sink->timer && timer_expired(sink->timer)){
+            sink->timer = 0; // disable timer
+            sink->cb_timer_expired(sink);
+        }
+        // walk linked list
+        sink = sink->next;
     }
-
-    // arp_pump(); <-- process net_txqueue_arp_lookup in here // or do this via callback?
 }
 
-void net_add_packet_consumer(packet_consumer_t *c)
+void net_add_packet_sink(packet_sink_t *s)
 {
-    if(c->next)
-        printf("net_add_packet_consumer: already in a list?\n");
-    c->next = net_packet_consumer_head;
-    net_packet_consumer_head = c;
+    if(s->next)
+        printf("net_add_packet_sink: already in a list?\n");
+    s->next = net_packet_sink_head;
+    net_packet_sink_head = s;
 }
 
-void net_remove_packet_consumer(packet_consumer_t *c)
+void net_remove_packet_sink(packet_sink_t *s)
 {
-    packet_consumer_t **ptr;
-    packet_consumer_t *entry;
+    packet_sink_t **ptr;
+    packet_sink_t *entry;
 
-    ptr = &net_packet_consumer_head;
-    entry = net_packet_consumer_head;
+    ptr = &net_packet_sink_head;
+    entry = net_packet_sink_head;
 
     while(entry){
-        if(entry == c){ 
+        if(entry == s){ 
             // we got it!
             *ptr = entry->next;
             entry->next = NULL;
@@ -73,7 +76,17 @@ void net_remove_packet_consumer(packet_consumer_t *c)
         }
     }
 
-    printf("net_remove_packet_consumer: can't find it?\n");
+    printf("net_remove_packet_sink: can't find it?\n");
+}
+
+const macaddr_t *net_get_interface_mac(void)
+{
+    return &macaddr_interface;
+}
+
+uint32_t net_get_interface_ipv4(void)
+{
+    return ipv4_addr_interface;
 }
 
 // --- receive pipe ---
@@ -99,20 +112,24 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
                     goto bad_cksum;
                 switch(packet->ipv4->protocol){
                     case ip_proto_tcp:
+                        int header_size = ((packet->tcp->data_offset & 0x0F) << 2);
                         packet->tcp = (tcp_header_t*)packet->ipv4->payload;
-                        packet->user_data = packet->tcp->options + ((packet->tcp->data_offset & 0x0F) << 2);
+                        packet->data = packet->ipv4->payload + header_size;
+                        packet->data_length = ntohs(packet->ipv4->length) - header_size;
                         if(!net_verify_tcp_checksum(packet))
                             goto bad_cksum;
                         break;
                     case ip_proto_udp:
                         packet->udp = (udp_header_t*)packet->ipv4->payload;
-                        packet->user_data = packet->udp->payload;
+                        packet->data = packet->udp->payload;
+                        packet->data_length = ntohs(packet->udp->length) - sizeof(udp_header_t);
                         if(!net_verify_udp_checksum(packet))
                             goto bad_cksum;
                         break;
                     case ip_proto_icmp:
                         packet->icmp = (icmp_header_t*)packet->ipv4->payload;
-                        packet->user_data = packet->icmp->payload;
+                        packet->data = packet->icmp->payload;
+                        packet->data_length = ntohs(packet->ipv4->length) - sizeof(icmp_header_t) - sizeof(ipv4_header_t);
                         if(!net_verify_icmp_checksum(packet))
                             goto bad_cksum;
                         break;
@@ -131,19 +148,19 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
                 break;
         }
 
-        packet_consumer_t *consumer = net_packet_consumer_head;
-        while(consumer && !taken){
-            if( (consumer->match_ethertype == 0     || (consumer->match_ethertype == ntohs(packet->eth->ethertype))) &&
-                (consumer->match_ipv4_protocol == 0 || (packet->ipv4 && consumer->match_ipv4_protocol == packet->ipv4->protocol)) &&
-                (consumer->match_local_ip == 0      || (packet->ipv4 && consumer->match_local_ip == ntohl(packet->ipv4->destination_ip))) &&
-                (consumer->match_remote_ip == 0     || (packet->ipv4 && consumer->match_remote_ip == ntohl(packet->ipv4->source_ip))) &&
-                (consumer->match_local_port == 0    || (packet->tcp && consumer->match_local_port == ntohs(packet->tcp->destination_port)) || (packet->udp && consumer->match_local_port == ntohs(packet->udp->destination_port))) &&
-                (consumer->match_remote_port == 0   || (packet->tcp && consumer->match_remote_port == ntohs(packet->tcp->source_port)) || (packet->udp && consumer->match_remote_port == ntohs(packet->udp->source_port))) ){
-                packet_queue_addtail(consumer->queue, packet);
+        packet_sink_t *sink = net_packet_sink_head;
+        while(sink && !taken){
+            if( (sink->match_ethertype == 0     || (sink->match_ethertype == ntohs(packet->eth->ethertype))) &&
+                (sink->match_ipv4_protocol == 0 || (packet->ipv4 && sink->match_ipv4_protocol == packet->ipv4->protocol)) &&
+                (sink->match_local_ip == 0      || (packet->ipv4 && sink->match_local_ip == ntohl(packet->ipv4->destination_ip))) &&
+                (sink->match_remote_ip == 0     || (packet->ipv4 && sink->match_remote_ip == ntohl(packet->ipv4->source_ip))) &&
+                (sink->match_local_port == 0    || (packet->tcp && sink->match_local_port == ntohs(packet->tcp->destination_port)) || (packet->udp && sink->match_local_port == ntohs(packet->udp->destination_port))) &&
+                (sink->match_remote_port == 0   || (packet->tcp && sink->match_remote_port == ntohs(packet->tcp->source_port)) || (packet->udp && sink->match_remote_port == ntohs(packet->udp->source_port))) ){
+                packet_queue_addtail(sink->queue, packet);
                 taken = true;
                 break;
             }else{
-                consumer = consumer->next;
+                sink = sink->next;
             }
         }
 
@@ -168,6 +185,30 @@ bad_cksum:
 
 void net_tx(packet_t *packet)
 {
+    printf("net_tx\n");
+    if(packet->eth->ethertype == ethertype_ipv4){
+        printf("net_compute_ipv4_checksum\n");
+        net_compute_ipv4_checksum(packet);
+        switch(packet->ipv4->protocol){
+            case ip_proto_tcp:
+                printf("net_compute_tcp_checksum\n");
+                net_compute_tcp_checksum(packet);
+                break;
+            case ip_proto_udp:
+                printf("net_compute_udp_checksum\n");
+                net_compute_udp_checksum(packet);
+                printf("net_compute_udp_checksum done!\n");
+                break;
+            case ip_proto_icmp:
+                printf("net_compute_icmp_checksum\n");
+                net_compute_icmp_checksum(packet);
+                break;
+        }
+    }
+    printf("net_tx 2\n");
+
+    pretty_dump_memory(packet->buffer, packet->buffer_length);
+
     if(packet->flags & packet_flag_destination_mac_valid)
         packet_queue_addtail(net_txqueue, packet);
     else{
@@ -182,14 +223,4 @@ packet_t *net_eth_pull(void) // called by ne2000.c
     if(p)
         packet_tx_count++;
     return p;
-}
-
-const macaddr_t *net_get_interface_mac(void)
-{
-    return &macaddr_interface;
-}
-
-uint32_t net_get_interface_ipv4(void)
-{
-    return ipv4_addr_interface;
 }

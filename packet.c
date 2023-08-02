@@ -5,15 +5,15 @@
 #include "cli.h"
 #include "net.h"
 
-packet_consumer_t *packet_consumer_alloc(void)
+packet_sink_t *packet_sink_alloc(void)
 {
-    packet_consumer_t *c = malloc(sizeof(packet_consumer_t));
-    memset(c, 0, sizeof(packet_consumer_t));
+    packet_sink_t *c = malloc(sizeof(packet_sink_t));
+    memset(c, 0, sizeof(packet_sink_t));
     c->queue = packet_queue_alloc();
     return c;
 }
 
-void packet_consumer_free(packet_consumer_t *c)
+void packet_sink_free(packet_sink_t *c)
 {
     packet_queue_free(c->queue);
     free(c);
@@ -91,7 +91,7 @@ packet_t *packet_alloc(int data_size)
 
     packet_t *p=malloc(sizeof(packet_t) + data_size);
     memset(p, 0, sizeof(packet_t)); // do not zero out the data, just the header
-    p->length_alloc = p->length = data_size;
+    p->buffer_length_alloc = p->buffer_length = data_size;
     p->eth = (ethernet_header_t*)p->buffer;
     return p;
 }
@@ -104,16 +104,7 @@ void packet_set_destination_mac(packet_t *packet, const macaddr_t *mac)
 
 static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto)
 {
-    int hsize;
-
-    switch(proto){
-        case ip_proto_tcp:  hsize = sizeof(tcp_header_t);  break;
-        case ip_proto_udp:  hsize = sizeof(udp_header_t);  break;
-        case ip_proto_icmp: hsize = sizeof(icmp_header_t); break;
-        default: printf("proto=%d?", proto); return NULL;
-    }
-
-    packet_t *p = packet_alloc(sizeof(ethernet_header_t) + sizeof(ipv4_header_t) + hsize + data_size);
+    packet_t *p = packet_alloc(sizeof(ethernet_header_t) + sizeof(ipv4_header_t) + data_size);
 
     // set up ethernet header
     memcpy(&p->eth->source_mac, net_get_interface_mac(), 6);
@@ -125,63 +116,55 @@ static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto
     p->ipv4 = (ipv4_header_t*)p->eth->payload;
     p->ipv4->version_length = 0x45;   // we don't use options so length = 5 x 4 = 20 bytes
     p->ipv4->diffserv_ecn = 0;
-    p->ipv4->length = htons(sizeof(ipv4_header_t) + hsize + data_size);
+    p->ipv4->length = htons(sizeof(ipv4_header_t) + data_size);
     p->ipv4->id = htons(q40_read_timer_ticks() & 0xffff);
     p->ipv4->flags_and_frags = htons(0x4000); // don't fragment
     p->ipv4->ttl = DEFAULT_TTL;
     p->ipv4->protocol = proto;
     p->ipv4->source_ip = htonl(net_get_interface_ipv4());
     p->ipv4->destination_ip = htonl(dest_ipv4);
-    net_compute_ipv4_checksum(p);
-
-    // set up protocol header
-    switch(proto){
-        case ip_proto_tcp:
-            p->tcp = (tcp_header_t*)p->ipv4->payload;
-            break;
-        case ip_proto_udp:
-            p->udp = (udp_header_t*)p->ipv4->payload;
-            break;
-        case ip_proto_icmp:
-            p->icmp = (icmp_header_t*)p->ipv4->payload;
-            break;
-    }
 
     return p;
 }
 
 packet_t *packet_create_icmp(uint32_t dest_ipv4, int data_size)
 {
-    packet_t *p = packet_create_ipv4(dest_ipv4, data_size, ip_proto_icmp);
-    p->user_data = (uint8_t*)p->icmp->payload;
+    packet_t *p = packet_create_ipv4(dest_ipv4, data_size + sizeof(icmp_header_t), ip_proto_icmp);
+    p->icmp = (icmp_header_t*)p->ipv4->payload;
+    p->data = (uint8_t*)p->icmp->payload;
+    p->data_length = data_size;
     return p;
 }
 
 packet_t *packet_create_tcp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size)
 {
-    packet_t *p = packet_create_ipv4(dest_ipv4, data_size, ip_proto_udp);
+    packet_t *p = packet_create_ipv4(dest_ipv4, data_size + sizeof(tcp_header_t), ip_proto_udp);
+    p->tcp = (tcp_header_t*)p->ipv4->payload;
+    p->data = (uint8_t*)p->tcp->options; // + options_size
+    p->data_length = data_size;          // - options_size
 
     printf("packet_create_tcp is incomplete!\n");
 
     // set up tcp header
     // p->tcp->... = ...;
 
-    // p->user_data needs to be computed depending on tcp option headers present.
+    // p->data needs to be computed depending on tcp option headers present.
 
     return p;
 }
 
 packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size)
 {
-    packet_t *p = packet_create_ipv4(dest_ipv4, data_size, ip_proto_udp);
+    packet_t *p = packet_create_ipv4(dest_ipv4, data_size + sizeof(udp_header_t), ip_proto_udp);
 
     // set up udp header
+    p->udp = (udp_header_t*)p->ipv4->payload;
+    p->data = (uint8_t*)p->udp->payload;
+    p->data_length = data_size;
+
     p->udp->source_port = htons(source_port);
     p->udp->destination_port = htons(destination_port);
     p->udp->length = htons(sizeof(udp_header_t) + data_size);
-    p->udp->checksum = 0; // udp checksum is optional, skip it for now
-
-    p->user_data = (uint8_t*)p->udp->payload;
 
     return p;
 }
@@ -195,7 +178,7 @@ void packet_free(packet_t *packet)
 static uint32_t checksum_update(uint32_t sum, uint16_t *addr, unsigned int count)
 {
     // sum words
-    while(count){
+    while(count >= 2){
         sum += *(addr++);
         count-=2;
     }
@@ -223,13 +206,6 @@ static uint16_t checksum_compute(uint16_t *addr, unsigned int count)
     return checksum_complete(checksum_update(0, addr, count));
 }
 
-void net_compute_icmp_checksum(packet_t *packet)
-{
-    packet->icmp->checksum = 0;
-    packet->icmp->checksum = htons(checksum_compute((uint16_t*)packet->icmp,
-                ntohs(packet->ipv4->length) - sizeof(ipv4_header_t)));
-}
-
 void net_compute_ipv4_checksum(packet_t *packet)
 {
     packet->ipv4->checksum = 0; // set to zero for checksum computation
@@ -237,7 +213,24 @@ void net_compute_ipv4_checksum(packet_t *packet)
                 sizeof(ipv4_header_t)));
 }
 
-uint16_t net_compute_udp_checksum_inner(packet_t *packet)
+bool net_verify_ipv4_checksum(packet_t *packet)
+{
+    return (checksum_compute((uint16_t*)packet->ipv4, sizeof(ipv4_header_t)) == 0);
+}
+
+void net_compute_icmp_checksum(packet_t *packet)
+{
+    packet->icmp->checksum = 0;
+    packet->icmp->checksum = htons(checksum_compute((uint16_t*)packet->icmp,
+                ntohs(packet->ipv4->length) - sizeof(ipv4_header_t)));
+}
+
+bool net_verify_icmp_checksum(packet_t *packet)
+{
+    return (checksum_compute((uint16_t*)packet->icmp, ntohs(packet->ipv4->length) - sizeof(ipv4_header_t)) == 0);
+}
+
+static uint16_t udp_checksum_pseudoheader(packet_t *packet)
 {
     uint32_t sum;
     // we have to sum a "pseudo-header"
@@ -245,28 +238,23 @@ uint16_t net_compute_udp_checksum_inner(packet_t *packet)
     sum += packet->ipv4->protocol;
     sum += packet->udp->length; // yes, this field is summed twice!
                                 // ... then the real udp header + data
-    sum = checksum_update(sum, (uint16_t*)packet->udp, packet->udp->length);
+    sum = checksum_update(sum, (uint16_t*)packet->udp, ntohs(packet->udp->length));
     return htons(checksum_complete(sum));
+}
+
+bool net_verify_udp_checksum(packet_t *packet)
+{
+    return (packet->udp->checksum == 0 || udp_checksum_pseudoheader(packet) == 0);
 }
 
 void net_compute_udp_checksum(packet_t *packet)
 {
     uint16_t cs;
     packet->udp->checksum = 0;
-    cs = net_compute_udp_checksum_inner(packet);
+    cs = udp_checksum_pseudoheader(packet);
     if(cs == 0) 
         cs = 0xffff; // per RFC768
     packet->udp->checksum = htons(cs);
-}
-
-bool net_verify_ipv4_checksum(packet_t *packet)
-{
-    return (checksum_compute((uint16_t*)packet->ipv4, sizeof(ipv4_header_t)) == 0);
-}
-
-bool net_verify_udp_checksum(packet_t *packet)
-{
-    return (packet->udp->checksum == 0 || net_compute_udp_checksum_inner(packet) == 0);
 }
 
 bool net_verify_tcp_checksum(packet_t *packet)
@@ -275,7 +263,8 @@ bool net_verify_tcp_checksum(packet_t *packet)
     return true;
 }
 
-bool net_verify_icmp_checksum(packet_t *packet)
+void net_compute_tcp_checksum(packet_t *packet)
 {
-    return (checksum_compute((uint16_t*)packet->icmp, ntohs(packet->ipv4->length) - sizeof(ipv4_header_t)) == 0);
+    printf("write net_compute_tcp_checksum!\n");
 }
+

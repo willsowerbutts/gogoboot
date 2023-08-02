@@ -33,14 +33,14 @@ bool networking;
  * DONE - back to back transmits do not work?
  * DONE - during tx of short packet, we're dumping crap out of the buffer too -- fix and replace with 00s
  * - DHCP -- perform in the background
+ * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
  * - would be nice if getline in the CLI somehow recovers after we overwrite it ...
  * - set and store environment vars in NVRAM (we have malloc now!)
  *   - store ROM config in RTC NVRAM? serial port speed, boot script filename, etc? store as series of strings; cksum at end. store backwards in nvram.
  *   - printenv, set, save commands
- * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
  * - linux ne2000 driver: stop interrupt probing (=crashes machine)
  * - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
- * - build system: multiple targets
+ * - build system: multiple targets (maybe use something better than a makefile?)
  *   - port back to kiss-68030
  *     - 030 cache modes
  *     - ns202 interrupts

@@ -574,7 +574,7 @@ static void push_packet_ready(int len)
         printf("ne2000: no free rx buffer\n");
         return;
     }
-    dp83902a_recv(packet->buffer, packet->length);
+    dp83902a_recv(packet->buffer, packet->buffer_length);
     net_eth_push(packet);
 }
 
@@ -648,7 +648,7 @@ void eth_pump(void)
         packet = net_eth_pull();
         if(!packet)
             break;
-        if(!eth_tx(packet->buffer, packet->length))
+        if(!eth_tx(packet->buffer, packet->buffer_length))
             printf("ne2000: eth_tx failed\n");
         packet_free(packet);
     }

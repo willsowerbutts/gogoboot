@@ -6,7 +6,7 @@
 
 typedef struct packet_t packet_t;
 typedef struct packet_queue_t packet_queue_t;
-typedef struct packet_consumer_t packet_consumer_t;
+typedef struct packet_sink_t packet_sink_t;
 typedef struct ethernet_header_t ethernet_header_t;
 typedef struct ipv4_header_t ipv4_header_t;
 typedef struct udp_header_t udp_header_t;
@@ -25,18 +25,19 @@ extern uint32_t packet_rx_count;
 extern uint32_t packet_tx_count;
 
 struct packet_t {
-    packet_t *next;             // used by packet_queue_t to create linked lists
+    packet_t *next;               // used by packet_queue_t to create linked lists
     uint32_t flags;
-    ethernet_header_t *eth;     // always set
-    // arp_header_t *arp;       // set for arp
-    ipv4_header_t *ipv4;        // set for ipv4 (all except arp)
-    udp_header_t *udp;          // set for ipv4 udp
-    tcp_header_t *tcp;          // set for ipv4 tcp
-    icmp_header_t *icmp;        // set for ipv4 icmp
-    uint8_t *user_data;         // set for ipv4 udp, tcp
-    uint16_t length_alloc;      // length allocated for data[]
-    uint16_t length;            // length used by data[] (length <= length_alloc)
-    uint8_t buffer[];           // must be final member of data structure
+    ethernet_header_t *eth;       // always set
+    // arp_header_t *arp;         // set for arp
+    ipv4_header_t *ipv4;          // set for ipv4 (all except arp)
+    udp_header_t *udp;            // set for ipv4 udp
+    tcp_header_t *tcp;            // set for ipv4 tcp
+    icmp_header_t *icmp;          // set for ipv4 icmp
+    uint16_t data_length;         // set for ipv4 udp, tcp
+    uint8_t *data;                // set for ipv4 udp, tcp
+    uint16_t buffer_length_alloc; // length allocated for buffer[]
+    uint16_t buffer_length;       // length used by buffer[] (buffer_length <= length_alloc)
+    uint8_t buffer[];             // must be final member of data structure
 };
 
 static const uint32_t packet_flag_destination_mac_valid = 1;
@@ -69,7 +70,6 @@ struct __attribute__((packed, aligned(2))) ipv4_header_t {
 };
 
 static const uint8_t ip_proto_icmp = 1;
-static const uint8_t ip_proto_igmp = 2;
 static const uint8_t ip_proto_tcp  = 6;
 static const uint8_t ip_proto_udp  = 17;
 
@@ -110,9 +110,9 @@ struct packet_queue_t {
     packet_t *tail;
 };
 
-struct packet_consumer_t {
-    packet_consumer_t *next; // for linked lists
-    void *consumer_private;  // for consumer's use
+struct packet_sink_t {
+    packet_sink_t *next; // for linked lists
+    void *sink_private;  // for sink's use
 
     uint32_t match_local_ip;
     uint32_t match_remote_ip;
@@ -122,10 +122,10 @@ struct packet_consumer_t {
     uint8_t  match_ipv4_protocol;
 
     packet_queue_t *queue;
-    void (*queue_pump)(packet_consumer_t *consumer);
+    void (*cb_queue_pump)(packet_sink_t *sink);
 
     timer_t timer;
-    void (*timer_expired)(packet_consumer_t *consumer);
+    void (*cb_timer_expired)(packet_sink_t *sink);
 };
 
 /* ne2000.c */
@@ -138,8 +138,8 @@ void net_eth_push(packet_t *packet);
 packet_t *net_eth_pull(void);
 const macaddr_t *net_get_interface_mac(void);
 uint32_t net_get_interface_ipv4(void);
-void net_add_packet_consumer(packet_consumer_t *c);
-void net_remove_packet_consumer(packet_consumer_t *c);
+void net_add_packet_sink(packet_sink_t *c);
+void net_remove_packet_sink(packet_sink_t *c);
 
 /* net.c */
 void net_init(void);
@@ -160,8 +160,8 @@ void packet_queue_addtail(packet_queue_t *q, packet_t *p);
 packet_t *packet_queue_peekhead(packet_queue_t *q);
 packet_t *packet_queue_pophead(packet_queue_t *q);
 
-packet_consumer_t *packet_consumer_alloc(void);
-void packet_consumer_free(packet_consumer_t *c);
+packet_sink_t *packet_sink_alloc(void);
+void packet_sink_free(packet_sink_t *s);
 
 void net_compute_ipv4_checksum(packet_t *packet);
 void net_compute_icmp_checksum(packet_t *packet);
@@ -175,7 +175,6 @@ bool net_verify_tcp_checksum(packet_t *packet);
 
 /* dhcp.c */
 void dhcp_init(void);
-void dhcp_pump(void);
 
 /* icmp.c */
 void net_icmp_init(void);
