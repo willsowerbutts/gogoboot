@@ -1,3 +1,5 @@
+/* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
+
 #include <q40types.h>
 #include <stdlib.h>
 #include "tinyalloc.h"
@@ -27,6 +29,7 @@ void net_init(void)
 {
     net_txqueue = packet_queue_alloc();
     net_txqueue_arp_lookup = packet_queue_alloc();
+    net_arp_init();
     net_icmp_init();
     dhcp_init();
 }
@@ -87,15 +90,16 @@ void net_dump_packet_sinks(void) // used by "netinfo" command
 {
     packet_sink_t *sink = net_packet_sink_head;
     while(sink){
-        printf("sink@0x%lx: local_ip=0x%lx, remote_ip=0x%lx, local_port=%d, remote_port=%d, ethertype=0x%x, protocol=0x%x, queue_len=%d, timer=%ld\n",
+        printf("sink@0x%lx:\n  ipv4_protocol=0x%x, local_ip=0x%lx, remote_ip=0x%lx, local_port=%d, remote_port=%d\n  ethertype=0x%x, queue_len=%d, packets_queued=%ld, timer=%ld\n",
                 (long)sink,
-                sink->match_local_ip,
-                sink->match_remote_ip,
-                sink->match_local_port,
-                sink->match_remote_port,
-                sink->match_ethertype,
-                sink->match_ipv4_protocol,
+                ntohs(sink->match_ipv4_protocol),
+                ntohl(sink->match_local_ip),
+                ntohl(sink->match_remote_ip),
+                ntohs(sink->match_local_port),
+                ntohs(sink->match_remote_port),
+                ntohs(sink->match_ethertype),
                 packet_queue_length(sink->queue),
+                sink->packets_queued,
                 sink->timer ? sink->timer - q40_read_timer_ticks() : -1);
         sink = sink->next;
     }
@@ -151,11 +155,9 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
                         break;
                 }
                 break;
-            //case ethertype_arp:
-            //    // packet->arp = packet->eth->payload;
-            //    // VERIFY CHECKSUM
-            //    //...
-            //    break;
+            case ethertype_arp:
+                packet->arp = (arp_header_t*)packet->eth->payload;
+                break;
             default:
                 // unhandled ethertype
                 break;
@@ -163,13 +165,14 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
 
         packet_sink_t *sink = net_packet_sink_head;
         while(sink && !taken){
-            if( (sink->match_ethertype == 0     || (sink->match_ethertype == ntohs(packet->eth->ethertype))) &&
+            if( (sink->match_ethertype == 0     || (sink->match_ethertype == packet->eth->ethertype)) &&
                 (sink->match_ipv4_protocol == 0 || (packet->ipv4 && sink->match_ipv4_protocol == packet->ipv4->protocol)) &&
-                (sink->match_local_ip == 0      || (packet->ipv4 && sink->match_local_ip == ntohl(packet->ipv4->destination_ip))) &&
-                (sink->match_remote_ip == 0     || (packet->ipv4 && sink->match_remote_ip == ntohl(packet->ipv4->source_ip))) &&
-                (sink->match_local_port == 0    || (packet->tcp && sink->match_local_port == ntohs(packet->tcp->destination_port)) || (packet->udp && sink->match_local_port == ntohs(packet->udp->destination_port))) &&
-                (sink->match_remote_port == 0   || (packet->tcp && sink->match_remote_port == ntohs(packet->tcp->source_port)) || (packet->udp && sink->match_remote_port == ntohs(packet->udp->source_port))) ){
+                (sink->match_local_ip == 0      || (packet->ipv4 && sink->match_local_ip == packet->ipv4->destination_ip)) &&
+                (sink->match_remote_ip == 0     || (packet->ipv4 && sink->match_remote_ip == packet->ipv4->source_ip)) &&
+                (sink->match_local_port == 0    || ((packet->tcp && sink->match_local_port == packet->tcp->destination_port)) || (packet->udp && sink->match_local_port == packet->udp->destination_port)) &&
+                (sink->match_remote_port == 0   || ((packet->tcp && sink->match_remote_port == packet->tcp->source_port) || (packet->udp && sink->match_remote_port == packet->udp->source_port))) ) {
                 packet_queue_addtail(sink->queue, packet);
+                sink->packets_queued++;
                 taken = true;
                 break;
             }else{

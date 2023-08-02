@@ -3,6 +3,9 @@
 
 #include <q40types.h>
 
+/* cli.c */
+void pretty_dump_memory(void *start, int len);
+
 /* -- printf.c -- */
 
 int printf(char const *fmt, ...);

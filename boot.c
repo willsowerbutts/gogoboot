@@ -1,3 +1,5 @@
+/* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include "tinyalloc.h"

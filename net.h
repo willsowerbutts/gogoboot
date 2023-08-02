@@ -8,6 +8,7 @@ typedef struct packet_t packet_t;
 typedef struct packet_queue_t packet_queue_t;
 typedef struct packet_sink_t packet_sink_t;
 typedef struct ethernet_header_t ethernet_header_t;
+typedef struct arp_header_t arp_header_t;
 typedef struct ipv4_header_t ipv4_header_t;
 typedef struct udp_header_t udp_header_t;
 typedef struct tcp_header_t tcp_header_t;
@@ -33,7 +34,7 @@ struct packet_t {
     packet_t *next;               // used by packet_queue_t to create linked lists
     uint32_t flags;
     ethernet_header_t *eth;       // always set
-    // arp_header_t *arp;         // set for arp
+    arp_header_t *arp;            // set for arp
     ipv4_header_t *ipv4;          // set for ipv4 (all except arp)
     udp_header_t *udp;            // set for ipv4 udp
     tcp_header_t *tcp;            // set for ipv4 tcp
@@ -58,6 +59,21 @@ static const uint16_t ethertype_ipv4 = 0x0800;
 static const uint16_t ethertype_arp  = 0x0806;
 static const uint16_t ethertype_vlan = 0x8100;
 static const uint16_t ethertype_ipv6 = 0x86dd;
+
+struct __attribute__((packed, aligned(2))) arp_header_t {
+    uint16_t  hardware_type;
+    uint16_t  protocol_type;
+    uint8_t   hardware_length;
+    uint8_t   protocol_length;
+    uint16_t  operation;
+    macaddr_t sender_mac;
+    uint32_t  sender_ip;
+    macaddr_t target_mac;
+    uint32_t  target_ip;
+};
+
+static const uint16_t arp_op_request = 1;
+static const uint16_t arp_op_reply = 2;
 
 struct __attribute__((packed, aligned(2))) ipv4_header_t {
     uint8_t version_length;     // low 4 bits = 0100, top 4 bits = header length in 32-bit words
@@ -119,13 +135,16 @@ struct packet_sink_t {
     packet_sink_t *next; // for linked lists
     void *sink_private;  // for sink's use
 
-    uint32_t match_local_ip;
-    uint32_t match_remote_ip;
-    uint16_t match_local_port;
-    uint16_t match_remote_port;
-    uint16_t match_ethertype;
-    uint8_t  match_ipv4_protocol;
+    // we match in network byte order as it's faster than performing
+    // ntohs/ntohl for each sink on every incoming packet
+    uint32_t match_local_ip;       // in network byte order
+    uint32_t match_remote_ip;      // in network byte order
+    uint16_t match_local_port;     // in network byte order
+    uint16_t match_remote_port;    // in network byte order
+    uint16_t match_ethertype;      // in network byte order
+    uint8_t  match_ipv4_protocol;  // in network byte order
 
+    uint32_t packets_queued;
     packet_queue_t *queue;
     void (*cb_queue_pump)(packet_sink_t *sink);
 
@@ -184,5 +203,8 @@ void dhcp_init(void);
 /* icmp.c */
 void net_icmp_init(void);
 void net_icmp_send_unreachable(packet_t *packet);
+
+/* arp.c */
+void net_arp_init(void);
 
 #endif

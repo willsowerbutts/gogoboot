@@ -1,3 +1,5 @@
+/* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
+
 #include <q40types.h>
 #include <stdlib.h>
 #include "q40hw.h"
@@ -63,8 +65,8 @@ static void icmp_pump(packet_sink_t *s)
 void net_icmp_init(void)
 {
     sink = packet_sink_alloc();
-    sink->match_ethertype = ethertype_ipv4;
-    sink->match_ipv4_protocol = ip_proto_icmp;
+    sink->match_ethertype = htons(ethertype_ipv4);
+    sink->match_ipv4_protocol = htons(ip_proto_icmp);
     sink->cb_queue_pump = icmp_pump;
     net_add_packet_sink(sink);
 }

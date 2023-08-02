@@ -4,6 +4,9 @@
      sources from the Linux kernel (pcnet_cs.c, 8390.h, ne.c) and
      eCOS(if_dp83902a.c, if_dp83902a.h) and
      Port to U-Boot by Christian Pellegrin <chri@ascensit.com>
+
+   Portions (c) 2023 William R Sowerbutts <will@sowerbutts.com>
+
 */
 
 #include <stdlib.h>

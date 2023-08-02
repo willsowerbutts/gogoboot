@@ -1,3 +1,5 @@
+/* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
+
 #include "q40isa.h"
 #include "q40uart.h"
 
