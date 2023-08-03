@@ -128,7 +128,7 @@ bool process_dhcp_reply(packet_t *packet, uint8_t expected_dhcp_type)
 
     // reset offer state
     dhcp_server_id = 0;
-    dhcp_offer_ipv4_address = 0;
+    dhcp_offer_lease_time = 0;
     dhcp_offer_subnet_mask = 0;
     dhcp_offer_gateway = 0;
     dhcp_offer_dns_server = 0;
@@ -208,6 +208,17 @@ static void dhcp_enter_state(dhcp_state_t state)
 
     switch(dhcp_state){
         case DHCP_DISCOVER:
+            // no lease: reset dhcp and interface state
+            dhcp_offer_dns_server = 0;
+            dhcp_offer_gateway = 0;
+            dhcp_offer_lease_time = 0;
+            dhcp_offer_lease_time = 0;
+            dhcp_offer_subnet_mask = 0;
+            dhcp_server_id = 0;
+            interface_dns_server = 0;
+            interface_gateway = 0;
+            interface_ipv4_address = 0;
+            interface_subnet_mask = 0;
             // create and send a DHCPDISCOVER message
             net_tx(packet_create_dhcp(ipv4_broadcast, dhcp_type_discover,
                         discover_options, sizeof(discover_options)));

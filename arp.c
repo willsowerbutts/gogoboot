@@ -14,6 +14,7 @@ static packet_sink_t *sink;
 typedef struct arp_cache_entry_t {
     uint32_t ipv4_address;
     macaddr_t mac_address;
+    timer_t last_event; // ?
     int16_t flags;
 } arp_cache_entry_t;
 

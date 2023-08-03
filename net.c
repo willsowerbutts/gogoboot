@@ -31,7 +31,6 @@ void net_init(void)
     net_txqueue_arp_lookup = packet_queue_alloc();
     net_arp_init();
     net_icmp_init();
-    dhcp_init();
 }
 
 void net_pump(void)
@@ -248,6 +247,14 @@ bad_cksum:
 
 void net_tx(packet_t *packet)
 {
+    // don't transmit using 0.0.0.0 unless it's DHCP
+    if(packet->ipv4 && packet->ipv4->source_ip == htonl(0) &&
+            !(packet->udp && packet->udp->source_port == 68 && packet->udp->destination_port == 67)){
+        packet_free(packet);
+        printf("net_tx: no ipv4 address!\n");
+        return;
+    }
+
     if(packet->eth->ethertype == ethertype_ipv4){
         net_compute_ipv4_checksum(packet);
         switch(packet->ipv4->protocol){

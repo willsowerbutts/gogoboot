@@ -190,8 +190,8 @@ static int fromhex(char c)
 
 static void do_heapinfo(char *argv[], int argc)
 {
-    printf("internal heap (tinyalloc):\nfree: %ld\nused: %ld, fresh: %ld\n",
-            ta_num_free(), ta_num_used(), ta_num_fresh());
+    printf("internal heap (tinyalloc):\nfresh: %ld\nfree: %ld\nused: %ld\n",
+            ta_num_fresh(), ta_num_free(), ta_num_used());
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
 }
 

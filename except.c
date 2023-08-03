@@ -23,11 +23,11 @@ const char * const vector_name[] = {
 void report_exception(uint16_t *sp)
 {
     int vector = (*(sp+3) & 0xFFF) >> 2;
-    const char *vecname;
+    const char *vecname = NULL;
 
     if(vector < sizeof(vector_name)/sizeof(char*))
         vecname = vector_name[vector];
-    else
+    if(!vecname)
         vecname = "??? RTFM!";
 
     printf("\nCPU exception!\n");
