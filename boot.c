@@ -36,6 +36,7 @@ bool networking;
  * DONE - during tx of short packet, we're dumping crap out of the buffer too -- fix and replace with 00s
  * DONE - DHCP -- perform in the background
  * - ARP
+ * - extend emulator with https://github.com/sarah-walker-pcem/pcem/blob/dev/src/networking/ne2000.c
  * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
  * - would be nice if getline in the CLI somehow recovers after we overwrite it ...
  * - set and store environment vars in NVRAM (we have malloc now!)
