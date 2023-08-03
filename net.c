@@ -11,9 +11,9 @@ macaddr_t const broadcast_macaddr = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 macaddr_t interface_macaddr; // MAC address of our interface
 
 uint32_t interface_ipv4_address = 0; // IPv4 address of our interface
-uint32_t interface_subnet_mask = 0; 
-uint32_t interface_gateway = 0; 
-uint32_t interface_dns_server = 0; 
+uint32_t interface_subnet_mask = 0;
+uint32_t interface_gateway = 0;
+uint32_t interface_dns_server = 0;
 
 static packet_sink_t *net_packet_sink_head = NULL;
 static packet_queue_t *net_txqueue = NULL;
@@ -36,14 +36,17 @@ void net_init(void)
 
 void net_pump(void)
 {
+    packet_t *packet;
+
     // pump the hardware driver
     eth_pump(); // calls net_eth_push, net_eth_pull
 
     // pump each sink with data waiting or an expired timer
     packet_sink_t *sink = net_packet_sink_head;
     while(sink){
-        if(sink->cb_queue_pump && packet_queue_peekhead(sink->queue)){
-            sink->cb_queue_pump(sink);
+        if(sink->cb_packet_received){
+            while((packet = packet_queue_pophead(sink->queue)))
+                sink->cb_packet_received(sink, packet);
         }
         if(sink->cb_timer_expired && sink->timer && timer_expired(sink->timer)){
             sink->timer = 0; // disable timer
@@ -54,15 +57,66 @@ void net_pump(void)
     }
 }
 
-void net_add_packet_sink(packet_sink_t *s)
+static int score_sink(packet_sink_t *sink)
 {
-    if(s->next)
-        printf("net_add_packet_sink: already in a list?\n");
-    s->next = net_packet_sink_head;
-    net_packet_sink_head = s;
+    int matches = 0;
+    if(sink->match_local_ip || sink->match_interface_local_ip)
+        matches++;
+    if(sink->match_remote_ip)
+        matches++;
+    if(sink->match_local_port)
+        matches++;
+    if(sink->match_remote_port)
+        matches++;
+    if(sink->match_ethertype)
+        matches++;
+    if(sink->match_ipv4_protocol)
+        matches++;
+    return matches;
 }
 
-void net_remove_packet_sink(packet_sink_t *s)
+void net_add_packet_sink(packet_sink_t *sink)
+{
+    int score;
+    packet_sink_t **ptr;
+    packet_sink_t *entry;
+
+    if(sink->next){
+        printf("net_add_packet_sink: already in a list?\n");
+        return;
+    }
+
+    // first sink?
+    if(net_packet_sink_head == NULL){
+        net_packet_sink_head = sink;
+        return;
+    }
+
+    // count how many parameters this sink matches against
+    score = score_sink(sink);
+
+    // place it in the list in sorted order: we want to test
+    // the most specific sinks first
+    ptr = &net_packet_sink_head;
+    entry = net_packet_sink_head;
+    while(entry){
+        if(score_sink(entry) <= score){
+            // insert
+            *ptr = sink;
+            sink->next = entry;
+            return;
+        }
+        if(entry->next == NULL){
+            entry->next = sink;
+            return;
+        }
+        // walk list
+        ptr = &entry->next;
+        entry = entry->next;
+    }
+}
+
+void net_remove_packet_sink(packet_sink_t *sink)
 {
     packet_sink_t **ptr;
     packet_sink_t *entry;
@@ -71,7 +125,7 @@ void net_remove_packet_sink(packet_sink_t *s)
     entry = net_packet_sink_head;
 
     while(entry){
-        if(entry == s){ 
+        if(entry == sink){
             // we got it!
             *ptr = entry->next;
             entry->next = NULL;
@@ -110,13 +164,8 @@ void net_dump_packet_sinks(void) // used by "netinfo" command
 
 void net_eth_push(packet_t *packet) // called by ne2000.c
 {
-    bool taken = false;
     int header_size;
 
-    // here we check that we have a packet intended for our MAC address, 
-    // then we set up our pointers to the various headers, verify the 
-    // checksums, and figure out which queue to put it into. If we cannot
-    // find a queue for it, we discard it.
     packet_rx_count++;
 
     // check that the destination MAC is either our MAC, or a multicast MAC
@@ -164,32 +213,29 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
                 break;
         }
 
+        // figure out the best matching queue to put it into
+        uint32_t interface_ipv4_address_nbo = htonl(interface_ipv4_address); // convert to network byte order
         packet_sink_t *sink = net_packet_sink_head;
-        while(sink && !taken){
-            if( (sink->match_ethertype == 0     || (sink->match_ethertype == packet->eth->ethertype)) &&
-                (sink->match_ipv4_protocol == 0 || (packet->ipv4 && sink->match_ipv4_protocol == packet->ipv4->protocol)) &&
-                (sink->match_local_ip == 0      || (packet->ipv4 && sink->match_local_ip == packet->ipv4->destination_ip)) &&
-                (sink->match_remote_ip == 0     || (packet->ipv4 && sink->match_remote_ip == packet->ipv4->source_ip)) &&
-                (sink->match_local_port == 0    || ((packet->tcp && sink->match_local_port == packet->tcp->destination_port)) || (packet->udp && sink->match_local_port == packet->udp->destination_port)) &&
-                (sink->match_remote_port == 0   || ((packet->tcp && sink->match_remote_port == packet->tcp->source_port) || (packet->udp && sink->match_remote_port == packet->udp->source_port))) ) {
+        while(sink){
+            if( (sink->match_ethertype == 0      || (sink->match_ethertype == packet->eth->ethertype)) &&
+                (sink->match_ipv4_protocol == 0  || (packet->ipv4 && sink->match_ipv4_protocol == packet->ipv4->protocol)) &&
+                (sink->match_local_ip == 0       || (packet->ipv4 && sink->match_local_ip == packet->ipv4->destination_ip)) &&
+                (!sink->match_interface_local_ip || (packet->ipv4 && interface_ipv4_address_nbo == packet->ipv4->destination_ip)) &&
+                (sink->match_remote_ip == 0      || (packet->ipv4 && sink->match_remote_ip == packet->ipv4->source_ip)) &&
+                (sink->match_local_port == 0     || ((packet->tcp && sink->match_local_port == packet->tcp->destination_port)) || (packet->udp && sink->match_local_port == packet->udp->destination_port)) &&
+                (sink->match_remote_port == 0    || ((packet->tcp && sink->match_remote_port == packet->tcp->source_port) || (packet->udp && sink->match_remote_port == packet->udp->source_port))) ) {
+                // enqueue the packet for later processing
                 packet_queue_addtail(sink->queue, packet);
                 sink->packets_queued++;
-                taken = true;
-                break;
-            }else{
-                sink = sink->next;
+                return;
             }
-        }
-
-        if(!taken && packet->ipv4 && ntohl(packet->ipv4->destination_ip) == interface_ipv4_address){
-            net_icmp_send_unreachable(packet);
+            sink = sink->next;
         }
     }
 
-    if(!taken){
-        packet_discard_count++;
-        packet_free(packet);
-    }
+    // if we didn't find a queue, discard it.
+    packet_discard_count++;
+    packet_free(packet);
     return;
 
 bad_cksum:
@@ -216,8 +262,6 @@ void net_tx(packet_t *packet)
                 break;
         }
     }
-
-    // pretty_dump_memory(packet->buffer, packet->buffer_length);
 
     if(packet->flags & packet_flag_destination_mac_valid)
         packet_queue_addtail(net_txqueue, packet);

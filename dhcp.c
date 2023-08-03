@@ -273,12 +273,9 @@ static void dhcp_timer(packet_sink_t *sink)
     }
 }
 
-static void dhcp_pump(packet_sink_t *s)
+static void dhcp_pump(packet_sink_t *s, packet_t *packet)
 {
-    packet_t *packet;
-
-    while((packet = packet_queue_pophead(s->queue))){
-        switch(dhcp_state){
+    switch(dhcp_state){
         case DHCP_DISCOVER:
         case DHCP_BOUND:
             break;
@@ -315,9 +312,8 @@ static void dhcp_pump(packet_sink_t *s)
                 dhcp_enter_state(DHCP_BOUND);
             }
             break;
-        }
-        packet_free(packet);
     }
+    packet_free(packet);
 }
 
 void dhcp_init(void)
@@ -326,7 +322,7 @@ void dhcp_init(void)
     sink->match_ethertype = htons(ethertype_ipv4);
     sink->match_ipv4_protocol = htons(ip_proto_udp);
     sink->match_local_port = htons(68);
-    sink->cb_queue_pump = dhcp_pump;     // called when packets received
+    sink->cb_packet_received = dhcp_pump;     // called when packets received
     sink->cb_timer_expired = dhcp_timer; // called on timer expiry
     net_add_packet_sink(sink);
     dhcp_enter_state(DHCP_DISCOVER);

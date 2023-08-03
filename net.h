@@ -137,6 +137,7 @@ struct packet_sink_t {
 
     // we match in network byte order as it's faster than performing
     // ntohs/ntohl for each sink on every incoming packet
+    bool match_interface_local_ip; // this is match_local_ip, but using the current 'interface_ipv4_address'
     uint32_t match_local_ip;       // in network byte order
     uint32_t match_remote_ip;      // in network byte order
     uint16_t match_local_port;     // in network byte order
@@ -146,7 +147,7 @@ struct packet_sink_t {
 
     uint32_t packets_queued;
     packet_queue_t *queue;
-    void (*cb_queue_pump)(packet_sink_t *sink);
+    void (*cb_packet_received)(packet_sink_t *sink, packet_t *packet);
 
     timer_t timer;
     void (*cb_timer_expired)(packet_sink_t *sink);
@@ -202,7 +203,6 @@ void dhcp_init(void);
 
 /* icmp.c */
 void net_icmp_init(void);
-void net_icmp_send_unreachable(packet_t *packet);
 
 /* arp.c */
 void net_arp_init(void);

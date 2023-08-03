@@ -5,7 +5,19 @@
 #include "timers.h"
 #include "net.h"
 
+#define FLAG_VALID      (1<<1)
+#define FLAG_RESOLVING  (1<<2)
+#define CACHE_SIZE      32
+
 static packet_sink_t *sink;
+
+typedef struct arp_cache_entry_t {
+    uint32_t ipv4_address;
+    macaddr_t mac_address;
+    int16_t flags;
+} arp_cache_entry_t;
+
+static arp_cache_entry_t cache[CACHE_SIZE];
 
 static packet_t *packet_create_arp(void)
 {
@@ -27,37 +39,34 @@ static packet_t *packet_create_arp(void)
     return p;
 }
 
-static void arp_pump(packet_sink_t *sink)
+static void arp_pump(packet_sink_t *sink, packet_t *packet)
 {
-    packet_t *packet;
-
-    while((packet = packet_queue_pophead(sink->queue))){
-        if(packet->arp->hardware_type   == htons(1) && 
-           packet->arp->protocol_type   == htons(0x800) &&
-           packet->arp->hardware_length == htons(6) && 
-           packet->arp->protocol_length == htons(4)){
-           switch(ntohs(packet->arp->operation)){
-               case arp_op_request: // who has <ip>?
-                   printf("arp request:\n");
-                   pretty_dump_memory(packet->arp, sizeof(arp_header_t));
-                   break;
-               case arp_op_reply:   // <ip> is at <mac>
-                   printf("arp reply:\n");
-                   pretty_dump_memory(packet->arp, sizeof(arp_header_t));
-                   packet_free(packet_create_arp());
-                   break;
-               default:
-                   break;
-           }
+    if(packet->arp->hardware_type   == htons(1) && 
+            packet->arp->protocol_type   == htons(0x800) &&
+            packet->arp->hardware_length == htons(6) && 
+            packet->arp->protocol_length == htons(4)){
+        switch(ntohs(packet->arp->operation)){
+            case arp_op_request: // who has <ip>?
+                printf("arp request:\n");
+                pretty_dump_memory(packet->arp, sizeof(arp_header_t));
+                break;
+            case arp_op_reply:   // <ip> is at <mac>
+                printf("arp reply:\n");
+                pretty_dump_memory(packet->arp, sizeof(arp_header_t));
+                packet_free(packet_create_arp());
+                break;
+            default:
+                break;
         }
-        packet_free(packet);
     }
+    packet_free(packet);
 }
 
 void net_arp_init(void)
 {
+    memset(cache, 0, sizeof(cache));
     sink = packet_sink_alloc();
     sink->match_ethertype = htons(ethertype_arp);
-    sink->cb_queue_pump = arp_pump;
+    sink->cb_packet_received = arp_pump;
     net_add_packet_sink(sink);
 }
