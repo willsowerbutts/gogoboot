@@ -3,7 +3,7 @@
 #include <q40types.h>
 #include <stdlib.h>
 #include "tinyalloc.h"
-#include "q40hw.h"
+#include "timers.h"
 #include "cli.h"
 #include "net.h"
 

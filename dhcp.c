@@ -2,7 +2,7 @@
 
 #include <q40types.h>
 #include <stdlib.h>
-#include "q40hw.h"
+#include "timers.h"
 #include "cli.h"
 #include "net.h"
 #include "dhcp_internals.h"

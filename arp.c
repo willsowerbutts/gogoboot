@@ -2,7 +2,7 @@
 
 #include <q40types.h>
 #include <stdlib.h>
-#include "q40hw.h"
+#include "timers.h"
 #include "net.h"
 
 static packet_sink_t *sink;
