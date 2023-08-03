@@ -1,7 +1,7 @@
 /* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
 
 #include <stdlib.h>
-#include <q40types.h>
+#include <types.h>
 #include "q40isa.h"
 #include "q40hw.h"
 

@@ -1,7 +1,7 @@
 #ifndef __STDLIB_DOT_H__SENTRY__
 #define __STDLIB_DOT_H__SENTRY__
 
-#include <q40types.h>
+#include <types.h>
 
 /* cli.c */
 void pretty_dump_memory(void *start, int len);

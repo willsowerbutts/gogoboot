@@ -4,7 +4,7 @@
  * Portions Copyright (C) 2023 William R. Sowerbutts
  */
 
-#include <q40types.h>
+#include <types.h>
 #include <stdlib.h>
 #include "q40uart.h"
 #include "q40hw.h"

@@ -10,7 +10,7 @@
 */
 
 #include <stdlib.h>
-#include <q40types.h>
+#include <types.h>
 #include "tinyalloc.h"
 #include "q40isa.h"
 #include "q40hw.h"

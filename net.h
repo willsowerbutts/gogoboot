@@ -1,7 +1,7 @@
 #ifndef __NET_DOT_H__
 #define __NET_DOT_H__
 
-#include <q40types.h>
+#include <types.h>
 #include <stdbool.h>
 
 typedef struct packet_t packet_t;

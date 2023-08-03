@@ -1,6 +1,6 @@
 /* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
 
-#include <q40types.h>
+#include <types.h>
 #include <stdlib.h>
 #include "tinyalloc.h"
 #include "timers.h"

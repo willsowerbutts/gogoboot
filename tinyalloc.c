@@ -1,5 +1,5 @@
 #include "tinyalloc.h"
-#include <q40types.h>
+#include <types.h>
 
 #ifdef TA_DEBUG
 extern void print_s(char *);

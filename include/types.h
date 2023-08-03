@@ -1,5 +1,5 @@
-#ifndef __Q40TYPES_DOT_H__
-#define __Q40TYPES_DOT_H__
+#ifndef __TYPES_DOT_H__
+#define __TYPES_DOT_H__
 
 typedef signed char		int8_t;
 typedef signed short int	int16_t;

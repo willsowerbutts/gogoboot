@@ -1,7 +1,7 @@
 #ifndef __Q40ISA_DOT_H__
 #define __Q40ISA_DOT_H__
 
-#include <q40types.h>
+#include <types.h>
 
 #define ISA_BASE_ADDR 0xff400000
 #define ISA_XLATE_ADDR_BYTE(addr) ((volatile uint8_t *)(ISA_BASE_ADDR+1+((addr)<<2)))

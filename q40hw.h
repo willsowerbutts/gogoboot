@@ -2,7 +2,7 @@
 #define __Q40HW_DOT_H__
 
 #include <stdbool.h>
-#include <q40types.h>
+#include <types.h>
 #include "timers.h"
 
 void q40_graphics_init(int mode);
