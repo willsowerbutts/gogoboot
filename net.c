@@ -111,6 +111,7 @@ void net_dump_packet_sinks(void) // used by "netinfo" command
 void net_eth_push(packet_t *packet) // called by ne2000.c
 {
     bool taken = false;
+    int header_size;
 
     // here we check that we have a packet intended for our MAC address, 
     // then we set up our pointers to the various headers, verify the 
@@ -129,7 +130,7 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
                     goto bad_cksum;
                 switch(packet->ipv4->protocol){
                     case ip_proto_tcp:
-                        int header_size = ((packet->tcp->data_offset & 0x0F) << 2);
+                        header_size = ((packet->tcp->data_offset & 0x0F) << 2);
                         packet->tcp = (tcp_header_t*)packet->ipv4->payload;
                         packet->data = packet->ipv4->payload + header_size;
                         packet->data_length = ntohs(packet->ipv4->length) - header_size;
@@ -180,7 +181,7 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
             }
         }
 
-        if(!taken && packet->ipv4){
+        if(!taken && packet->ipv4 && ntohl(packet->ipv4->destination_ip) == interface_ipv4_address){
             net_icmp_send_unreachable(packet);
         }
     }
