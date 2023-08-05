@@ -18,11 +18,11 @@ ROMOBJ = boot.o except.o q40uart.o q40hw.o startup.o vectors.o q40ide.o \
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 
-.s.o:
-	$(AS) $(AOPT) -a=$*.lst -o $*.o $*.s
+%.o:	%.s
+	$(AS) $(AOPT) -a=$*.lst $< -o $@
 
-.c.o:
-	$(CC) -c $(COPT) -o $*.o $*.c
+%.o:	%.c
+	$(CC) -c $(COPT) $< -o $@
 
 all:	q40boot.rom
 
