@@ -143,17 +143,21 @@ void net_dump_packet_sinks(void) // used by "netinfo" command
 {
     packet_sink_t *sink = net_packet_sink_head;
     while(sink){
-        printf("sink@0x%lx:\n  ipv4_protocol=0x%x, local_ip=0x%lx, remote_ip=0x%lx, local_port=%d, remote_port=%d\n  ethertype=0x%x, queue_len=%d, packets_queued=%ld, timer=%ld\n",
+        printf("sink@0x%lx:\n  ipv4_protocol=0x%x, local_ip=0x%lx, if_ip=%s, remote_ip=0x%lx, local_port=%d, remote_port=%d\n  ethertype=0x%x, queue_len=%d, packets_queued=%ld, timer=%ld, callbacks:%s%s\n",
                 (long)sink,
                 ntohs(sink->match_ipv4_protocol),
                 ntohl(sink->match_local_ip),
+                sink->match_interface_local_ip ? "true":"false",
                 ntohl(sink->match_remote_ip),
                 ntohs(sink->match_local_port),
                 ntohs(sink->match_remote_port),
                 ntohs(sink->match_ethertype),
                 packet_queue_length(sink->queue),
                 sink->packets_queued,
-                sink->timer ? sink->timer - q40_read_timer_ticks() : -1);
+                sink->timer ? sink->timer - q40_read_timer_ticks() : -1,
+                sink->cb_timer_expired ? " timer":"",
+                sink->cb_packet_received ? " packet":""
+                );
         sink = sink->next;
     }
 
