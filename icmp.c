@@ -20,8 +20,7 @@ static void icmp_send_unreachable(packet_sink_t *sink, packet_t *packet)
     packet_t *unreach = packet_create_icmp(ntohl(packet->ipv4->source_ip), sizeof(ipv4_header_t) + 8);
 
     // fill in dest MAC (TODO - let the ARP code figure this out?)
-    memcpy(unreach->eth->destination_mac, packet->eth->source_mac, sizeof(macaddr_t));
-    unreach->flags |= packet_flag_destination_mac_valid;
+    packet_set_destination_mac(unreach, &packet->eth->source_mac);
 
     // fill in ICMP message
     unreach->icmp->type = 3; // Destination Unreachable
@@ -38,20 +37,16 @@ static void icmp_received(packet_sink_t *sink, packet_t *packet)
         // convert echo request to echo reply (per RFC792!)
         packet->icmp->type = 0; // echo reply
 
-        // swap ips
-        uint32_t x = packet->ipv4->source_ip;
-        packet->ipv4->source_ip = packet->ipv4->destination_ip;
-        packet->ipv4->destination_ip = x;
+        // swap source to target
+        packet->ipv4->destination_ip = packet->ipv4->source_ip;
+        packet_set_destination_mac(packet, &packet->eth->source_mac);
 
-        // swap macs
-        macaddr_t m;
-        memcpy(m, packet->eth->destination_mac, sizeof(macaddr_t));
-        memcpy(packet->eth->destination_mac, packet->eth->source_mac, sizeof(macaddr_t));
-        memcpy(packet->eth->source_mac, m, sizeof(macaddr_t));
-        packet->flags |= packet_flag_destination_mac_valid;
+        // fill in new source based on our interface addresses
+        packet->ipv4->source_ip = ntohl(interface_ipv4_address);
+        memcpy(packet->eth->source_mac, interface_macaddr, sizeof(macaddr_t));
 
         net_tx(packet);
-        // do not free packet -- transmission side will free it later
+        // do not free received packet since it is now being re-used for transmission
     }else{
         // unhandled
         packet_free(packet);
