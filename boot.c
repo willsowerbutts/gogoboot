@@ -34,8 +34,9 @@ extern const char copyright_msg[];
  * DONE - back to back transmits do not work?
  * DONE - during tx of short packet, we're dumping crap out of the buffer too -- fix and replace with 00s
  * DONE - DHCP -- perform in the background
- * - ARP
- * - Emulator - add ne2000 -- https://github.com/OBattler/PCem-X/blob/master/PCem/ne2000.c
+ * DONE - Emulator - add ne2000 -- https://github.com/OBattler/PCem-X/blob/master/PCem/ne2000.c
+ * DONE - ARP cache and reply to queries for our MAC
+ * - ARP resolution
  * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
  * - would be nice if getline in the CLI somehow recovers after we overwrite it ...
  * - set and store environment vars in NVRAM (we have malloc now!)
