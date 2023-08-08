@@ -17,7 +17,7 @@ uint32_t interface_dns_server = 0;
 
 static packet_sink_t *net_packet_sink_head = NULL;
 static packet_queue_t *net_txqueue = NULL;
-static packet_queue_t *net_txqueue_arp_lookup = NULL;
+static packet_t *net_arp_lookup_list_head = NULL;
 
 uint32_t packet_alive_count = 0;
 uint32_t packet_discard_count = 0;
@@ -28,14 +28,51 @@ uint32_t packet_tx_count = 0;
 void net_init(void)
 {
     net_txqueue = packet_queue_alloc();
-    net_txqueue_arp_lookup = packet_queue_alloc();
+    net_arp_lookup_list_head = NULL;
     net_arp_init();
     net_icmp_init();
+}
+
+static void net_arp_resolver_pump(void)
+{
+    packet_t *packet, **packet_ptr;
+    arp_result_t r;
+
+    packet = net_arp_lookup_list_head;
+    packet_ptr = &net_arp_lookup_list_head;
+
+    while(packet){
+        r = net_arp_resolve(packet);
+        if(r == arp_wait){
+            // walk forward in the list
+            packet_ptr = &packet->next;
+            packet = packet->next;
+        }else{
+            // remove it from the arp lookup list
+            *packet_ptr = packet->next;
+            packet->next = NULL;
+
+            if(r == arp_okay){
+                // move it onto the transmit queue
+                packet_queue_addtail(net_txqueue, packet);
+            }else{ // r == arp_fail
+                // we couldn't resolve it
+                packet_free(packet);
+            }
+
+            // walk forward in the list
+            // do not update packet_ptr
+            packet = *packet_ptr;
+        }
+    }
 }
 
 void net_pump(void)
 {
     packet_t *packet;
+
+    // progress any queued ARP lookups
+    net_arp_resolver_pump();
 
     // pump the hardware driver
     eth_pump(); // calls net_eth_push, net_eth_pull
@@ -259,6 +296,7 @@ void net_tx(packet_t *packet)
         return;
     }
 
+    // compute checksums
     if(packet->eth->ethertype == ethertype_ipv4){
         net_compute_ipv4_checksum(packet);
         switch(packet->ipv4->protocol){
@@ -274,11 +312,12 @@ void net_tx(packet_t *packet)
         }
     }
 
-    if(packet->flags & packet_flag_destination_mac_valid)
+    if(packet->flags & packet_flag_destination_mac_valid || net_arp_resolve(packet) == arp_okay){
         packet_queue_addtail(net_txqueue, packet);
-    else{
-        printf("net_txqueue_arp_lookup is a queue to nowhere\n");
-        packet_queue_addtail(net_txqueue_arp_lookup, packet);
+    }else{
+        // add to the list of packets awaiting ARP resolution
+        packet->next = net_arp_lookup_list_head;
+        net_arp_lookup_list_head = packet;
     }
 }
 

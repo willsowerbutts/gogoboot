@@ -205,6 +205,8 @@ void dhcp_init(void);
 void net_icmp_init(void);
 
 /* arp.c */
+typedef enum { arp_okay, arp_wait, arp_fail } arp_result_t;
 void net_arp_init(void);
+arp_result_t net_arp_resolve(packet_t *packet);
 
 #endif
