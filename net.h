@@ -123,7 +123,7 @@ struct __attribute__((packed, aligned(2))) tcp_header_t {
     // followed by the user data
 };
 
-#define PACKET_MAXLEN 1600      /* largest size we will process */
+#define PACKET_MAXLEN 1536      /* largest size we will process */
 #define DEFAULT_TTL 64
 
 struct packet_queue_t {
@@ -207,5 +207,8 @@ void net_icmp_init(void);
 typedef enum { arp_okay, arp_wait, arp_fail } arp_result_t;
 void net_arp_init(void);
 arp_result_t net_arp_resolve(packet_t *packet);
+
+/* tftp.c */
+bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char *disk_filename);
 
 #endif

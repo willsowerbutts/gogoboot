@@ -96,6 +96,13 @@ static const char * const fatfs_errmsg[] =
     /* 19 */ "Given parameter is invalid"
 };
 
+const char *f_errmsg(int errno)
+{
+    if(errno >= 0 && errno <= 19)
+        return fatfs_errmsg[errno];
+    return "???";
+}
+
 static void f_perror(int errno)
 {
     if(errno >= 0 && errno <= 19)
@@ -198,11 +205,11 @@ static void do_heapinfo(char *argv[], int argc)
 
 static void do_tftp(char *argv[], int argc)
 {
-    // uint32_t targetip = 0xc0a86450; // beastie 192.168.100.80
-    // const char *tftp_filename = "q40test.bin";
-    // const char *disk_filename = "1:/q40test.bin";
+    uint32_t targetip = 0xc0a86450; // beastie 192.168.100.80
+    const char *tftp_filename = "q40test.bin";
+    const char *disk_filename = "1:/q40test.bin";
 
-    // tftp_receive(targetip, tftp_filename, disk_filename);
+    tftp_receive(targetip, tftp_filename, disk_filename);
 }
 
 static void do_netinfo(char *argv[], int argc)

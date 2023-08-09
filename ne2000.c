@@ -305,7 +305,13 @@ static void dp83902a_RxEvent(void)
                 rcv_hdr[0], rcv_hdr[1], rcv_hdr[2], rcv_hdr[3]);
 #endif
         len = ((rcv_hdr[3] << 8) | rcv_hdr[2]) - sizeof(rcv_hdr);
-        push_packet_ready(len);
+        if (len>=PACKET_MAXLEN) {
+            printf("ne2000: rx too big\n");
+            printf("ne2000: header %02x %02x %02x %02x\n",
+                rcv_hdr[0], rcv_hdr[1], rcv_hdr[2], rcv_hdr[3]);
+        }else{
+            push_packet_ready(len);
+        }
         if (rcv_hdr[1] == nic.rx_buf_start)
             isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_end-1);
         else
@@ -395,6 +401,8 @@ static void dp83902a_Overflow(void)
 {
     uint8_t isr;
 
+    printf("ne2000: overflow: fixing ...\n");
+
     /* Issue a stop command and wait 1.6ms for it to complete. */
     isa_write_byte(nic.base + DP_CR, DP_CR_STOP | DP_CR_NODMA);
 
@@ -422,6 +430,8 @@ static void dp83902a_Overflow(void)
     if (nic.tx_started && !(isr & (DP_ISR_TxP|DP_ISR_TxE))) {
         isa_write_byte(nic.base + DP_CR, DP_CR_NODMA | DP_CR_TXPKT | DP_CR_START);
     }
+
+    printf("ne2000: overflow: fixed\n");
 }
 
 static void dp83902a_poll(void)
@@ -544,10 +554,6 @@ static bool get_prom(void)
 static void push_packet_ready(int len)
 {
     PRINTK("pushed len = %d\n", len);
-    if (len>=PACKET_MAXLEN) {
-        printf("ne2000: rx too big\n");
-        return;
-    }
 
     packet_t *packet = packet_alloc(len);
     if(!packet){
