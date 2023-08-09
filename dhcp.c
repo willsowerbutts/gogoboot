@@ -1,8 +1,8 @@
 /* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
 
-#include <q40types.h>
+#include <types.h>
 #include <stdlib.h>
-#include "q40hw.h"
+#include "timers.h"
 #include "cli.h"
 #include "net.h"
 #include "dhcp_internals.h"
@@ -111,6 +111,10 @@ bool process_dhcp_reply(packet_t *packet, uint8_t expected_dhcp_type)
     uint8_t opt_code, opt_len, *opt_data;
     dhcp_message_t *d = (dhcp_message_t*)packet->data;
 
+#ifdef DHCP_DEBUG
+    printf("process_dhcp_reply: received op %d\n", d->op);
+#endif
+
     if(d->op != 2) // check for BOOTREPLY
         return false;
 
@@ -126,9 +130,13 @@ bool process_dhcp_reply(packet_t *packet, uint8_t expected_dhcp_type)
             d->options[3] != 0x63)
         return false;
 
+#ifdef DHCP_DEBUG
+    printf("process_dhcp_reply: found cookie\n");
+#endif
+
     // reset offer state
     dhcp_server_id = 0;
-    dhcp_offer_ipv4_address = 0;
+    dhcp_offer_lease_time = 0;
     dhcp_offer_subnet_mask = 0;
     dhcp_offer_gateway = 0;
     dhcp_offer_dns_server = 0;
@@ -146,6 +154,13 @@ bool process_dhcp_reply(packet_t *packet, uint8_t expected_dhcp_type)
         opt_code = d->options[offset];
         opt_len = d->options[offset+1];
         opt_data = d->options+offset+2;
+
+#ifdef DHCP_DEBUG
+        printf("dhcp: option %02x len %02x:", opt_code, opt_len);
+        for(int i=0; i<opt_len; i++)
+            printf(" %02x", opt_data[i]);
+        printf("\n");
+#endif
 
         if((length - offset) >= (2 + opt_len)){
             switch(opt_code){
@@ -179,12 +194,6 @@ bool process_dhcp_reply(packet_t *packet, uint8_t expected_dhcp_type)
                     dhcp_offer_dns_server = ntohl(*((uint32_t*)opt_data));
                     break;
                 default:
-#ifdef DHCP_DEBUG
-                    printf("dhcp: ignored option %02x len %02x:", opt_code, opt_len);
-                    for(int i=0; i<opt_len; i++)
-                        printf(" %02x", opt_data[i]);
-                    printf("\n");
-#endif
                     break;
             }
         }
@@ -208,6 +217,17 @@ static void dhcp_enter_state(dhcp_state_t state)
 
     switch(dhcp_state){
         case DHCP_DISCOVER:
+            // no lease: reset dhcp and interface state
+            dhcp_offer_dns_server = 0;
+            dhcp_offer_gateway = 0;
+            dhcp_offer_lease_time = 0;
+            dhcp_offer_lease_time = 0;
+            dhcp_offer_subnet_mask = 0;
+            dhcp_server_id = 0;
+            interface_dns_server = 0;
+            interface_gateway = 0;
+            interface_ipv4_address = 0;
+            interface_subnet_mask = 0;
             // create and send a DHCPDISCOVER message
             net_tx(packet_create_dhcp(ipv4_broadcast, dhcp_type_discover,
                         discover_options, sizeof(discover_options)));
@@ -273,12 +293,9 @@ static void dhcp_timer(packet_sink_t *sink)
     }
 }
 
-static void dhcp_pump(packet_sink_t *s)
+static void dhcp_pump(packet_sink_t *s, packet_t *packet)
 {
-    packet_t *packet;
-
-    while((packet = packet_queue_pophead(s->queue))){
-        switch(dhcp_state){
+    switch(dhcp_state){
         case DHCP_DISCOVER:
         case DHCP_BOUND:
             break;
@@ -299,34 +316,40 @@ static void dhcp_pump(packet_sink_t *s)
             if(process_dhcp_reply(packet, dhcp_type_nack)){
                 dhcp_enter_state(DHCP_DISCOVER); // start over again on any NACK
             }else if(process_dhcp_reply(packet, dhcp_type_ack)){
+                int prefixlen = 0;
+                uint32_t mask;
                 interface_ipv4_address = dhcp_offer_ipv4_address;
-                interface_subnet_mask = dhcp_offer_subnet_mask;
+                interface_subnet_mask = mask = dhcp_offer_subnet_mask;
                 interface_gateway = dhcp_offer_gateway;
                 interface_dns_server = dhcp_offer_dns_server;
+                while(mask){
+                    prefixlen++;
+                    mask <<= 1;
+                }
                 if(dhcp_state == DHCP_REQUEST){ // don't print this on every RENEW
-                    printf("DHCP lease acquired (%d.%d.%d.%d, %dh %dm)\n",
+                    printf("DHCP lease acquired (%d.%d.%d.%d/%d, %dh %dm)\n",
                             (int)(interface_ipv4_address >> 24 & 0xff),
                             (int)(interface_ipv4_address >> 16 & 0xff),
                             (int)(interface_ipv4_address >>  8 & 0xff),
                             (int)(interface_ipv4_address       & 0xff),
+                            prefixlen,
                             (int)(dhcp_offer_lease_time / 3600),
                             (int)(dhcp_offer_lease_time % 3600)/60);
                 }
                 dhcp_enter_state(DHCP_BOUND);
             }
             break;
-        }
-        packet_free(packet);
     }
+    packet_free(packet);
 }
 
 void dhcp_init(void)
 {
     sink = packet_sink_alloc();
-    sink->match_ethertype = htons(ethertype_ipv4);
-    sink->match_ipv4_protocol = htons(ip_proto_udp);
-    sink->match_local_port = htons(68);
-    sink->cb_queue_pump = dhcp_pump;     // called when packets received
+    sink->match_ethertype = ethertype_ipv4;
+    sink->match_ipv4_protocol = ip_proto_udp;
+    sink->match_local_port = 68;
+    sink->cb_packet_received = dhcp_pump;     // called when packets received
     sink->cb_timer_expired = dhcp_timer; // called on timer expiry
     net_add_packet_sink(sink);
     dhcp_enter_state(DHCP_DISCOVER);

@@ -1,9 +1,9 @@
 /* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
 
-#include <q40types.h>
+#include <types.h>
 #include <stdlib.h>
 #include "tinyalloc.h"
-#include "q40hw.h"
+#include "timers.h"
 #include "cli.h"
 #include "net.h"
 
@@ -74,4 +74,17 @@ packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint1
     p->udp->length = htons(sizeof(udp_header_t) + data_size);
 
     return p;
+}
+
+packet_t *packet_create_for_sink(packet_sink_t *sink, int data_size)
+{
+    switch(sink->match_ipv4_protocol) {
+        case ip_proto_udp:
+            return packet_create_udp(sink->match_remote_ip, sink->match_remote_port, sink->match_local_port, data_size);
+        case ip_proto_tcp:
+            return packet_create_tcp(sink->match_remote_ip, sink->match_remote_port, sink->match_local_port, data_size);
+        default:
+            printf("bad sink proto\n");
+            return NULL;
+    }
 }

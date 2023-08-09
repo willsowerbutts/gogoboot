@@ -4,6 +4,7 @@
         .globl  timer_ticks
         .globl  uart_write_str
         .globl  uart_write_byte
+        .globl  report_exception
 
         .section .text
         .align 4
@@ -63,13 +64,7 @@ trap_0: /* SMSQ/E and QDOS use this vector for "enter supervisor mode";
            we're already in supervisor mode, so not much to do here! */
         rte
 
-interrupt_level_1:
-        pea bad_interrupt_message
-        jsr uart_write_str
-        pea '1'
-        jsr uart_write_byte
-        bra halt
-
+/* Q40 interrupt handler */
 interrupt_level_2:
         move.l %d0, -(%sp)
         moveb 0xff000000, %d0           /* load interrupt status */
@@ -82,44 +77,44 @@ interrupt_level_2_done:
         move.l (%sp)+, %d0
         rte
 
+/* handlers for things that might happen and which are, generally, bad */
+
+interrupt_level_1:
+        pea '1'
+        bra bad_interrupt
+
 interrupt_level_3:
-        pea bad_interrupt_message
-        jsr uart_write_str
         pea '3'
-        jsr uart_write_byte
-        bra halt
+        bra bad_interrupt
 
 interrupt_level_4:
-        pea bad_interrupt_message
-        jsr uart_write_str
         pea '4'
-        jsr uart_write_byte
-        bra halt
+        bra bad_interrupt
 
 interrupt_level_5:
-        pea bad_interrupt_message
-        jsr uart_write_str
         pea '5'
-        jsr uart_write_byte
-        bra halt
+        bra bad_interrupt
 
 interrupt_level_6:
-        pea bad_interrupt_message
-        jsr uart_write_str
         pea '6'
-        jsr uart_write_byte
-        bra halt
+        bra bad_interrupt
 
 interrupt_level_7:
+        pea '7'
+        bra bad_interrupt
+
+/* for bad interrupts we just report the interupt number and halt */
+bad_interrupt:
         pea bad_interrupt_message
         jsr uart_write_str
-        pea '7'
+        move.l (%sp)+, %d0
         jsr uart_write_byte
         bra halt
 
+/* for exceptions we call a routine that reports the machine state before halting */
 unhandled_exception:
-        pea unhandled_exception_message
-        jsr uart_write_str
+        pea (%sp)
+        jsr report_exception
 halt:   stop #2701
         br.s halt
 
@@ -130,8 +125,6 @@ timer_ticks:
 
         .section .rodata
 bad_interrupt_message:
-        .ascii ":( BAD INT \0"
-unhandled_exception_message:
-        .ascii ":( UNHANDLED EXCEPTION\0"
+        .ascii ":( UNEXPECTED INT \0"
 
         .end

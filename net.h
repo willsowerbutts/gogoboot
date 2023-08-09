@@ -1,7 +1,7 @@
 #ifndef __NET_DOT_H__
 #define __NET_DOT_H__
 
-#include <q40types.h>
+#include <types.h>
 #include <stdbool.h>
 
 typedef struct packet_t packet_t;
@@ -135,18 +135,17 @@ struct packet_sink_t {
     packet_sink_t *next; // for linked lists
     void *sink_private;  // for sink's use
 
-    // we match in network byte order as it's faster than performing
-    // ntohs/ntohl for each sink on every incoming packet
-    uint32_t match_local_ip;       // in network byte order
-    uint32_t match_remote_ip;      // in network byte order
-    uint16_t match_local_port;     // in network byte order
-    uint16_t match_remote_port;    // in network byte order
-    uint16_t match_ethertype;      // in network byte order
-    uint8_t  match_ipv4_protocol;  // in network byte order
+    bool match_interface_local_ip; // similar to match_local_ip, but using the current 'interface_ipv4_address'
+    uint32_t match_local_ip;       // ... whereas this matches one specific IP
+    uint32_t match_remote_ip;
+    uint16_t match_local_port;
+    uint16_t match_remote_port;
+    uint16_t match_ethertype;
+    uint8_t  match_ipv4_protocol;
 
     uint32_t packets_queued;
     packet_queue_t *queue;
-    void (*cb_queue_pump)(packet_sink_t *sink);
+    void (*cb_packet_received)(packet_sink_t *sink, packet_t *packet);
 
     timer_t timer;
     void (*cb_timer_expired)(packet_sink_t *sink);
@@ -174,6 +173,7 @@ packet_t *packet_alloc(int buffer_size);
 packet_t *packet_create_tcp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size);
 packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size);
 packet_t *packet_create_icmp(uint32_t dest_ipv4, int data_size);
+packet_t *packet_create_for_sink(packet_sink_t *sink, int data_size);
 void packet_set_destination_mac(packet_t *packet, const macaddr_t *mac);
 void packet_free(packet_t *packet);
 
@@ -202,9 +202,10 @@ void dhcp_init(void);
 
 /* icmp.c */
 void net_icmp_init(void);
-void net_icmp_send_unreachable(packet_t *packet);
 
 /* arp.c */
+typedef enum { arp_okay, arp_wait, arp_fail } arp_result_t;
 void net_arp_init(void);
+arp_result_t net_arp_resolve(packet_t *packet);
 
 #endif

@@ -2,7 +2,7 @@
  * Includes some code from my "devide" FUZIX IDE driver.  */
 
 #include <stdlib.h>
-#include <q40types.h>
+#include <types.h>
 #include "ff.h"
 #include "diskio.h"
 #include "q40ide.h"

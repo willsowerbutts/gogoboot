@@ -8,7 +8,7 @@
 
 // #include <linux/module.h>
 // #include <linux/string.h>
-#include <q40types.h>
+#include <types.h>
 
 void *memset(void *s, int c, size_t count)
 {

@@ -1,7 +1,7 @@
 #ifndef __STDLIB_DOT_H__SENTRY__
 #define __STDLIB_DOT_H__SENTRY__
 
-#include <q40types.h>
+#include <types.h>
 
 /* cli.c */
 void pretty_dump_memory(void *start, int len);
@@ -21,6 +21,7 @@ extern int errno;
 // extern volatile int32 julian_day;
 
 // void *malloc(size_t size); WRS: use tinyalloc.h
+char *strdup(const char *s);
 char *strcat(char *d, const char *s);
 int strcasecmp(const char *s, const char *d);
 int strncasecmp(const char *s, const char *d, size_t l);

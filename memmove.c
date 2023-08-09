@@ -8,7 +8,7 @@
 
 // #include <linux/module.h>
 // #include <linux/string.h>
-#include <q40types.h>
+#include <types.h>
 
 void *memmove(void *dest, const void *src, size_t n)
 {

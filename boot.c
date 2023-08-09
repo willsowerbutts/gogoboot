@@ -11,7 +11,6 @@
 #include "cli.h"
 
 extern const char copyright_msg[];
-bool networking;
 
 /* TODO:
  * DONE - 040 cache modes
@@ -35,9 +34,12 @@ bool networking;
  * DONE - back to back transmits do not work?
  * DONE - during tx of short packet, we're dumping crap out of the buffer too -- fix and replace with 00s
  * DONE - DHCP -- perform in the background
- * - ARP
- * - extend emulator with https://github.com/sarah-walker-pcem/pcem/blob/dev/src/networking/ne2000.c
- * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
+ * DONE - Emulator - add ne2000 -- https://github.com/OBattler/PCem-X/blob/master/PCem/ne2000.c
+ * DONE - ARP cache and reply to queries for our MAC
+ * DONE - ARP resolution
+ * - DNS?
+ * - TFTP client protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
+ * - TFTP server protocol too? wouldn't be hard!
  * - would be nice if getline in the CLI somehow recovers after we overwrite it ...
  * - set and store environment vars in NVRAM (we have malloc now!)
  *   - store ROM config in RTC NVRAM? serial port speed, boot script filename, etc? store as series of strings; cksum at end. store backwards in nvram.
@@ -91,7 +93,7 @@ static unsigned int heap_init(void)
         heap = MAXHEAP;
 
     base = (void*)ram_size - heap;
-    ta_init(base, (void*)ram_size-1, 256, 16, 8);
+    ta_init(base, (void*)ram_size-1, 2048, 16, 8);
 
     return (unsigned int)base;
 }
@@ -124,8 +126,10 @@ void boot_q40(void)
     q40_ide_init();
 
     printf("Initialise ethernet: ");
-    eth_init();
-    net_init(); // do this only after the ethernet is up
+    net_init();
+    if(eth_init()){
+        dhcp_init();
+    }
 
     q40_led(true);
 

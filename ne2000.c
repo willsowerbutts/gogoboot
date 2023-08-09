@@ -10,7 +10,7 @@
 */
 
 #include <stdlib.h>
-#include <q40types.h>
+#include <types.h>
 #include "tinyalloc.h"
 #include "q40isa.h"
 #include "q40hw.h"
@@ -68,7 +68,7 @@ static void dp83902a_start(macaddr_t enaddr)
     isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_STOP); /* Brutal */
 #ifdef NE2000_16BIT_PIO
     // DP_DCR_BOS does not seem to affect the actual byte order the card uses ... ?
-    isa_write_byte(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4 | DP_DCR_WTS /* | DP_DCR_BOS */);
+    isa_write_byte(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4 | DP_DCR_WTS);
 #else
     isa_write_byte(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4);
 #endif
@@ -160,10 +160,18 @@ static void dp83902a_send(void *data, int total_len)
     uint16_t __attribute__((unused)) tmp;
     isa_write_byte(nic.base + DP_RSAL, 0x100-1);
     isa_write_byte(nic.base + DP_RSAH, (start_page-1) & 0xff);
+#ifdef NE2000_16BIT_PIO
+    isa_write_byte(nic.base + DP_RBCL, 2);
+#else
     isa_write_byte(nic.base + DP_RBCL, 1);
+#endif
     isa_write_byte(nic.base + DP_RBCH, 0);
     isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_RDMA | DP_CR_START);
+#ifdef NE2000_16BIT_PIO
+    tmp = isa_read_word(nic.data);
+#else
     tmp = isa_read_byte(nic.data);
+#endif
 
 #ifdef NE2000_16BIT_PIO
     /* round up pkt_len for word writes */
@@ -479,7 +487,7 @@ static const struct {
     uint8_t value, offset;
 } get_prom_program_seq[] = {
     {E8390_NODMA+E8390_PAGE0+E8390_STOP, E8390_CMD}, /* Select page 0 */
-    { DP_DCR_LS | DP_DCR_FIFO_4, DP_DCR},
+    { DP_DCR_LS | DP_DCR_FIFO_4, DP_DCR}, /* Byte-wide transfers */
     {0x00,      EN0_RCNTLO},    /* Clear the count regs. */
     {0x00,      EN0_RCNTHI},
     {0x00,      EN0_IMR},       /* Mask completion irq. */

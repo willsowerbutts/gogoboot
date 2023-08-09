@@ -1,7 +1,7 @@
 #ifndef __DHCP_INTERNALS_DOT_H__
 #define __DHCP_INTERNALS_DOT_H__
 
-#include <q40types.h>
+#include <types.h>
 
 static const int short_wait_time = 5; // seconds
 

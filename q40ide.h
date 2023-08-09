@@ -3,7 +3,7 @@
 #define __Q40IDE_DOT_H__
 
 #include <stdbool.h>
-#include <q40types.h>
+#include <types.h>
 
 void q40_ide_init(void);
 int q40_ide_get_disk_count(void);
