@@ -180,15 +180,15 @@ void net_dump_packet_sinks(void) // used by "netinfo" command
 {
     packet_sink_t *sink = net_packet_sink_head;
     while(sink){
-        printf("sink@0x%lx:\n  ipv4_protocol=0x%x, local_ip=0x%lx, if_ip=%s, remote_ip=0x%lx, local_port=%d, remote_port=%d\n  ethertype=0x%x, queue_len=%d, packets_queued=%ld, timer=%ld, callbacks:%s%s\n",
+        printf("packet_sink @ 0x%lx:\n  ipv4_protocol=0x%x, local_ip=0x%lx, if_ip=%s, remote_ip=0x%lx, local_port=%d, remote_port=%d\n  ethertype=0x%x, queue_len=%d, packets_queued=%ld, timer=%ld, callbacks:%s%s\n",
                 (long)sink,
-                ntohs(sink->match_ipv4_protocol),
-                ntohl(sink->match_local_ip),
+                sink->match_ipv4_protocol,
+                sink->match_local_ip,
                 sink->match_interface_local_ip ? "true":"false",
-                ntohl(sink->match_remote_ip),
-                ntohs(sink->match_local_port),
-                ntohs(sink->match_remote_port),
-                ntohs(sink->match_ethertype),
+                sink->match_remote_ip,
+                sink->match_local_port,
+                sink->match_remote_port,
+                sink->match_ethertype,
                 packet_queue_length(sink->queue),
                 sink->packets_queued,
                 sink->timer ? sink->timer - q40_read_timer_ticks() : -1,
@@ -254,16 +254,22 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
         }
 
         // figure out the best matching queue to put it into
-        uint32_t interface_ipv4_address_nbo = htonl(interface_ipv4_address); // convert to network byte order
+        // convert key fields to cpu byte order (avoids doing this for every sink)
+        uint16_t ethertype        = ntohs(packet->eth->ethertype);
+        uint16_t protocol         = ntohs(packet->ipv4->protocol);
+        uint32_t destination_ip   = ntohl(packet->ipv4->destination_ip);
+        uint32_t source_ip        = ntohl(packet->ipv4->source_ip);
+        uint16_t destination_port = packet->tcp ? ntohs(packet->tcp->destination_port) : (packet->udp ? ntohs(packet->udp->destination_port) : 0);
+        uint16_t source_port      = packet->tcp ? ntohs(packet->tcp->source_port)      : (packet->udp ? ntohs(packet->udp->source_port)      : 0);
         packet_sink_t *sink = net_packet_sink_head;
         while(sink){
-            if( (sink->match_ethertype == 0      || (sink->match_ethertype == packet->eth->ethertype)) &&
-                (sink->match_ipv4_protocol == 0  || (packet->ipv4 && sink->match_ipv4_protocol == packet->ipv4->protocol)) &&
-                (sink->match_local_ip == 0       || (packet->ipv4 && sink->match_local_ip == packet->ipv4->destination_ip)) &&
-                (!sink->match_interface_local_ip || (packet->ipv4 && interface_ipv4_address_nbo == packet->ipv4->destination_ip)) &&
-                (sink->match_remote_ip == 0      || (packet->ipv4 && sink->match_remote_ip == packet->ipv4->source_ip)) &&
-                (sink->match_local_port == 0     || ((packet->tcp && sink->match_local_port == packet->tcp->destination_port)) || (packet->udp && sink->match_local_port == packet->udp->destination_port)) &&
-                (sink->match_remote_port == 0    || ((packet->tcp && sink->match_remote_port == packet->tcp->source_port) || (packet->udp && sink->match_remote_port == packet->udp->source_port))) ) {
+            if( (sink->match_ethertype == 0      || (sink->match_ethertype == ethertype)) &&
+                (sink->match_ipv4_protocol == 0  || (packet->ipv4 && sink->match_ipv4_protocol == protocol)) &&
+                (sink->match_local_ip == 0       || (packet->ipv4 && sink->match_local_ip == destination_ip)) &&
+                (!sink->match_interface_local_ip || (packet->ipv4 && interface_ipv4_address && interface_ipv4_address == destination_ip)) &&
+                (sink->match_remote_ip == 0      || (packet->ipv4 && sink->match_remote_ip == source_ip)) &&
+                (sink->match_local_port == 0     || ((packet->tcp || packet->udp) && sink->match_local_port == destination_port)) &&
+                (sink->match_remote_port == 0    || ((packet->tcp || packet->udp) && sink->match_remote_port == source_port)) ){
                 // enqueue the packet for later processing
                 packet_queue_addtail(sink->queue, packet);
                 sink->packets_queued++;

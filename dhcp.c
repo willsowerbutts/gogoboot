@@ -346,9 +346,9 @@ static void dhcp_pump(packet_sink_t *s, packet_t *packet)
 void dhcp_init(void)
 {
     sink = packet_sink_alloc();
-    sink->match_ethertype = htons(ethertype_ipv4);
-    sink->match_ipv4_protocol = htons(ip_proto_udp);
-    sink->match_local_port = htons(68);
+    sink->match_ethertype = ethertype_ipv4;
+    sink->match_ipv4_protocol = ip_proto_udp;
+    sink->match_local_port = 68;
     sink->cb_packet_received = dhcp_pump;     // called when packets received
     sink->cb_timer_expired = dhcp_timer; // called on timer expiry
     net_add_packet_sink(sink);

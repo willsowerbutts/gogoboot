@@ -1,7 +1,6 @@
 /* this is based in part on main68.c from KISS-BIOS 
  * Portions Copyright (C) 2011-2016 John R. Coffman.
- * Portions Copyright (C) 2015 William R. Sowerbutts
- * Portions Copyright (C) 2023 William R. Sowerbutts
+ * Portions Copyright (C) 2015-2023 William R. Sowerbutts
  */
 
 #include <types.h>
@@ -54,6 +53,7 @@ static void help(char *argv[], int argc);
 static void do_writemem(char *argv[], int argc);
 static void do_heapinfo(char *argv[], int argc);
 static void do_netinfo(char *argv[], int argc);
+static void do_tftp(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
 
 const cmd_entry_t cmd_table[] = {
@@ -68,6 +68,7 @@ const cmd_entry_t cmd_table[] = {
     {"wm",          2,  0,  &do_writemem,    "synonym for WRITEMEM"},
     {"heapinfo",    0,  0,  &do_heapinfo,    "info on internal malloc state" },
     {"netinfo",     0,  0,  &do_netinfo,     "network statistics" },
+    {"tftp",        0, 10,  &do_tftp,        "retrieve file with TFTP" }, // TODO write down the syntax
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -193,6 +194,15 @@ static void do_heapinfo(char *argv[], int argc)
     printf("internal heap (tinyalloc):\nfresh: %ld\nfree: %ld\nused: %ld\n",
             ta_num_fresh(), ta_num_free(), ta_num_used());
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
+}
+
+static void do_tftp(char *argv[], int argc)
+{
+    // uint32_t targetip = 0xc0a86450; // beastie 192.168.100.80
+    // const char *tftp_filename = "q40test.bin";
+    // const char *disk_filename = "1:/q40test.bin";
+
+    // tftp_receive(targetip, tftp_filename, disk_filename);
 }
 
 static void do_netinfo(char *argv[], int argc)

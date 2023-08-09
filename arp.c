@@ -227,7 +227,7 @@ void net_arp_init(void)
 {
     cache_list_head = NULL;
     sink = packet_sink_alloc();
-    sink->match_ethertype = htons(ethertype_arp);
+    sink->match_ethertype = ethertype_arp;
     sink->cb_packet_received = arp_process_packet;
     sink->timer = set_timer_sec(CACHE_FLUSH_INTERVAL);
     sink->cb_timer_expired = arp_cache_flush;

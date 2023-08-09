@@ -36,8 +36,10 @@ extern const char copyright_msg[];
  * DONE - DHCP -- perform in the background
  * DONE - Emulator - add ne2000 -- https://github.com/OBattler/PCem-X/blob/master/PCem/ne2000.c
  * DONE - ARP cache and reply to queries for our MAC
- * - ARP resolution
- * - TFTP protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
+ * DONE - ARP resolution
+ * - DNS?
+ * - TFTP client protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
+ * - TFTP server protocol too? wouldn't be hard!
  * - would be nice if getline in the CLI somehow recovers after we overwrite it ...
  * - set and store environment vars in NVRAM (we have malloc now!)
  *   - store ROM config in RTC NVRAM? serial port speed, boot script filename, etc? store as series of strings; cksum at end. store backwards in nvram.

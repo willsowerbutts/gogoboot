@@ -18,8 +18,6 @@ static void icmp_send_unreachable(packet_sink_t *sink, packet_t *packet)
     icmp_throttle_timer = set_timer_ms(100);
 
     packet_t *unreach = packet_create_icmp(ntohl(packet->ipv4->source_ip), sizeof(ipv4_header_t) + 8);
-
-    // fill in dest MAC (TODO - let the ARP code figure this out?)
     packet_set_destination_mac(unreach, &packet->eth->source_mac);
 
     // fill in ICMP message
@@ -58,15 +56,15 @@ void net_icmp_init(void)
     // this sink deals with ICMP traffic targetted at us
     icmp_sink = packet_sink_alloc();
     icmp_sink->match_interface_local_ip = true;
-    icmp_sink->match_ethertype = htons(ethertype_ipv4);
-    icmp_sink->match_ipv4_protocol = htons(ip_proto_icmp);
+    icmp_sink->match_ethertype = ethertype_ipv4;
+    icmp_sink->match_ipv4_protocol = ip_proto_icmp;
     icmp_sink->cb_packet_received = icmp_received;
     net_add_packet_sink(icmp_sink);
 
     // this sink aims to deal with IPv4 traffic that no other sink consumed
     unwanted_ipv4_sink = packet_sink_alloc();
     unwanted_ipv4_sink->match_interface_local_ip = true;
-    unwanted_ipv4_sink->match_ethertype = htons(ethertype_ipv4);
+    unwanted_ipv4_sink->match_ethertype = ethertype_ipv4;
     unwanted_ipv4_sink->cb_packet_received = icmp_send_unreachable;
     net_add_packet_sink(unwanted_ipv4_sink);
 }

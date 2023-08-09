@@ -75,3 +75,16 @@ packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint1
 
     return p;
 }
+
+packet_t *packet_create_for_sink(packet_sink_t *sink, int data_size)
+{
+    switch(sink->match_ipv4_protocol) {
+        case ip_proto_udp:
+            return packet_create_udp(sink->match_remote_ip, sink->match_remote_port, sink->match_local_port, data_size);
+        case ip_proto_tcp:
+            return packet_create_tcp(sink->match_remote_ip, sink->match_remote_port, sink->match_local_port, data_size);
+        default:
+            printf("bad sink proto\n");
+            return NULL;
+    }
+}
