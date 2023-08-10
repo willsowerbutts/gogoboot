@@ -15,10 +15,6 @@ static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto
     memcpy(&p->eth->source_mac, interface_macaddr, sizeof(macaddr_t));
     p->eth->ethertype = htons(ethertype_ipv4);
 
-    // we can skip ARP for broadcast
-    if(dest_ipv4 == ipv4_broadcast)
-        packet_set_destination_mac(p, &broadcast_macaddr);
-
     // set up ipv4 header
     p->ipv4 = (ipv4_header_t*)p->eth->payload;
     p->ipv4->version_length = 0x45;   // we don't use options so length = 5 x 4 = 20 bytes

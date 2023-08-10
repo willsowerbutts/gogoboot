@@ -310,7 +310,7 @@ static void net_ipv4_route(packet_t *packet)
 
 void net_tx(packet_t *packet)
 {
-    // don't transmit using 0.0.0.0 unless it's DHCP
+    // don't transmit from 0.0.0.0 unless it's DHCP
     if(packet->ipv4 && packet->ipv4->source_ip == htonl(0) &&
             !(packet->udp && packet->udp->source_port == 68 && packet->udp->destination_port == 67)){
         packet_free(packet);

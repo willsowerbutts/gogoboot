@@ -188,6 +188,12 @@ arp_result_t net_arp_resolve(packet_t *packet)
 {
     arp_cache_entry_t *entry = cache_list_head;
 
+    // no ARP required for broadcast
+    if(packet->ipv4 && packet->ipv4->destination_ip == htonl(ipv4_broadcast)){
+        packet_set_destination_mac(packet, &broadcast_macaddr);
+        return arp_okay;
+    }
+
     while(entry){
         if(entry->ipv4_address == packet->ipv4_nexthop)
             break;

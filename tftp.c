@@ -19,8 +19,6 @@
  *
  * fix ne2000 "too big" issue
  * (refer to linux driver receive code?)
- * it would make sense to send an ACK and *then* write data to disk
- * then we overlap the write op with receiving more data
  *
  * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
  */
