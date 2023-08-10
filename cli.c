@@ -207,7 +207,7 @@ static void do_tftp(char *argv[], int argc)
 {
     uint32_t targetip = 0xc0a86450; // beastie 192.168.100.80
     const char *tftp_filename = "q40test.bin";
-    const char *disk_filename = "1:/q40test.bin";
+    const char *disk_filename = "q40test.bin";
 
     tftp_receive(targetip, tftp_filename, disk_filename);
 }
@@ -228,10 +228,10 @@ static void do_netinfo(char *argv[], int argc)
             (int)(interface_ipv4_address       & 0xff),
             prefixlen);
     printf("Gateway: %d.%d.%d.%d\n", 
-            (int)(interface_gateway >> 24 & 0xff),
-            (int)(interface_gateway >> 16 & 0xff),
-            (int)(interface_gateway >>  8 & 0xff),
-            (int)(interface_gateway       & 0xff));
+            (int)(interface_ipv4_gateway >> 24 & 0xff),
+            (int)(interface_ipv4_gateway >> 16 & 0xff),
+            (int)(interface_ipv4_gateway >>  8 & 0xff),
+            (int)(interface_ipv4_gateway       & 0xff));
     printf("DNS server: %d.%d.%d.%d\n", 
             (int)(interface_dns_server >> 24 & 0xff),
             (int)(interface_dns_server >> 16 & 0xff),

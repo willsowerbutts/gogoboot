@@ -12,7 +12,7 @@ macaddr_t interface_macaddr; // MAC address of our interface
 
 uint32_t interface_ipv4_address = 0; // IPv4 address of our interface
 uint32_t interface_subnet_mask = 0;
-uint32_t interface_gateway = 0;
+uint32_t interface_ipv4_gateway = 0;
 uint32_t interface_dns_server = 0;
 
 static packet_sink_t *net_packet_sink_head = NULL;
@@ -292,6 +292,19 @@ bad_cksum:
 
 // --- transmit pipe ---
 
+static void net_ipv4_route(packet_t *packet)
+{
+    if(!packet->ipv4)
+        return;
+
+    if((htonl(packet->ipv4->destination_ip) & interface_subnet_mask) == 
+            (interface_ipv4_address & interface_subnet_mask)){
+        packet->ipv4_nexthop = htonl(packet->ipv4->destination_ip);
+    }else{
+        packet->ipv4_nexthop = interface_ipv4_gateway;
+    }
+}
+
 void net_tx(packet_t *packet)
 {
     // don't transmit using 0.0.0.0 unless it's DHCP
@@ -317,6 +330,8 @@ void net_tx(packet_t *packet)
                 break;
         }
     }
+
+    net_ipv4_route(packet);
 
     if(packet->flags & packet_flag_destination_mac_valid || net_arp_resolve(packet) == arp_okay){
         packet_queue_addtail(net_txqueue, packet);

@@ -42,6 +42,23 @@ static void push_packet_ready(int len);
 
 static dp83902a_priv_data_t nic;                /* just one instance of the card supported */
 
+#ifdef DEBUG
+static void ne2000_dump_regs(void)
+{
+    uint8_t start, stop, current, boundary;
+    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE2 | DP_CR_NODMA | DP_CR_START);
+    start = isa_read_byte(nic.base + DP_P2_PSTART);
+    stop = isa_read_byte(nic.base + DP_P2_PSTOP);
+    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE1 | DP_CR_NODMA | DP_CR_START);
+    current = isa_read_byte(nic.base + DP_P1_CURP);
+    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
+    boundary = isa_read_byte(nic.base + DP_BNDRY);
+
+    printf("ne2000: start=0x%02x, stop=0x%02x, current/w=0x%02x, boundary/r=0x%02x, rxnext=0x%02x\n",
+            start, stop, current, boundary, nic.rx_next);
+}
+#endif
+
 static void dp83902a_stop(void)
 {
     DEBUG_FUNCTION();
@@ -80,14 +97,15 @@ static void dp83902a_start(macaddr_t enaddr)
     nic.tx1 = nic.tx2 = 0;
     nic.tx_next = nic.tx_buf1;
     nic.tx_started = false;
+
     isa_write_byte(nic.base + DP_PSTART, nic.rx_buf_start); /* Receive ring start page */
-    isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_end-1); /* Receive ring boundary */
-    isa_write_byte(nic.base + DP_PSTOP, nic.rx_buf_end); /* Receive ring end page */
-    nic.rx_next = nic.rx_buf_start-1;
+    isa_write_byte(nic.base + DP_PSTOP, nic.rx_buf_end);    /* Receive ring end page */
+    isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_start);  /* Receive ring boundary (= host read pointer) */
     isa_write_byte(nic.base + DP_ISR, 0xFF);             /* Clear any pending interrupts */
     isa_write_byte(nic.base + DP_IMR, DP_IMR_All);       /* Enable all interrupts */
     isa_write_byte(nic.base + DP_CR, DP_CR_NODMA | DP_CR_PAGE1 | DP_CR_STOP);  /* Select page 1 */
-    isa_write_byte(nic.base + DP_P1_CURP, nic.rx_buf_start);   /* Current page - next free page for Rx */
+    isa_write_byte(nic.base + DP_P1_CURP, nic.rx_buf_start+1); /* Current page (= receiver write pointer) */
+    nic.rx_next = nic.rx_buf_start+1;
     for (i = 0;  i < 6;  i++) {
         isa_write_byte(nic.base + DP_P1_PAR0+i, enaddr[i]);
     }
@@ -96,6 +114,11 @@ static void dp83902a_start(macaddr_t enaddr)
     isa_write_byte(nic.base + DP_TCR, DP_TCR_NORMAL); /* Normal transmit operations */
     isa_write_byte(nic.base + DP_RCR, DP_RCR_AB);  /* Accept broadcast, no errors, no multicast */
     nic.running = true;
+
+#ifdef DEBUG
+    printf("ne2000: init complete\n");
+    ne2000_dump_regs();
+#endif
 }
 
 /*
@@ -254,39 +277,46 @@ static void dp83902a_send(void *data, int total_len)
    */
 static void dp83902a_RxEvent(void)
 {
-    uint8_t __attribute__((unused)) rsr;
+    //uint8_t __attribute__((unused)) rsr;
     uint8_t rcv_hdr[4];
-    int i, len, pkt, cur;
+    int i, len, cur; //, pkt, cur;
 
     DEBUG_FUNCTION();
 
-    rsr = isa_read_byte(nic.base + DP_RSR);
+    //rsr = isa_read_byte(nic.base + DP_RSR);
     while (true) {
+#ifdef DEBUG
+        printf("ne2000: attempt receive\n");
+        ne2000_dump_regs();
+#endif
         /* Read incoming packet header */
         isa_write_byte(nic.base + DP_CR, DP_CR_PAGE1 | DP_CR_NODMA | DP_CR_START);
         cur = isa_read_byte(nic.base + DP_P1_CURP);
         isa_write_byte(nic.base + DP_P1_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
-        pkt = isa_read_byte(nic.base + DP_BNDRY);
 
-        pkt += 1;
-        if (pkt == nic.rx_buf_end)
-            pkt = nic.rx_buf_start;
-
-        if (pkt == cur) {
+        if(nic.rx_next == cur) // done reading packets?
             break;
-        }
+
+        // pkt = isa_read_byte(nic.base + DP_BNDRY);
+        //pkt += 1;
+        //if (pkt == nic.rx_buf_end)
+        //    pkt = nic.rx_buf_start;
+
+        //if (pkt == cur) {
+        //    break;
+        //}
         isa_write_byte(nic.base + DP_RBCL, sizeof(rcv_hdr));
         isa_write_byte(nic.base + DP_RBCH, 0);
         isa_write_byte(nic.base + DP_RSAL, 0);
-        isa_write_byte(nic.base + DP_RSAH, pkt);
-        if (nic.rx_next == pkt) {
-            if (cur == nic.rx_buf_start)
-                isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_end-1);
-            else
-                isa_write_byte(nic.base + DP_BNDRY, cur-1); /* Update pointer */
-            return;
-        }
-        nic.rx_next = pkt;
+        isa_write_byte(nic.base + DP_RSAH, nic.rx_next);
+        // if (nic.rx_next == pkt) {
+        //     if (cur == nic.rx_buf_start)
+        //         isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_end-1);
+        //     else
+        //         isa_write_byte(nic.base + DP_BNDRY, cur-1); /* Update pointer */
+        //     return;
+        // }
+        // nic.rx_next = pkt;
         isa_write_byte(nic.base + DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
         isa_write_byte(nic.base + DP_CR, DP_CR_RDMA | DP_CR_START);
 
@@ -301,9 +331,10 @@ static void dp83902a_RxEvent(void)
 #endif
 
 #ifdef DEBUG
-        printf("rx hdr %02x %02x %02x %02x\n",
+        printf("ne2000: rx header %02x %02x %02x %02x\n",
                 rcv_hdr[0], rcv_hdr[1], rcv_hdr[2], rcv_hdr[3]);
 #endif
+
         len = ((rcv_hdr[3] << 8) | rcv_hdr[2]) - sizeof(rcv_hdr);
         if (len>=PACKET_MAXLEN) {
             printf("ne2000: rx too big\n");
@@ -312,10 +343,16 @@ static void dp83902a_RxEvent(void)
         }else{
             push_packet_ready(len);
         }
-        if (rcv_hdr[1] == nic.rx_buf_start)
-            isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_end-1);
+
+        nic.rx_next = rcv_hdr[1];
+        if(nic.rx_next - 1 < nic.rx_buf_start)
+            isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_end - 1);
         else
-            isa_write_byte(nic.base + DP_BNDRY, rcv_hdr[1]-1); /* Update pointer */
+            isa_write_byte(nic.base + DP_BNDRY, nic.rx_next - 1);
+#ifdef DEBUG
+        printf("ne2000: update pointers\n");
+        ne2000_dump_regs();
+#endif
     }
 }
 

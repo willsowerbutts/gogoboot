@@ -102,7 +102,7 @@ packet_t *packet_alloc(int data_size)
         printf("net: packet_alloc(%d): too big!\n", data_size);
 
     packet_alive_count++;
-    if(packet_alive_count > 10)
+    if(packet_alive_count > 20)
         printf("packet_alive_count=%ld\n", packet_alive_count);
 
     packet_t *p=malloc(sizeof(packet_t) + data_size);

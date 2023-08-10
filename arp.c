@@ -186,11 +186,10 @@ static void arp_transmit_query(arp_cache_entry_t *entry)
 
 arp_result_t net_arp_resolve(packet_t *packet)
 {
-    uint32_t target = ntohl(packet->ipv4->destination_ip);
     arp_cache_entry_t *entry = cache_list_head;
 
     while(entry){
-        if(entry->ipv4_address == target)
+        if(entry->ipv4_address == packet->ipv4_nexthop)
             break;
         entry = entry->next;
     }
@@ -201,7 +200,7 @@ arp_result_t net_arp_resolve(packet_t *packet)
         memset(entry->mac_address, 0, sizeof(macaddr_t));
         entry->next = cache_list_head;
         cache_list_head = entry;
-        entry->ipv4_address = target;
+        entry->ipv4_address = packet->ipv4_nexthop;
         entry->valid = false;
         entry->resolve_attempts = 0;
         arp_transmit_query(entry);

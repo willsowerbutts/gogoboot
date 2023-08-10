@@ -21,7 +21,7 @@ static const uint32_t ipv4_broadcast = 0xffffffff;
 extern macaddr_t interface_macaddr;
 extern uint32_t interface_ipv4_address;
 extern uint32_t interface_subnet_mask;
-extern uint32_t interface_gateway;
+extern uint32_t interface_ipv4_gateway;
 extern uint32_t interface_dns_server;
 
 extern uint32_t packet_alive_count;
@@ -33,6 +33,7 @@ extern uint32_t packet_tx_count;
 struct packet_t {
     packet_t *next;               // used by packet_queue_t to create linked lists
     uint32_t flags;
+    uint32_t ipv4_nexthop;
     ethernet_header_t *eth;       // always set
     arp_header_t *arp;            // set for arp
     ipv4_header_t *ipv4;          // set for ipv4 (all except arp)
@@ -47,6 +48,7 @@ struct packet_t {
 };
 
 static const uint32_t packet_flag_destination_mac_valid = 1;
+static const uint32_t packet_flag_nexthop_resolved = 2;
 
 struct __attribute__((packed, aligned(2))) ethernet_header_t {
     macaddr_t destination_mac;

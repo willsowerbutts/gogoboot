@@ -225,7 +225,7 @@ static void dhcp_enter_state(dhcp_state_t state)
             dhcp_offer_subnet_mask = 0;
             dhcp_server_id = 0;
             interface_dns_server = 0;
-            interface_gateway = 0;
+            interface_ipv4_gateway = 0;
             interface_ipv4_address = 0;
             interface_subnet_mask = 0;
             // create and send a DHCPDISCOVER message
@@ -320,7 +320,7 @@ static void dhcp_pump(packet_sink_t *s, packet_t *packet)
                 uint32_t mask;
                 interface_ipv4_address = dhcp_offer_ipv4_address;
                 interface_subnet_mask = mask = dhcp_offer_subnet_mask;
-                interface_gateway = dhcp_offer_gateway;
+                interface_ipv4_gateway = dhcp_offer_gateway;
                 interface_dns_server = dhcp_offer_dns_server;
                 while(mask){
                     prefixlen++;

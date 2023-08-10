@@ -35,6 +35,9 @@ static void icmp_received(packet_sink_t *sink, packet_t *packet)
         // convert echo request to echo reply (per RFC792!)
         packet->icmp->type = 0; // echo reply
 
+        // reset flags for retransmission
+        packet->flags = 0;
+
         // swap source to target
         packet->ipv4->destination_ip = packet->ipv4->source_ip;
         packet_set_destination_mac(packet, &packet->eth->source_mac);

@@ -14,6 +14,17 @@
 // https://www.rfc-editor.org/rfc/rfc7440 - TFTP Windowsize Option
 // https://www.compuphase.com/tftp.htm - Extending TFTP
 
+/*
+ * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+ *
+ * fix ne2000 "too big" issue
+ * (refer to linux driver receive code?)
+ * it would make sense to send an ACK and *then* write data to disk
+ * then we overlap the write op with receiving more data
+ *
+ * TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+ */
+
 #define RRQ_TIMEOUT 1000 // ms
 #define DATA_TIMEOUT 250 // ms
 
@@ -96,8 +107,8 @@ static packet_t *tftp_create_rrq(packet_sink_t *sink)
     offset = options_append(options, offset, "blksize");
     offset = options_append(options, offset, "1024");
 
-    // offset = options_append(options, offset, "windowsize");
-    // offset = options_append(options, offset, "6"); // could maybe do 8?
+    offset = options_append(options, offset, "windowsize");
+    offset = options_append(options, offset, "8"); // could maybe do 8?
 
     packet_t *packet = packet_create_for_sink(sink, offset + 2);
     packet->udp->destination_port = htons(69); // RRQ always goes to port 69
@@ -199,7 +210,6 @@ static void tftp_process_options_ack(packet_sink_t *sink, tftp_header_t *message
 static void tftp_process_data(packet_sink_t *sink, tftp_header_t *message, int message_len)
 {
     tftp_transfer_t *tftp = sink->sink_private;
-    FRESULT fr;
     int size;
     uint16_t rxblock, expected_block;
 
@@ -214,6 +224,9 @@ static void tftp_process_data(packet_sink_t *sink, tftp_header_t *message, int m
         tftp->retransmits_this_block = 0;
         size = message_len - 4;
         if(size > 0){
+            FRESULT fr;
+            // can we defer the f_write until we send an ACK?
+            // then we can overlap it with waiting for the next blocks
             fr = f_write(&tftp->disk_file, message->payload.data.data, size, NULL);
             tftp->bytes_received += size;
             if(fr != FR_OK){
@@ -325,7 +338,7 @@ bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char
             taken /= (TIMER_HZ/10); // taken is now in 10ths of a second
             if(taken == 0)
                 taken = 1; // avoid div 0
-            rate = (tftp->bytes_received / taken) >> 10; // KB/10th of second
+            rate = ((tftp->bytes_received / taken)*100) >> 10;
             printf("Transferred %d bytes in %ld.%lds (%ld.%ld KB/sec)\n",
                     tftp->bytes_received, taken/10, taken%10, rate/10, rate%10);
         }else{
