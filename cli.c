@@ -54,6 +54,7 @@ static void do_writemem(char *argv[], int argc);
 static void do_heapinfo(char *argv[], int argc);
 static void do_netinfo(char *argv[], int argc);
 static void do_tftp(char *argv[], int argc);
+static void do_loadimage(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
 
 const cmd_entry_t cmd_table[] = {
@@ -69,6 +70,7 @@ const cmd_entry_t cmd_table[] = {
     {"heapinfo",    0,  0,  &do_heapinfo,    "info on internal malloc state" },
     {"netinfo",     0,  0,  &do_netinfo,     "network statistics" },
     {"tftp",        0, 10,  &do_tftp,        "retrieve file with TFTP" }, // TODO write down the syntax
+    {"loadimage",   1,  1,  &do_loadimage,   "load image into graphics memory" }, // TODO write down the syntax
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -203,11 +205,24 @@ static void do_heapinfo(char *argv[], int argc)
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
 }
 
+static void do_loadimage(char *argv[], int argc)
+{
+    FRESULT fr;
+    FIL fd;
+
+    fr = f_open(&fd, argv[0], FA_READ);
+    if(fr == FR_OK){
+        f_read(&fd, (char*)VIDEO_RAM_BASE, (1024*1024), NULL);
+        f_close(&fd);
+    }
+    cpu_cache_flush();
+}
+
 static void do_tftp(char *argv[], int argc)
 {
     uint32_t targetip = 0xc0a86450; // beastie 192.168.100.80
-    const char *tftp_filename = "q40test.bin";
-    const char *disk_filename = "q40test.bin";
+    const char *tftp_filename = "testimage.bin";
+    const char *disk_filename = "testimg.bin";
 
     tftp_receive(targetip, tftp_filename, disk_filename);
 }
