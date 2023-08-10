@@ -146,7 +146,7 @@ struct packet_sink_t {
     uint8_t  match_ipv4_protocol;
 
     uint32_t packets_queued;
-    packet_queue_t *queue;
+    packet_queue_t queue;
     void (*cb_packet_received)(packet_sink_t *sink, packet_t *packet);
 
     timer_t timer;
@@ -179,8 +179,12 @@ packet_t *packet_create_for_sink(packet_sink_t *sink, int data_size);
 void packet_set_destination_mac(packet_t *packet, const macaddr_t *mac);
 void packet_free(packet_t *packet);
 
-packet_queue_t *packet_queue_alloc(void);
-void packet_queue_free(packet_queue_t *q);
+// for dynamically allocated queues
+packet_queue_t *packet_queue_alloc(void); // calls packet_queue_init
+void packet_queue_free(packet_queue_t *q); // calls packet_queue_drain
+void packet_queue_init(packet_queue_t *q);
+void packet_queue_drain(packet_queue_t *q);
+
 int packet_queue_length(packet_queue_t *q);
 void packet_queue_addtail(packet_queue_t *q, packet_t *p);
 packet_t *packet_queue_peekhead(packet_queue_t *q);

@@ -81,7 +81,7 @@ void net_pump(void)
     packet_sink_t *sink = net_packet_sink_head;
     while(sink){
         if(sink->cb_packet_received){
-            while((packet = packet_queue_pophead(sink->queue)))
+            while((packet = packet_queue_pophead(&sink->queue)))
                 sink->cb_packet_received(sink, packet);
         }
         if(sink->cb_timer_expired && sink->timer && timer_expired(sink->timer)){
@@ -189,7 +189,7 @@ void net_dump_packet_sinks(void) // used by "netinfo" command
                 sink->match_local_port,
                 sink->match_remote_port,
                 sink->match_ethertype,
-                packet_queue_length(sink->queue),
+                packet_queue_length(&sink->queue),
                 sink->packets_queued,
                 sink->timer ? sink->timer - q40_read_timer_ticks() : -1,
                 sink->cb_timer_expired ? " timer":"",
@@ -271,7 +271,7 @@ void net_eth_push(packet_t *packet) // called by ne2000.c
                 (sink->match_local_port == 0     || ((packet->tcp || packet->udp) && sink->match_local_port == destination_port)) &&
                 (sink->match_remote_port == 0    || ((packet->tcp || packet->udp) && sink->match_remote_port == source_port)) ){
                 // enqueue the packet for later processing
-                packet_queue_addtail(sink->queue, packet);
+                packet_queue_addtail(&sink->queue, packet);
                 sink->packets_queued++;
                 return;
             }

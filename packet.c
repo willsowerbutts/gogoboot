@@ -9,22 +9,34 @@
 
 packet_sink_t *packet_sink_alloc(void)
 {
-    packet_sink_t *c = malloc(sizeof(packet_sink_t));
-    memset(c, 0, sizeof(packet_sink_t));
-    c->queue = packet_queue_alloc();
-    return c;
+    packet_sink_t *s = malloc(sizeof(packet_sink_t));
+    memset(s, 0, sizeof(packet_sink_t));
+    packet_queue_init(&s->queue);
+    return s;
 }
 
-void packet_sink_free(packet_sink_t *c)
+void packet_sink_free(packet_sink_t *s)
 {
-    packet_queue_free(c->queue);
-    free(c);
+    packet_queue_drain(&s->queue);
+    free(s);
+}
+
+void packet_queue_init(packet_queue_t *q)
+{
+    q->head = q->tail = NULL;
+}
+
+void packet_queue_drain(packet_queue_t *q)
+{
+    packet_t *p;
+    while((p = packet_queue_pophead(q)))
+        packet_free(p);
 }
 
 packet_queue_t *packet_queue_alloc(void)
 {
     packet_queue_t *q = malloc(sizeof(packet_queue_t));
-    q->head = q->tail = NULL;
+    packet_queue_init(q);
     return q;
 }
 
@@ -44,9 +56,7 @@ int packet_queue_length(packet_queue_t *q)
 
 void packet_queue_free(packet_queue_t *q)
 {
-    packet_t *p;
-    while((p = packet_queue_pophead(q)))
-        packet_free(p);
+    packet_queue_drain(q);
     free(q);
 }
 
