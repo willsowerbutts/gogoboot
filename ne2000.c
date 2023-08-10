@@ -648,7 +648,7 @@ static bool eth_tx(uint8_t *packet, int length)
     if(!nic.base){
         return false;
     }
-    if (length>=PACKET_MAXLEN) {
+    if (length >= PACKET_MAXLEN) {
         printf("ne2000: tx too big\n");
         return false;
     }
@@ -660,6 +660,11 @@ static bool eth_tx(uint8_t *packet, int length)
     }
 }
 
+bool eth_attempt_tx(packet_t *packet)
+{
+    return eth_tx(packet->buffer, packet->buffer_length);
+}
+
 void eth_pump(void)
 {
     packet_t *packet;
@@ -669,11 +674,11 @@ void eth_pump(void)
 
     dp83902a_poll();
 
-    while(!(nic.tx1 && nic.tx2)){ // can transmit?
+    while(!(nic.tx1 && nic.tx2)){
         packet = net_eth_pull();
         if(!packet)
             break;
-        if(!eth_tx(packet->buffer, packet->buffer_length))
+        if(!eth_attempt_tx(packet))
             printf("ne2000: eth_tx failed\n");
         packet_free(packet);
     }
