@@ -27,4 +27,15 @@ static inline void isa_write_byte(uint16_t addr, uint8_t val)
     *ISA_XLATE_ADDR_BYTE(addr) = val;
 }
 
+static inline void isa_write_byte_pause(uint16_t addr, uint8_t val)
+{
+    *ISA_XLATE_ADDR_BYTE(addr) = val;
+    *ISA_XLATE_ADDR_BYTE(0x80) = 0xff;
+}
+
+static inline void isa_slow_down(void)
+{
+    isa_write_byte(0x80, 0xff);
+}
+
 #endif

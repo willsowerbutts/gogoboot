@@ -46,12 +46,12 @@ static dp83902a_priv_data_t nic;                /* just one instance of the card
 static void ne2000_dump_regs(void)
 {
     uint8_t start, stop, current, boundary;
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE2 | DP_CR_NODMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE2 | DP_CR_NODMA | DP_CR_START);
     start = isa_read_byte(nic.base + DP_P2_PSTART);
     stop = isa_read_byte(nic.base + DP_P2_PSTOP);
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE1 | DP_CR_NODMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE1 | DP_CR_NODMA | DP_CR_START);
     current = isa_read_byte(nic.base + DP_P1_CURP);
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
     boundary = isa_read_byte(nic.base + DP_BNDRY);
 
     printf("ne2000: start=0x%02x, stop=0x%02x, current/w=0x%02x, boundary/r=0x%02x, rxnext=0x%02x\n",
@@ -63,9 +63,9 @@ static void dp83902a_stop(void)
 {
     DEBUG_FUNCTION();
 
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_STOP);  /* Brutal */
-    isa_write_byte(nic.base + DP_ISR, 0xFF);             /* Clear any pending interrupts */
-    isa_write_byte(nic.base + DP_IMR, 0x00);             /* Disable all interrupts */
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_STOP);  /* Brutal */
+    isa_write_byte_pause(nic.base + DP_ISR, 0xFF);             /* Clear any pending interrupts */
+    isa_write_byte_pause(nic.base + DP_IMR, 0x00);             /* Disable all interrupts */
 
     nic.running = false;
 }
@@ -82,37 +82,37 @@ static void dp83902a_start(macaddr_t enaddr)
 
     DEBUG_FUNCTION();
 
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_STOP); /* Brutal */
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_STOP); /* Brutal */
 #ifdef NE2000_16BIT_PIO
     // DP_DCR_BOS does not seem to affect the actual byte order the card uses ... ?
-    isa_write_byte(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4 | DP_DCR_WTS);
+    isa_write_byte_pause(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4 | DP_DCR_WTS);
 #else
-    isa_write_byte(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4);
+    isa_write_byte_pause(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4);
 #endif
-    isa_write_byte(nic.base + DP_RBCH, 0);               /* Remote byte count */
-    isa_write_byte(nic.base + DP_RBCL, 0);
-    isa_write_byte(nic.base + DP_RCR, DP_RCR_MON);       /* Accept no packets */
-    isa_write_byte(nic.base + DP_TCR, DP_TCR_LOCAL);     /* Transmitter [virtually] off */
-    isa_write_byte(nic.base + DP_TPSR, nic.tx_buf1);     /* Transmitter start page */
+    isa_write_byte_pause(nic.base + DP_RBCH, 0);               /* Remote byte count */
+    isa_write_byte_pause(nic.base + DP_RBCL, 0);
+    isa_write_byte_pause(nic.base + DP_RCR, DP_RCR_MON);       /* Accept no packets */
+    isa_write_byte_pause(nic.base + DP_TCR, DP_TCR_LOCAL);     /* Transmitter [virtually] off */
+    isa_write_byte_pause(nic.base + DP_TPSR, nic.tx_buf1);     /* Transmitter start page */
     nic.tx1 = nic.tx2 = 0;
     nic.tx_next = nic.tx_buf1;
     nic.tx_started = false;
 
-    isa_write_byte(nic.base + DP_PSTART, nic.rx_buf_start); /* Receive ring start page */
-    isa_write_byte(nic.base + DP_PSTOP, nic.rx_buf_end);    /* Receive ring end page */
-    isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_start);  /* Receive ring boundary (= host read pointer) */
-    isa_write_byte(nic.base + DP_ISR, 0xFF);             /* Clear any pending interrupts */
-    isa_write_byte(nic.base + DP_IMR, DP_IMR_All);       /* Enable all interrupts */
-    isa_write_byte(nic.base + DP_CR, DP_CR_NODMA | DP_CR_PAGE1 | DP_CR_STOP);  /* Select page 1 */
-    isa_write_byte(nic.base + DP_P1_CURP, nic.rx_buf_start+1); /* Current page (= receiver write pointer) */
+    isa_write_byte_pause(nic.base + DP_PSTART, nic.rx_buf_start); /* Receive ring start page */
+    isa_write_byte_pause(nic.base + DP_PSTOP, nic.rx_buf_end);    /* Receive ring end page */
+    isa_write_byte_pause(nic.base + DP_BNDRY, nic.rx_buf_start);  /* Receive ring boundary (= host read pointer) */
+    isa_write_byte_pause(nic.base + DP_ISR, 0xFF);             /* Clear any pending interrupts */
+    isa_write_byte_pause(nic.base + DP_IMR, DP_IMR_All);       /* Enable all interrupts */
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_NODMA | DP_CR_PAGE1 | DP_CR_STOP);  /* Select page 1 */
+    isa_write_byte_pause(nic.base + DP_P1_CURP, nic.rx_buf_start+1); /* Current page (= receiver write pointer) */
     nic.rx_next = nic.rx_buf_start+1;
     for (i = 0;  i < 6;  i++) {
-        isa_write_byte(nic.base + DP_P1_PAR0+i, enaddr[i]);
+        isa_write_byte_pause(nic.base + DP_P1_PAR0+i, enaddr[i]);
     }
     /* Enable and start device */
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
-    isa_write_byte(nic.base + DP_TCR, DP_TCR_NORMAL); /* Normal transmit operations */
-    isa_write_byte(nic.base + DP_RCR, DP_RCR_AB);  /* Accept broadcast, no errors, no multicast */
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_TCR, DP_TCR_NORMAL); /* Normal transmit operations */
+    isa_write_byte_pause(nic.base + DP_RCR, DP_RCR_AB);  /* Accept broadcast, no errors, no multicast */
     nic.running = true;
 
 #ifdef DEBUG
@@ -136,12 +136,12 @@ static void dp83902a_start_xmit(int start_page, int len)
         printf("TX already started?!?\n");
 #endif
 
-    isa_write_byte(nic.base + DP_ISR, (DP_ISR_TxP | DP_ISR_TxE));
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
-    isa_write_byte(nic.base + DP_TBCL, len & 0xFF);
-    isa_write_byte(nic.base + DP_TBCH, len >> 8);
-    isa_write_byte(nic.base + DP_TPSR, start_page);
-    isa_write_byte(nic.base + DP_CR, DP_CR_NODMA | DP_CR_TXPKT | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_ISR, (DP_ISR_TxP | DP_ISR_TxE));
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_TBCL, len & 0xFF);
+    isa_write_byte_pause(nic.base + DP_TBCH, len >> 8);
+    isa_write_byte_pause(nic.base + DP_TPSR, start_page);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_NODMA | DP_CR_TXPKT | DP_CR_START);
 
     nic.tx_started = true;
 }
@@ -175,21 +175,21 @@ static void dp83902a_send(void *data, int total_len)
 
     PRINTK("total_len=%d pkt_len=%d ", total_len, pkt_len);
 
-    isa_write_byte(nic.base + DP_ISR, DP_ISR_RDC);  /* Clear end of DMA */
+    isa_write_byte_pause(nic.base + DP_ISR, DP_ISR_RDC);  /* Clear end of DMA */
 
     /* Dummy read. The manual says something slightly different, */
     /* but the code is extended a bit to do what Hitachi's monitor */
     /* does (i.e., also read data). */
     uint16_t __attribute__((unused)) tmp;
-    isa_write_byte(nic.base + DP_RSAL, 0x100-1);
-    isa_write_byte(nic.base + DP_RSAH, (start_page-1) & 0xff);
+    isa_write_byte_pause(nic.base + DP_RSAL, 0x100-1);
+    isa_write_byte_pause(nic.base + DP_RSAH, (start_page-1) & 0xff);
 #ifdef NE2000_16BIT_PIO
-    isa_write_byte(nic.base + DP_RBCL, 2);
+    isa_write_byte_pause(nic.base + DP_RBCL, 2);
 #else
-    isa_write_byte(nic.base + DP_RBCL, 1);
+    isa_write_byte_pause(nic.base + DP_RBCL, 1);
 #endif
-    isa_write_byte(nic.base + DP_RBCH, 0);
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_RDMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_RBCH, 0);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_RDMA | DP_CR_START);
 #ifdef NE2000_16BIT_PIO
     tmp = isa_read_word(nic.data);
 #else
@@ -203,11 +203,11 @@ static void dp83902a_send(void *data, int total_len)
 #endif
 
     /* Send data to device buffer(s) */
-    isa_write_byte(nic.base + DP_RSAL, 0);
-    isa_write_byte(nic.base + DP_RSAH, start_page);
-    isa_write_byte(nic.base + DP_RBCL, pkt_len & 0xFF);
-    isa_write_byte(nic.base + DP_RBCH, pkt_len >> 8);
-    isa_write_byte(nic.base + DP_CR, DP_CR_WDMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_RSAL, 0);
+    isa_write_byte_pause(nic.base + DP_RSAH, start_page);
+    isa_write_byte_pause(nic.base + DP_RBCL, pkt_len & 0xFF);
+    isa_write_byte_pause(nic.base + DP_RBCH, pkt_len >> 8);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_WDMA | DP_CR_START);
 
     /* Put data into buffer */
 #ifdef NE2000_16BIT_PIO
@@ -255,7 +255,7 @@ static void dp83902a_send(void *data, int total_len)
     } while ((isr & DP_ISR_RDC) == 0);
 
     /* Then disable DMA */
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
 
     /* Start transmit if not already going */
     if (!nic.tx_started) {
@@ -290,9 +290,9 @@ static void dp83902a_RxEvent(void)
         ne2000_dump_regs();
 #endif
         /* Read incoming packet header */
-        isa_write_byte(nic.base + DP_CR, DP_CR_PAGE1 | DP_CR_NODMA | DP_CR_START);
+        isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE1 | DP_CR_NODMA | DP_CR_START);
         cur = isa_read_byte(nic.base + DP_P1_CURP);
-        isa_write_byte(nic.base + DP_P1_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
+        isa_write_byte_pause(nic.base + DP_P1_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
 
         if(nic.rx_next == cur) // done reading packets?
             break;
@@ -305,20 +305,22 @@ static void dp83902a_RxEvent(void)
         //if (pkt == cur) {
         //    break;
         //}
-        isa_write_byte(nic.base + DP_RBCL, sizeof(rcv_hdr));
-        isa_write_byte(nic.base + DP_RBCH, 0);
-        isa_write_byte(nic.base + DP_RSAL, 0);
-        isa_write_byte(nic.base + DP_RSAH, nic.rx_next);
+        isa_write_byte_pause(nic.base + DP_RBCL, sizeof(rcv_hdr));
+        isa_write_byte_pause(nic.base + DP_RBCH, 0);
+        isa_write_byte_pause(nic.base + DP_RSAL, 0);
+        isa_write_byte_pause(nic.base + DP_RSAH, nic.rx_next);
         // if (nic.rx_next == pkt) {
         //     if (cur == nic.rx_buf_start)
-        //         isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_end-1);
+        //         isa_write_byte_pause(nic.base + DP_BNDRY, nic.rx_buf_end-1);
         //     else
-        //         isa_write_byte(nic.base + DP_BNDRY, cur-1); /* Update pointer */
+        //         isa_write_byte_pause(nic.base + DP_BNDRY, cur-1); /* Update pointer */
         //     return;
         // }
         // nic.rx_next = pkt;
-        isa_write_byte(nic.base + DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
-        isa_write_byte(nic.base + DP_CR, DP_CR_RDMA | DP_CR_START);
+        isa_write_byte_pause(nic.base + DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
+        isa_slow_down();
+        isa_write_byte_pause(nic.base + DP_CR, DP_CR_RDMA | DP_CR_START);
+        isa_slow_down();
 
 #ifdef NE2000_16BIT_PIO
         for (i = 0;  i < sizeof(rcv_hdr)/2; i++) {
@@ -338,17 +340,15 @@ static void dp83902a_RxEvent(void)
         len = ((rcv_hdr[3] << 8) | rcv_hdr[2]) - sizeof(rcv_hdr);
         if (len>=PACKET_MAXLEN) {
             printf("ne2000: rx too big\n");
-            printf("ne2000: header %02x %02x %02x %02x\n",
-                rcv_hdr[0], rcv_hdr[1], rcv_hdr[2], rcv_hdr[3]);
         }else{
             push_packet_ready(len);
         }
 
         nic.rx_next = rcv_hdr[1];
         if(nic.rx_next - 1 < nic.rx_buf_start)
-            isa_write_byte(nic.base + DP_BNDRY, nic.rx_buf_end - 1);
+            isa_write_byte_pause(nic.base + DP_BNDRY, nic.rx_buf_end - 1);
         else
-            isa_write_byte(nic.base + DP_BNDRY, nic.rx_next - 1);
+            isa_write_byte_pause(nic.base + DP_BNDRY, nic.rx_next - 1);
 #ifdef DEBUG
         printf("ne2000: update pointers\n");
         ne2000_dump_regs();
@@ -366,13 +366,15 @@ static void dp83902a_RxEvent(void)
 static void dp83902a_recv(uint8_t *data, int len)
 {
     /* Read incoming packet data */
-    isa_write_byte(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
-    isa_write_byte(nic.base + DP_RBCL, len & 0xFF);
-    isa_write_byte(nic.base + DP_RBCH, len >> 8);
-    isa_write_byte(nic.base + DP_RSAL, 4);               /* Past header */
-    isa_write_byte(nic.base + DP_RSAH, nic.rx_next);
-    isa_write_byte(nic.base + DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
-    isa_write_byte(nic.base + DP_CR, DP_CR_RDMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_RBCL, len & 0xFF);
+    isa_write_byte_pause(nic.base + DP_RBCH, len >> 8);
+    isa_write_byte_pause(nic.base + DP_RSAL, 4);               /* Past header */
+    isa_write_byte_pause(nic.base + DP_RSAH, nic.rx_next);
+    isa_write_byte_pause(nic.base + DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
+    isa_slow_down();
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_RDMA | DP_CR_START);
+    isa_slow_down();
 
 #ifdef NE2000_16BIT_PIO
     uint16_t *dptr = (uint16_t*)data;
@@ -429,7 +431,7 @@ static void dp83902a_ClearCounters(void)
     cnt1 = isa_read_byte(nic.base + DP_FER);
     cnt2 = isa_read_byte(nic.base + DP_CER);
     cnt3 = isa_read_byte(nic.base + DP_MISSED);
-    isa_write_byte(nic.base + DP_ISR, DP_ISR_CNT);
+    isa_write_byte_pause(nic.base + DP_ISR, DP_ISR_CNT);
 }
 
 /* Deal with an overflow condition.  This code follows the procedure set */
@@ -438,44 +440,42 @@ static void dp83902a_Overflow(void)
 {
     uint8_t isr;
 
-    printf("ne2000: overflow: fixing ...\n");
+    printf("ne2000: overflow\n");
 
     /* Issue a stop command and wait 1.6ms for it to complete. */
-    isa_write_byte(nic.base + DP_CR, DP_CR_STOP | DP_CR_NODMA);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_STOP | DP_CR_NODMA);
 
     /* Clear the remote byte counter registers. */
-    isa_write_byte(nic.base + DP_RBCL, 0);
-    isa_write_byte(nic.base + DP_RBCH, 0);
+    isa_write_byte_pause(nic.base + DP_RBCL, 0);
+    isa_write_byte_pause(nic.base + DP_RBCH, 0);
 
     /* Enter loopback mode while we clear the buffer. */
-    isa_write_byte(nic.base + DP_TCR, DP_TCR_LOCAL);
-    isa_write_byte(nic.base + DP_CR, DP_CR_START | DP_CR_NODMA);
+    isa_write_byte_pause(nic.base + DP_TCR, DP_TCR_LOCAL);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_START | DP_CR_NODMA);
 
     /* Read in as many packets as we can and acknowledge any and receive */
     /* interrupts.  Since the buffer has overflowed, a receive event of */
     /* some kind will have occured. */
     dp83902a_RxEvent();
-    isa_write_byte(nic.base + DP_ISR, DP_ISR_RxP|DP_ISR_RxE);
+    isa_write_byte_pause(nic.base + DP_ISR, DP_ISR_RxP|DP_ISR_RxE);
 
     /* Clear the overflow condition and leave loopback mode. */
-    isa_write_byte(nic.base + DP_ISR, DP_ISR_OFLW);
-    isa_write_byte(nic.base + DP_TCR, DP_TCR_NORMAL);
+    isa_write_byte_pause(nic.base + DP_ISR, DP_ISR_OFLW);
+    isa_write_byte_pause(nic.base + DP_TCR, DP_TCR_NORMAL);
 
     /* If a transmit command was issued, but no transmit event has occured, */
     /* restart it here. */
     isr = isa_read_byte(nic.base + DP_ISR);
     if (nic.tx_started && !(isr & (DP_ISR_TxP|DP_ISR_TxE))) {
-        isa_write_byte(nic.base + DP_CR, DP_CR_NODMA | DP_CR_TXPKT | DP_CR_START);
+        isa_write_byte_pause(nic.base + DP_CR, DP_CR_NODMA | DP_CR_TXPKT | DP_CR_START);
     }
-
-    printf("ne2000: overflow: fixed\n");
 }
 
 static void dp83902a_poll(void)
 {
     uint8_t isr;
 
-    isa_write_byte(nic.base + DP_CR, DP_CR_NODMA | DP_CR_PAGE0 | DP_CR_START);
+    isa_write_byte_pause(nic.base + DP_CR, DP_CR_NODMA | DP_CR_PAGE0 | DP_CR_START);
     do{
         isr = isa_read_byte(nic.base + DP_ISR);
         /* The CNT interrupt triggers when the MSB of one of the error */
@@ -493,7 +493,7 @@ static void dp83902a_poll(void)
             /* Other kinds of interrupts can be acknowledged simply by */
             /* clearing the relevant bits of the ISR.  Do that now, then */
             /* handle the interrupts we care about. */
-            isa_write_byte(nic.base + DP_ISR, isr);      /* Clear set bits */
+            isa_write_byte_pause(nic.base + DP_ISR, isr);      /* Clear set bits */
             if (!nic.running)
                 break;        /* Is this necessary? */
             /* Check for tx_started on TX event since these may happen */
@@ -514,20 +514,20 @@ static void pcnet_reset_8390(void)
 
     PRINTK("nic base is 0x%x\n", (int)nic.base);
 
-    isa_write_byte(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE0+E8390_STOP);
-    isa_write_byte(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE1+E8390_STOP);
-    isa_write_byte(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE0+E8390_STOP);
-    isa_write_byte(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE0+E8390_STOP);
+    isa_write_byte_pause(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE0+E8390_STOP);
+    isa_write_byte_pause(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE1+E8390_STOP);
+    isa_write_byte_pause(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE0+E8390_STOP);
+    isa_write_byte_pause(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE0+E8390_STOP);
 
     // set (read) and clear (write) reset line
-    isa_write_byte(nic.base + PCNET_RESET, isa_read_byte(nic.base + PCNET_RESET));
+    isa_write_byte_pause(nic.base + PCNET_RESET, isa_read_byte(nic.base + PCNET_RESET));
 
     for (i = 0; i < 100; i++) {
         delay_ms(5);
         if ((r = (isa_read_byte(nic.base + EN0_ISR) & ENISR_RESET)) != 0)
             break;
     }
-    isa_write_byte(nic.base + EN0_ISR, 0xff); /* Ack all interrupts */
+    isa_write_byte_pause(nic.base + EN0_ISR, 0xff); /* Ack all interrupts */
 }
 
 static const struct {
@@ -561,7 +561,7 @@ static bool get_prom(void)
     delay_ms(10);
 
     for (i = 0; i < sizeof(get_prom_program_seq)/sizeof(get_prom_program_seq[0]); i++)
-        isa_write_byte(nic.base + get_prom_program_seq[i].offset, get_prom_program_seq[i].value);
+        isa_write_byte_pause(nic.base + get_prom_program_seq[i].offset, get_prom_program_seq[i].value);
 
     PRINTK("PROM:");
     for (i = 0; i < 32; i++) {

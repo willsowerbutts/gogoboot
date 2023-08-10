@@ -37,7 +37,7 @@ extern const char copyright_msg[];
  * DONE - Emulator - add ne2000 -- https://github.com/OBattler/PCem-X/blob/master/PCem/ne2000.c
  * DONE - ARP cache and reply to queries for our MAC
  * DONE - ARP resolution
- * - what is behind these "ne2000: rx too big" errors?!
+ * DONE - what is behind these "ne2000: rx too big" errors?! going too fast on the ISA bus!
  * - DNS?
  * - TFTP client protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
  * - TFTP server protocol too? wouldn't be hard!
