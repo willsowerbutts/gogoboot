@@ -34,6 +34,7 @@ struct tftp_transfer_t {
     char *tftp_filename;
     char *disk_filename;
     FIL disk_file;
+    packet_queue_t data_queue;
     uint16_t block_size;
     uint16_t last_block;
     uint16_t last_ack;
@@ -133,38 +134,13 @@ static packet_t *tftp_create_ack(packet_sink_t *sink)
     return packet;
 }
 
-static void tftp_timer_expired(packet_sink_t *sink)
-{
-    tftp_transfer_t *tftp = sink->sink_private;
-    
-    printf("tftp_timer_expired\n");
-
-    if(tftp->retransmits_this_block > 10){
-        tftp->completed = true;
-        tftp->success = false;
-        return;
-    }
-
-    if(tftp->completed)
-        return;
-
-    if(!tftp->started){
-        sink->timer = set_timer_ms(RRQ_TIMEOUT);
-        net_tx(tftp_create_rrq(sink));
-    }else{
-        sink->timer = set_timer_ms(DATA_TIMEOUT);
-        net_tx(tftp_create_ack(sink));
-    }
-
-    tftp->retransmits_this_block++;
-    tftp->retransmits_total++;
-}
-
 static void tftp_process_options_ack(packet_sink_t *sink, tftp_header_t *message, int message_len)
 {
     tftp_transfer_t *tftp = sink->sink_private;
     char *opt, *val, *ptr, *end;
     int val_int;
+
+    // message->opcode has been confirmed to be tftp_op_options_ack already
 
     ptr = (char*)message->payload.raw;
     end = ptr+message_len-2;
@@ -207,12 +183,46 @@ static void tftp_process_options_ack(packet_sink_t *sink, tftp_header_t *message
     sink->timer = set_timer_ms(DATA_TIMEOUT);
 }
 
-static void tftp_process_data(packet_sink_t *sink, tftp_header_t *message, int message_len)
+static void tftp_flush_data_and_ack(packet_sink_t *sink)
 {
     tftp_transfer_t *tftp = sink->sink_private;
+    packet_t *packet;
+    tftp_header_t *message;
+    int size;
+    FRESULT fr;
+
+    // send this FIRST so we can overlap receiving more data with writing to disk
+    net_tx(tftp_create_ack(sink));
+
+    // then flush any buffered packets to file on disk
+    while((packet = packet_queue_pophead(&tftp->data_queue))){
+        message = (tftp_header_t*)packet->data;
+        size = packet->data_length - 4;
+
+        if(size > 0 && !tftp->completed){
+            fr = f_write(&tftp->disk_file, message->payload.data.data, size, NULL);
+            tftp->bytes_received += size;
+            if(fr != FR_OK){
+                printf("tftp: failed to write to \"%s\": %s\n", tftp->disk_filename, f_errmsg(fr));
+                tftp->completed = true;
+                tftp->success = false;
+            }
+        }
+        packet_free(packet);
+    }
+}
+
+static bool tftp_process_data(packet_sink_t *sink, packet_t *packet)
+{
+    tftp_transfer_t *tftp = sink->sink_private;
+    tftp_header_t *message = (tftp_header_t*)packet->data;
     int size;
     uint16_t rxblock, expected_block;
+    bool free_packet = true;
 
+    // message->opcode has been confirmed to be tftp_op_data already
+
+    size = packet->data_length - 4;
     rxblock = ntohs(message->payload.data.block_number);
     expected_block = tftp->last_block + 1;
 
@@ -222,19 +232,10 @@ static void tftp_process_data(packet_sink_t *sink, tftp_header_t *message, int m
     if(rxblock == expected_block){ // is it the block we are expecting?
         tftp->last_block = rxblock;
         tftp->retransmits_this_block = 0;
-        size = message_len - 4;
-        if(size > 0){
-            FRESULT fr;
-            // can we defer the f_write until we send an ACK?
-            // then we can overlap it with waiting for the next blocks
-            fr = f_write(&tftp->disk_file, message->payload.data.data, size, NULL);
-            tftp->bytes_received += size;
-            if(fr != FR_OK){
-                printf("tftp: failed to write to \"%s\": %s\n", tftp->disk_filename, f_errmsg(fr));
-                tftp->completed = true;
-                tftp->success = false;
-            }
-        }
+
+        packet_queue_addtail(&tftp->data_queue, packet);
+        free_packet = false;
+
         if(!tftp->completed && size < tftp->block_size){
             // a short data block indicates success
             tftp->completed = true;
@@ -243,12 +244,16 @@ static void tftp_process_data(packet_sink_t *sink, tftp_header_t *message, int m
     }
 
     if(tftp->last_block >= (tftp->last_ack + tftp->window_size))
-        net_tx(tftp_create_ack(sink));
+        tftp_flush_data_and_ack(sink);
+
     sink->timer = set_timer_ms(DATA_TIMEOUT);
+
+    return free_packet;
 }
 
 static void tftp_packet_received(packet_sink_t *sink, packet_t *packet)
 {
+    bool free_packet = true;
     tftp_transfer_t *tftp = sink->sink_private;
     tftp_header_t *message = (tftp_header_t*)packet->data;
 
@@ -266,7 +271,7 @@ static void tftp_packet_received(packet_sink_t *sink, packet_t *packet)
             tftp_process_options_ack(sink, message, packet->data_length);
             break;
         case tftp_op_data:
-            tftp_process_data(sink, message, packet->data_length);
+            free_packet = tftp_process_data(sink, packet);
             break;
         case tftp_op_err:
             printf("tftp: server error code 0x%0x: %s\n",
@@ -282,7 +287,35 @@ static void tftp_packet_received(packet_sink_t *sink, packet_t *packet)
             break;
     }
 
-    packet_free(packet);
+    if(free_packet)
+        packet_free(packet);
+}
+
+static void tftp_timer_expired(packet_sink_t *sink)
+{
+    tftp_transfer_t *tftp = sink->sink_private;
+    
+    printf("tftp_timer_expired\n");
+
+    if(tftp->retransmits_this_block > 10){
+        tftp->completed = true;
+        tftp->success = false;
+        return;
+    }
+
+    if(tftp->completed)
+        return;
+
+    if(!tftp->started){
+        sink->timer = set_timer_ms(RRQ_TIMEOUT);
+        net_tx(tftp_create_rrq(sink));
+    }else{
+        tftp_flush_data_and_ack(sink);
+        sink->timer = set_timer_ms(DATA_TIMEOUT);
+    }
+
+    tftp->retransmits_this_block++;
+    tftp->retransmits_total++;
 }
 
 bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char *disk_filename)
@@ -292,6 +325,7 @@ bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char
     packet_sink_t *sink = packet_sink_alloc();
     tftp_transfer_t *tftp = malloc(sizeof(tftp_transfer_t));
     memset(tftp, 0, sizeof(tftp_transfer_t));
+    packet_queue_init(&tftp->data_queue);
 
     sink->match_interface_local_ip = true;
     sink->match_ipv4_protocol = ip_proto_udp;
@@ -355,6 +389,7 @@ bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char
     packet_sink_free(sink);
     free(tftp->tftp_filename);
     free(tftp->disk_filename);
+    packet_queue_drain(&tftp->data_queue);
     free(tftp);
 
     return true;
