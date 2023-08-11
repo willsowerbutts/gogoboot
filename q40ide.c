@@ -9,41 +9,64 @@
 #include "q40isa.h"
 #include "q40hw.h"
 
-// debugging options:
-#undef ATA_DUMP_IDENTIFY_RESULT
-
-typedef struct {
-    uint16_t base_io;
-    volatile uint16_t *data_reg;
-    volatile uint8_t *ctl_reg;
-    volatile uint8_t *error_reg;
-    volatile uint8_t *feature_reg;
-    volatile uint8_t *nsect_reg;
-    volatile uint8_t *lbal_reg;
-    volatile uint8_t *lbam_reg;
-    volatile uint8_t *lbah_reg;
-    volatile uint8_t *device_reg;
-    volatile uint8_t *status_reg;
-    volatile uint8_t *command_reg;
-    volatile uint8_t *altstatus_reg;
-} ide_controller_t;
-
-typedef struct {
-    ide_controller_t *ctrl;
-    int disk;               /* 0 = master, 1 = slave */
-    uint32_t sectors;       /* 32 bits limits us to 2TB */
-    DSTATUS fat_fs_status;
-    FATFS fat_fs_workarea;
-    /* name and model? */
-    /* partition table? */
-} ide_disk_t;
-
+// configurable options
+#define MAX_IDE_DISKS FF_VOLUMES
 #define NUM_CONTROLLERS 1
 static const uint16_t controller_base_io_addr[] = {0x1f0,};
 
+// debugging options:
+#undef ATA_DUMP_IDENTIFY_RESULT
+
+/* IDE status register bits */
+#define IDE_STATUS_BUSY         0x80
+#define IDE_STATUS_READY        0x40
+#define IDE_STATUS_DEVFAULT     0x20
+#define IDE_STATUS_SEEKCOMPLETE 0x10 // not important
+#define IDE_STATUS_DATAREQUEST  0x08
+#define IDE_STATUS_CORRECTED    0x04 // not important
+#define IDE_STATUS_INDEX        0x02 // not important
+#define IDE_STATUS_ERROR        0x01
+
+/* IDE command codes */
+#define IDE_CMD_READ_SECTOR     0x20
+#define IDE_CMD_WRITE_SECTOR    0x30
+#define IDE_CMD_FLUSH_CACHE     0xE7
+#define IDE_CMD_IDENTIFY        0xEC
+#define IDE_CMD_SET_FEATURES    0xEF
+
+/* excerpted from linux kernel include/linux/ata.h */
+enum {  
+        /* ATA command block registers */
+        ATA_REG_DATA            = 0x00,
+        ATA_REG_ERR             = 0x01,
+        ATA_REG_NSECT           = 0x02,
+        ATA_REG_LBAL            = 0x03,
+        ATA_REG_LBAM            = 0x04,
+        ATA_REG_LBAH            = 0x05,
+        ATA_REG_DEVICE          = 0x06,
+        ATA_REG_STATUS          = 0x07,
+
+        ATA_REG_FEATURE         = ATA_REG_ERR, /* and their aliases */
+        ATA_REG_CMD             = ATA_REG_STATUS,
+        ATA_REG_BYTEL           = ATA_REG_LBAM,
+        ATA_REG_BYTEH           = ATA_REG_LBAH,
+        ATA_REG_DEVSEL          = ATA_REG_DEVICE,
+        ATA_REG_IRQ             = ATA_REG_NSECT,
+
+        /* identity page offsets and lengths (in bytes, not words) */
+        ATA_ID_FW_REV       = 2*23,
+        ATA_ID_FW_REV_LEN   = 8,
+        ATA_ID_PROD         = 2*27,
+        ATA_ID_PROD_LEN     = 40,
+        ATA_ID_SERNO        = 2*10,
+        ATA_ID_SERNO_LEN    = 20,
+        ATA_ID_MAX_MULTSECT = 2*47,
+        ATA_ID_MULTSECT     = 2*59,
+        ATA_ID_LBA_CAPACITY = 2*60,
+};
+
 static ide_controller_t ide_controller[NUM_CONTROLLERS];
 
-#define MAX_IDE_DISKS FF_VOLUMES
 static ide_disk_t ide_disk[MAX_IDE_DISKS];
 int ide_disk_used = 0;
 static bool q40_ide_init_done = false;
@@ -320,110 +343,9 @@ void q40_ide_init(void)
     }
 }
 
-/* glue for FatFs library */
-
-DSTATUS disk_status(BYTE pdrv)
+ide_disk_t *q40_get_disk_info(int nr)
 {
-    if(pdrv >= ide_disk_used)
-        return STA_NOINIT;
-    return ide_disk[pdrv].fat_fs_status;
-}
-
-DSTATUS disk_initialize(BYTE pdrv)
-{
-    if(pdrv >= ide_disk_used)
-        return STA_NOINIT;
-    // assume success
-    ide_disk[pdrv].fat_fs_status = 0;
-    return ide_disk[pdrv].fat_fs_status;
-}
-
-DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
-{
-    if(pdrv >= ide_disk_used)
-        return RES_PARERR;
-    if(ide_disk[pdrv].fat_fs_status & (STA_NOINIT | STA_NODISK))
-        return RES_NOTRDY;
-    if(q40_ide_read(pdrv, buff, sector, count))
-        return RES_OK;
-    else
-        return RES_ERROR;
-}
-
-DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
-{
-    if(pdrv >= ide_disk_used)
-        return RES_PARERR;
-    if(ide_disk[pdrv].fat_fs_status & (STA_NOINIT | STA_NODISK))
-        return RES_NOTRDY;
-    if(ide_disk[pdrv].fat_fs_status & STA_PROTECT)
-        return RES_WRPRT;
-    if(q40_ide_write(pdrv, buff, sector, count))
-        return RES_OK;
-    else
-        return RES_ERROR;
-}
-
-DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
-{
-    if(pdrv >= ide_disk_used)
-        return RES_PARERR;
-    if(ide_disk[pdrv].fat_fs_status & (STA_NOINIT | STA_NODISK))
-        return RES_NOTRDY;
-    switch(cmd){
-        case CTRL_SYNC:
-        case CTRL_TRIM:
-            return RES_OK;
-        case GET_SECTOR_SIZE:
-            *((long*)buff) = 512;
-            return RES_OK;
-        case GET_SECTOR_COUNT:
-            *((long*)buff) = ide_disk[pdrv].sectors;
-            return RES_OK;
-        default:
-            return RES_PARERR;
-    }
-}
-
-static int decode_bcd_digit(uint8_t val)
-{
-    val &= 0x0f;
-    return (val > 9) ? 0 : val;
-}
-
-static int decode_bcd_byte(uint8_t val)
-{
-    return (decode_bcd_digit(val>>4)*10) + decode_bcd_digit(val);
-}
-
-DWORD get_fattime (void)
-{
-    uint32_t result;
-    uint32_t temp;
-    q40_rtc_data_t now;
-
-    /*
-        bit31:25 Year origin from the 1980 (0..127, e.g. 37 for 2017)
-        bit24:21 Month (1..12)
-        bit20:16 Day of the month (1..31)
-        bit15:11 Hour (0..23)
-        bit10:5  Minute (0..59)
-        bit4:0   Second / 2 (0..29, e.g. 25 for 50)
-    */
-
-    q40_rtc_read_clock(&now);
-
-    // printf("raw rtc: y=%02x m=%02x d=%02x h=%02x m=%02x s=%02x\n",
-    //         now.year, now.month, now.day, now.hour, now.minute, now.second);
-    temp = decode_bcd_byte(now.year);
-    if(temp <= 80)
-        temp += 20;
-    result  = temp                                << 25;
-    result |= decode_bcd_byte(now.month   & 0x1F) << 21;
-    result |= decode_bcd_byte(now.day     & 0x3F) << 16;
-    result |= decode_bcd_byte(now.hour    & 0x3F) << 11;  
-    result |= decode_bcd_byte(now.minute  & 0x7F) <<  5;
-    result |= decode_bcd_byte(now.second  & 0x7F) >>  1;
-
-    return result;
+    if(nr < 0 || nr >= q40_ide_get_disk_count())
+        return NULL;
+    return &ide_disk[nr];
 }

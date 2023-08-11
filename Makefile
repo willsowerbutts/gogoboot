@@ -14,7 +14,7 @@ AOPT = -m68040 -alhmsg
 ROMOBJ = boot.o except.o q40uart.o q40hw.o startup.o vectors.o q40ide.o \
 	 printf.o stdlib.o strtoul.o ff.o memcpy.o memmove.o memset.o \
 	 ne2000.o net.o arp.o dhcp.o packet.o ipcsum.o ipv4.o icmp.o \
-	 cli.o tftp.o strdup.o tinyalloc.o 
+	 cli.o tftp.o strdup.o tinyalloc.o ffglue.o ffunicode.o
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 
@@ -31,9 +31,6 @@ test:	all
 
 clean:
 	rm -f q40boot.rom q40boot.map *.o *.lst *.elf *.bin
-
-ne2000.o:	ne2000.c ne2000.h
-	$(CC) -c $(COPT) -o ne2000.o ne2000.c
 
 q40boot.rom:	$(ROMOBJ)
 	$(LD) --gc-sections --script=q40boot.ld -z noexecstack -Map q40boot.map -o q40boot.elf $(ROMOBJ)
