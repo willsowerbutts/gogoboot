@@ -349,8 +349,7 @@ static void do_ls(char *argv[], int argc)
     const char *path, *filename;
     DIR fat_dir;
     FILINFO fat_file;
-    bool dir, left = true;
-    int i;
+    bool dir;
 
     if(argc == 0)
         path = "";
@@ -383,18 +382,16 @@ static void do_ls(char *argv[], int argc)
 
         if(dir){
             /* directory */
-            printf("         %04d-%02d-%02d %02d:%02d %s/", 
+            printf("           %04d-%02d-%02d %02d:%02d %s/", 
                     1980 + ((fat_file.fdate >> 9) & 0x7F),
                     (fat_file.fdate >> 5) & 0xF,
                     fat_file.fdate & 0x1F,
                     fat_file.ftime >> 11,
                     (fat_file.ftime >> 5) & 0x3F,
                     filename);
-            for(i=strlen(fat_file.fname); i<12; i++)
-                printf(" ");
         }else{
             /* regular file */
-            printf("%8lu %04d-%02d-%02d %02d:%02d %-12s", 
+            printf("%10lu %04d-%02d-%02d %02d:%02d %s", 
                     fat_file.fsize, 
                     1980 + ((fat_file.fdate >> 9) & 0x7F),
                     (fat_file.fdate >> 5) & 0xF,
@@ -404,17 +401,8 @@ static void do_ls(char *argv[], int argc)
                     filename);
         }
 
-        if(!left)
-            printf("\n");
-        else if(!dir)
-            printf("  ");
-        else
-            printf(" ");
-        left = !left;
-    }
-
-    if(!left)
         printf("\n");
+    }
 
     fr = f_closedir(&fat_dir);
     if(fr != FR_OK){
@@ -817,7 +805,7 @@ static bool handle_cmd_executable(char *argv[], int argc)
 
 static void execute_cmd(char *linebuffer)
 {
-    char *p, *arg[MAXARG+1];
+    char *p, *arg[MAXARG+1], term;
     int numarg;
 
     /* parse linebuffer into list of args */
@@ -832,20 +820,32 @@ static void execute_cmd(char *linebuffer)
             arg[numarg] = 0;
             break;
         }
+        // skip whitespace before arg
         while(isspace(*p))
             p++;
-        if(!isspace(*p)){
+        if(*p == '"' || *p == '\''){
+            term = *(p++);
+            arg[numarg++] = p;
+            while(*p && *p != term)
+                p++;
+            if(!*p){
+                printf("Could not find end of quoted string (looking for %c)\n", term);
+                return;
+            }
+            *(p++) = 0;
+        }else if(*p){
             arg[numarg++] = p;
             while(*p && !isspace(*p))
                 p++;
-            if(!*p)
-                continue;
-            while(isspace(*p)){
-                *p=0;
-                p++;
-            }
+            if(*p)
+                *(p++) = 0;
         }
     }
+
+    //printf("argc=%d", numarg);
+    //for(int i=0; i<numarg; i++)
+    //    printf(" argv[%d]=\"%s\"", i, arg[i]);
+    //printf("\n");
 
     handle_any_command(arg, numarg);
 }
