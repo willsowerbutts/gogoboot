@@ -56,8 +56,8 @@ int toupper(int c);
 /* -- strtoul.c -- */
 
 int atoi(const char *cp);
-unsigned long strtoul(const char *cptr, char **endptr, int radix);
-long strtol(const char *nptr, char **endptr, int base);
+unsigned long strtoul(const char *cptr, const char **endptr, int radix);
+long strtol(const char *nptr, const char **endptr, int base);
 
 /* limits */
 

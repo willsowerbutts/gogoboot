@@ -57,7 +57,7 @@ char ndigit(char ch)
     return c;
 }
 
-unsigned long strtoul(const char *cptr, char **endptr, int radix)
+unsigned long strtoul(const char *cptr, const char **endptr, int radix)
 {
     signed char sign = 0;
     unsigned long int  value = 0UL;
@@ -121,7 +121,7 @@ unsigned long strtoul(const char *cptr, char **endptr, int radix)
     return value;
 }
 
-long strtol(const char *nptr, char **endptr, int base)
+long strtol(const char *nptr, const char **endptr, int base)
 {
   const char * ptr;
   unsigned short negative;
