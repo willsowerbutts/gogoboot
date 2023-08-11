@@ -32,11 +32,11 @@ extern uint32_t packet_tx_count;
 
 struct packet_t {
     packet_t *next;               // used by packet_queue_t to create linked lists
-    uint32_t flags;
-    uint32_t ipv4_nexthop;
+    uint32_t flags;               // flag bits (packet_flag_*)
+    uint32_t ipv4_nexthop;        // address we're going to ARP for
     ethernet_header_t *eth;       // always set
     arp_header_t *arp;            // set for arp
-    ipv4_header_t *ipv4;          // set for ipv4 (all except arp)
+    ipv4_header_t *ipv4;          // set for ipv4
     udp_header_t *udp;            // set for ipv4 udp
     tcp_header_t *tcp;            // set for ipv4 tcp
     icmp_header_t *icmp;          // set for ipv4 icmp
