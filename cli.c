@@ -252,8 +252,13 @@ static void do_tftp(char *argv[], int argc)
             return;
     }
 
-    if(server)
+    if(server){
         targetip = net_parse_ipv4(server);
+        if(targetip == 0){
+            printf("Cannot parse server IPv4 address \"%s\"\n", server);
+            return;
+        }
+    }
 
     tftp_receive(targetip, src, dst);
 }
