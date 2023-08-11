@@ -69,7 +69,7 @@ const cmd_entry_t cmd_table[] = {
     {"wm",          2,  0,  &do_writemem,    "synonym for WRITEMEM"},
     {"heapinfo",    0,  0,  &do_heapinfo,    "info on internal malloc state" },
     {"netinfo",     0,  0,  &do_netinfo,     "network statistics" },
-    {"tftp",        1, 10,  &do_tftp,        "retrieve file with TFTP" }, // TODO write down the syntax
+    {"tftp",        1,  3,  &do_tftp,        "retrieve file with TFTP" }, // TODO write down the syntax
     {"loadimage",   1,  1,  &do_loadimage,   "load image into graphics memory" }, // TODO write down the syntax
     {0, 0, 0, 0, 0 } /* terminator */
 };
@@ -220,14 +220,29 @@ static void do_loadimage(char *argv[], int argc)
 
 static void do_tftp(char *argv[], int argc)
 {
+    const char *server=NULL, *src, *dst;
     uint32_t targetip = 0xc0a86450; // beastie 192.168.100.80  TODO
     
-    const char *src, *dst;
-    src = argv[0];
-    if(argc >= 2)
-        dst = argv[1];
-    else
-        dst = argv[0];
+    switch(argc){
+        case 1:
+            src = dst = argv[0];
+            break;
+        case 2:
+            src = argv[0];
+            dst = argv[1];
+            break;
+        case 3:
+            server = argv[0];
+            src = argv[1];
+            dst = argv[2];
+            break;
+        default:
+            printf("Unexpected number of arguments\n");
+            return;
+    }
+
+    if(server)
+        targetip = net_parse_ipv4(server);
 
     tftp_receive(targetip, src, dst);
 }
