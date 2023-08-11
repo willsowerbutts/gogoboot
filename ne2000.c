@@ -297,26 +297,10 @@ static void dp83902a_RxEvent(void)
         if(nic.rx_next == cur) // done reading packets?
             break;
 
-        // pkt = isa_read_byte(nic.base + DP_BNDRY);
-        //pkt += 1;
-        //if (pkt == nic.rx_buf_end)
-        //    pkt = nic.rx_buf_start;
-
-        //if (pkt == cur) {
-        //    break;
-        //}
         isa_write_byte_pause(nic.base + DP_RBCL, sizeof(rcv_hdr));
         isa_write_byte_pause(nic.base + DP_RBCH, 0);
         isa_write_byte_pause(nic.base + DP_RSAL, 0);
         isa_write_byte_pause(nic.base + DP_RSAH, nic.rx_next);
-        // if (nic.rx_next == pkt) {
-        //     if (cur == nic.rx_buf_start)
-        //         isa_write_byte_pause(nic.base + DP_BNDRY, nic.rx_buf_end-1);
-        //     else
-        //         isa_write_byte_pause(nic.base + DP_BNDRY, cur-1); /* Update pointer */
-        //     return;
-        // }
-        // nic.rx_next = pkt;
         isa_write_byte_pause(nic.base + DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
         isa_slow_down();
         isa_write_byte_pause(nic.base + DP_CR, DP_CR_RDMA | DP_CR_START);
