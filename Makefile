@@ -8,7 +8,7 @@ LIB = m68k-linux-gnu-ar
 OBJCOPY = m68k-linux-gnu-objcopy
 LIBS = 
 
-COPT = -Os -malign-int -Wall -nostdinc -nostdlib -nolibc -march=68040 -mcpu=68040 -mtune=68040 -Wall -Werror -std=c18 -Iinclude -fdata-sections -ffunction-sections
+COPT = -O1 -malign-int -Wall -nostdinc -nostdlib -nolibc -march=68040 -mcpu=68040 -mtune=68040 -Wall -Werror -std=c18 -Iinclude -fdata-sections -ffunction-sections
 AOPT = -m68040 -alhmsg 
 
 ROMOBJ = boot.o except.o q40uart.o q40hw.o startup.o vectors.o q40ide.o \
