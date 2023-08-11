@@ -38,6 +38,11 @@ extern const char copyright_msg[];
  * DONE - ARP cache and reply to queries for our MAC
  * DONE - ARP resolution
  * DONE - what is behind these "ne2000: rx too big" errors?! going too fast on the ISA bus!
+ * - test TFTP robustness (large transfers = file ends up the wrong size!)
+ * - ne2000 driver to work with other cards (we have 3; it works with exactly 1!)
+ * - TFTP write mode
+ * - TFTP server mode
+ * - FAT FS long file name support (should be easy now we have malloc?)
  * - DNS?
  * - TFTP client protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
  * - TFTP server protocol too? wouldn't be hard!

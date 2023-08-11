@@ -34,8 +34,8 @@ struct tftp_transfer_t {
     bool started;
     bool completed;
     bool success;
+    int timeouts;
     int retransmits_this_block;
-    int retransmits_total;
 };
 
 typedef struct tftp_header_t tftp_header_t;
@@ -240,7 +240,7 @@ static bool tftp_process_data(packet_sink_t *sink, packet_t *packet)
     return free_packet;
 }
 
-static void tftp_packet_received(packet_sink_t *sink, packet_t *packet)
+static void tftp_client_packet_received(packet_sink_t *sink, packet_t *packet)
 {
     bool free_packet = true;
     tftp_transfer_t *tftp = sink->sink_private;
@@ -280,13 +280,12 @@ static void tftp_packet_received(packet_sink_t *sink, packet_t *packet)
         packet_free(packet);
 }
 
-static void tftp_timer_expired(packet_sink_t *sink)
+static void tftp_client_timer_expired(packet_sink_t *sink)
 {
     tftp_transfer_t *tftp = sink->sink_private;
-    
-    printf("tftp_timer_expired\n");
 
     if(tftp->retransmits_this_block > 10){
+        printf("tftp: too many retransmissions\n");
         tftp->completed = true;
         tftp->success = false;
         return;
@@ -303,8 +302,8 @@ static void tftp_timer_expired(packet_sink_t *sink)
         sink->timer = set_timer_ms(DATA_TIMEOUT);
     }
 
+    tftp->timeouts++;
     tftp->retransmits_this_block++;
-    tftp->retransmits_total++;
 }
 
 bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char *disk_filename)
@@ -331,12 +330,21 @@ bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char
     if(fr != FR_OK){
         printf("tftp: failed to open \"%s\": %s\n", tftp->disk_filename, f_errmsg(fr));
     }else{
+        printf("tftp: get %d.%d.%d.%d:%s to file \"%s\"\n",
+                (int)(tftp_server_ip >> 24 & 0xff),
+                (int)(tftp_server_ip >> 16 & 0xff),
+                (int)(tftp_server_ip >>  8 & 0xff),
+                (int)(tftp_server_ip       & 0xff),
+                tftp->tftp_filename,
+                tftp->disk_filename);
+
         start = q40_read_timer_ticks();
-        sink->cb_packet_received = tftp_packet_received;
-        sink->cb_timer_expired = tftp_timer_expired;
+        sink->cb_packet_received = tftp_client_packet_received;
+        sink->cb_timer_expired = tftp_client_timer_expired;
         net_add_packet_sink(sink);
-        tftp_timer_expired(sink); // synthesise a timeout; triggers transmission of RRQ
-        tftp->retransmits_total = tftp->retransmits_this_block = 0; // fixup count
+        tftp_client_timer_expired(sink); // synthesise a timeout; triggers transmission of RRQ
+        tftp->timeouts = 0; // fixup counts, since our "timeout" was synthetic
+        tftp->retransmits_this_block = 0; 
 
         printf("Transfer started: Press Q to abort\n");
 
@@ -351,7 +359,10 @@ bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char
             if((tftp->bytes_received - reported_received) >= (256*1024) || 
                (tftp->total_size && tftp->bytes_received == tftp->total_size)){
                 reported_received = tftp->bytes_received;
-                printf("tftp: received %d/%d KB\n", reported_received >> 10, tftp->total_size >> 10);
+                printf("tftp: received %d/%d KB", reported_received >> 10, tftp->total_size >> 10);
+                if(tftp->timeouts)
+                    printf(" (%d timeouts)", tftp->timeouts);
+                printf("\n");
             }
         }
 
