@@ -48,6 +48,10 @@ typedef struct
 
 static void do_cd(char *argv[], int argc);
 static void do_ls(char *argv[], int argc);
+static void do_rm(char *argv[], int argc);
+static void do_mkdir(char *argv[], int argc);
+static void do_mv(char *argv[], int argc);
+static void do_cp(char *argv[], int argc);
 static void do_dump(char *argv[], int argc);
 static void help(char *argv[], int argc);
 static void do_writemem(char *argv[], int argc);
@@ -58,19 +62,26 @@ static void do_loadimage(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
 
 const cmd_entry_t cmd_table[] = {
-    /* name         min max function */
-    {"cd",          1,  1,  &do_cd,	     "change directory <dir>"},
-    {"dir",         0,  1,  &do_ls,	     "list directory [<vol>:]"	},
-    {"dump",        2,  2,  &do_dump,	     "dump memory <from> <count>" },
-    {"dm",          2,  2,  &do_dump,	     "synonym for DUMP"	},
-    {"help",	    0,  0,  &help,	     "list this help info"	},
-    {"ls",          0,  1,  &do_ls,	     "synonym for DIR"	},
-    {"writemem",    2,  0,  &do_writemem,    "write memory <addr> [byte ...]" },
-    {"wm",          2,  0,  &do_writemem,    "synonym for WRITEMEM"},
-    {"heapinfo",    0,  0,  &do_heapinfo,    "info on internal malloc state" },
-    {"netinfo",     0,  0,  &do_netinfo,     "network statistics" },
-    {"tftp",        1,  3,  &do_tftp,        "retrieve file with TFTP" }, // TODO write down the syntax
-    {"loadimage",   1,  1,  &do_loadimage,   "load image into graphics memory" }, // TODO write down the syntax
+    /* name         min     max function */
+    {"cd",          1,      1,  &do_cd,       "change directory <dir>"},
+    {"del",         1, MAXARG,  &do_rm,       "delete a file" },
+    {"dir",         0,      1,  &do_ls,       "list directory [<vol>:]"  },
+    {"dm",          2,      2,  &do_dump,     "synonym for DUMP" },
+    {"dump",        2,      2,  &do_dump,     "dump memory <from> <count>" },
+    {"heapinfo",    0,      0,  &do_heapinfo, "info on internal malloc state" },
+    {"help",        0,      0,  &help,        "list this help info"   },
+    {"loadimage",   1,      1,  &do_loadimage,"load image into graphics memory" }, // TODO write down the syntax
+    {"ls",          0,      1,  &do_ls,       "synonym for DIR"  },
+    {"mkdir",       1,      1,  &do_mkdir,    "make a directory" },
+    {"mv",          2,      2,  &do_mv,       "rename a file" },
+    {"cp",          2,      2,  &do_cp,       "copy a file" },
+    {"copy",        2,      2,  &do_cp,       "copy a file" },
+    {"netinfo",     0,      0,  &do_netinfo,  "network statistics" },
+    {"rename",      2,      2,  &do_mv,       "rename a file" },
+    {"rm",          1, MAXARG,  &do_rm,       "delete a file" },
+    {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" }, // TODO write down the syntax
+    {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
+    {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -356,6 +367,99 @@ static void select_working_drive(void)
     }
 
     printf("No FAT filesystem found.\n");
+}
+
+static void do_mkdir(char *argv[], int argc)
+{
+    FRESULT fr = f_mkdir(argv[0]);
+    if(fr != FR_OK){
+        printf("f_mkdir(\"%s\"): ", argv[0]);
+        f_perror(fr);
+    }
+}
+
+#define COPY_BUFFER_SIZE 65536
+static void do_cp(char *argv[], int argc)
+{
+    FRESULT fr;
+    FIL src, dst;
+    char *buffer;
+    bool done = false;
+    UINT bytes_read, bytes_written;
+
+    fr = f_open(&src, argv[0], FA_READ);
+    if(fr != FR_OK){
+        printf("f_open(\"%s\"): ", argv[0]);
+        f_perror(fr);
+        return;
+    }
+
+    fr = f_open(&dst, argv[1], FA_WRITE | FA_CREATE_ALWAYS);
+    if(fr != FR_OK){
+        printf("f_open(\"%s\"): ", argv[1]);
+        f_perror(fr);
+        f_close(&src);
+        return;
+    }
+
+    buffer = malloc(COPY_BUFFER_SIZE);
+    if(!buffer){
+        printf("Out of memory\n");
+    }else{
+        while(!done){
+            fr = f_read(&src, buffer, COPY_BUFFER_SIZE, &bytes_read);
+            if(fr != FR_OK){
+                printf("f_read(\"%s\"): ", argv[0]);
+                f_perror(fr);
+                done = true;
+            }else{
+                if(bytes_read > 0){
+                    fr = f_write(&dst, buffer, bytes_read, &bytes_written);
+                    if(fr != FR_OK || bytes_read != bytes_written){
+                        printf("f_write(\"%s\"): ", argv[1]);
+                        f_perror(fr);
+                        done = true;
+                    }
+                }
+                if(bytes_read < COPY_BUFFER_SIZE)
+                    done = true;
+            }
+        }
+        free(buffer);
+    }
+
+    fr = f_close(&src);
+    if(fr != FR_OK) f_perror(fr);
+    fr = f_close(&dst);
+    if(fr != FR_OK) f_perror(fr);
+}
+
+static void do_mv(char *argv[], int argc)
+{
+    FRESULT fr = f_rename(argv[0], argv[1]);
+    if(fr != FR_OK){
+        printf("f_rename(\"%s\", \"%s\"): ", argv[0], argv[1]);
+        f_perror(fr);
+    }
+}
+
+static void do_rm(char *argv[], int argc)
+{
+    FRESULT fr;
+    DIR di;
+    FILINFO fi;
+
+    for(int i=0; i<argc; i++){
+        while(true){
+            fr = f_findfirst(&di, &fi, "", argv[i]);
+            f_closedir(&di); // in any event we MUST close the dir before calling f_unlink
+            if(fr == FR_OK && fi.fname[0]){
+                printf("Deleting \"%s\"\n", fi.fname);
+                f_unlink(fi.fname);
+            }else
+                break;
+        }
+    }
 }
 
 static void do_ls(char *argv[], int argc)
@@ -728,35 +832,35 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
 // 
 // bool extend_filename(char *argv[])
 // {
-// 	char *np, *tp;
-// 	int i, j;
+//      char *np, *tp;
+//      int i, j;
 // 
-// 	np = argv[0];
-// 	if ( f_stat(np, NULL) == FR_OK ) return true;
-// 	
-// 	j = strlen(np);
-// 	tp = np + j;
-// 	while (--tp) {
-// 		if (*tp == '.') break;	/* name was qualified, but not found */
-// 		if (tp == np || *tp == '/' || *tp == ':' || *tp == '\\' ) {
-// 				/* there was no qualification on the name */
+//      np = argv[0];
+//      if ( f_stat(np, NULL) == FR_OK ) return true;
+//      
+//      j = strlen(np);
+//      tp = np + j;
+//      while (--tp) {
+//              if (*tp == '.') break;  /* name was qualified, but not found */
+//              if (tp == np || *tp == '/' || *tp == ':' || *tp == '\\' ) {
+//                              /* there was no qualification on the name */
 //                         np = full_cmd_buffer; /* need a bit of extra space, wind back the pointer */
 //                         strcpy(np, argv[0]);
 //                         argv[0] = np;
-// 			tp = np + j;	/* place for suffix tries */
-// 			*tp++ = '.';	/* add the dot for the suffix */
-// 			i = 0;
-// 			while (exts[i]) {
-// 				strcpy(tp, exts[i]);
-// 				if (f_stat(np, NULL) == FR_OK) return true;
-// 				++i;
-// 			}
-// 			*--tp = 0;  /* erase the added dot */
-// 			return false;
-// 		}
-// 	}
+//                      tp = np + j;    /* place for suffix tries */
+//                      *tp++ = '.';    /* add the dot for the suffix */
+//                      i = 0;
+//                      while (exts[i]) {
+//                              strcpy(tp, exts[i]);
+//                              if (f_stat(np, NULL) == FR_OK) return true;
+//                              ++i;
+//                      }
+//                      *--tp = 0;  /* erase the added dot */
+//                      return false;
+//              }
+//      }
 // 
-// 	return false;
+//      return false;
 // }
 
 
