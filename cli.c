@@ -69,7 +69,7 @@ const cmd_entry_t cmd_table[] = {
     {"wm",          2,  0,  &do_writemem,    "synonym for WRITEMEM"},
     {"heapinfo",    0,  0,  &do_heapinfo,    "info on internal malloc state" },
     {"netinfo",     0,  0,  &do_netinfo,     "network statistics" },
-    {"tftp",        0, 10,  &do_tftp,        "retrieve file with TFTP" }, // TODO write down the syntax
+    {"tftp",        1, 10,  &do_tftp,        "retrieve file with TFTP" }, // TODO write down the syntax
     {"loadimage",   1,  1,  &do_loadimage,   "load image into graphics memory" }, // TODO write down the syntax
     {0, 0, 0, 0, 0 } /* terminator */
 };
@@ -220,11 +220,16 @@ static void do_loadimage(char *argv[], int argc)
 
 static void do_tftp(char *argv[], int argc)
 {
-    uint32_t targetip = 0xc0a86450; // beastie 192.168.100.80
-    const char *tftp_filename = "testimage.bin";
-    const char *disk_filename = "testimg.bin";
+    uint32_t targetip = 0xc0a86450; // beastie 192.168.100.80  TODO
+    
+    const char *src, *dst;
+    src = argv[0];
+    if(argc >= 2)
+        dst = argv[1];
+    else
+        dst = argv[0];
 
-    tftp_receive(targetip, tftp_filename, disk_filename);
+    tftp_receive(targetip, src, dst);
 }
 
 static void do_netinfo(char *argv[], int argc)
