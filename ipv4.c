@@ -84,3 +84,24 @@ packet_t *packet_create_for_sink(packet_sink_t *sink, int data_size)
             return NULL;
     }
 }
+
+uint32_t net_parse_ipv4(const char *input)
+{
+    uint32_t result=0, octet;
+    const char *str = input;
+
+    printf("net_parse_ipv4: input=\"%s\"\n", input);
+
+    for(int i=0; i<4; i++){
+        printf("result=0x%08lx str=\"%s\" ", result, str);
+        octet = strtoul(str, &str, 10);
+        printf("octet=%ld\n", octet);
+        if(octet > 255 || (i<3 && *str != '.'))
+            return 0;
+        result = (result << 8) | octet;
+        str++; // skip over '.'
+    }
+
+    printf("net_parse_ipv4: result=0x%08lx\n", result);
+    return result;
+}

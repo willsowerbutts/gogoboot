@@ -179,6 +179,7 @@ packet_t *packet_create_icmp(uint32_t dest_ipv4, int data_size);
 packet_t *packet_create_for_sink(packet_sink_t *sink, int data_size);
 void packet_set_destination_mac(packet_t *packet, const macaddr_t *mac);
 void packet_free(packet_t *packet);
+uint32_t net_parse_ipv4(const char *str);
 
 // for dynamically allocated queues
 packet_queue_t *packet_queue_alloc(void); // calls packet_queue_init
