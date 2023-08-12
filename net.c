@@ -336,6 +336,8 @@ void net_tx(packet_t *packet)
 
     net_ipv4_route(packet);
 
+    packet_tx_count++;
+
     if(packet->flags & packet_flag_destination_mac_valid || net_arp_resolve(packet) == arp_okay){
         // we want to start the transmission immediately if we have buffer space on the card,
         // otherwise we have to queue the packet for transmission later
@@ -356,7 +358,5 @@ void net_tx(packet_t *packet)
 packet_t *net_eth_pull(void)
 {
     packet_t *p = packet_queue_pophead(net_txqueue);
-    if(p)
-        packet_tx_count++;
     return p;
 }

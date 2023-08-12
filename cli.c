@@ -250,7 +250,7 @@ static void do_softrom(char *argv[], int argc)
         uart_read_string(&count, sizeof(count));
         count--; // match bug in Q40 SOFTROM: load one byte less than instructed
         if(count > Q40_ROMSIZE){
-            printf("softrom: too big (%ld)!", count);
+            printf("softrom: too big (%ld)!\n", count);
             free(romimage);
             return;
         }
