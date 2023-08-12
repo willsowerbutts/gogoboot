@@ -11,5 +11,6 @@ int uart_write_str(const char *str);
 bool uart_read_ready(void);
 int uart_read_byte(void); /* -1 if not ready */
 uint8_t uart_read_byte_wait(void); /* waits if not ready */
+void uart_read_string(void *buffer, int count);
 
 #endif

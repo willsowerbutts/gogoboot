@@ -85,7 +85,7 @@ const cmd_entry_t cmd_table[] = {
     {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
     {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
 #ifdef MACHINE_IS_Q40
-    {"softrom",     1,      1,  &do_softrom,  "load and boot a Q40 ROM image" },
+    {"softrom",     0,      1,  &do_softrom,  "load and boot a Q40 ROM image" },
     {"loadimage",   1,      1,  &do_loadimage,"load image into Q40 graphics memory" },
 #endif
     {0, 0, 0, 0, 0 } /* terminator */
@@ -241,22 +241,42 @@ static void do_softrom(char *argv[], int argc)
     FRESULT fr;
     UINT loaded;
     FIL fd;
-    char *romimage;
+    char *romimage = malloc(Q40_ROMSIZE);
 
-    fr = f_open(&fd, argv[0], FA_READ);
-    if(fr == FR_OK){
-        romimage = malloc(Q40_ROMSIZE);
+    if(argc == 0){
+        /* load from UART */
+        uint32_t count;
+        printf("softrom: loading from UART ...\n");
+        uart_read_string(&count, sizeof(count));
+        count--; // match bug in Q40 SOFTROM: load one byte less than instructed
+        if(count > Q40_ROMSIZE){
+            printf("softrom: too big (%ld)!", count);
+            free(romimage);
+            return;
+        }
+        uart_read_string(romimage, count);
+        loaded = count;
+    }else{
+        /* load from file */
+        fr = f_open(&fd, argv[0], FA_READ);
+        if(fr != FR_OK){
+            free(romimage);
+            printf("softrom: failed to read \"%s\": ", argv[0]);
+            f_perror(fr);
+            return;
+        }
         f_read(&fd, romimage, Q40_ROMSIZE, &loaded);
         f_close(&fd);
         printf("softrom: loaded %d bytes from \"%s\"\n", loaded, argv[0]);
-        // pad with 0xFF
-        memset(romimage+loaded, 0xFF, Q40_ROMSIZE-loaded);
-        // prepare machine state for softrom
-        cpu_cache_flush();
-        cpu_interrupts_off();
-        // jump to assembler magic
-        q40_boot_softrom(romimage);
     }
+
+    // pad with 0xFF
+    memset(romimage+loaded, 0xFF, Q40_ROMSIZE-loaded);
+    // prepare machine state for softrom
+    cpu_cache_flush();
+    cpu_interrupts_off();
+    // jump to assembler magic
+    q40_boot_softrom(romimage);
 }
 #endif
 

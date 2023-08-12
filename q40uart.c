@@ -74,3 +74,14 @@ uint8_t uart_read_byte_wait(void)
     while(!(isa_read_byte(UART_ADDRESS+UART_LSR) & UART_LSR_DR));
     return isa_read_byte(UART_ADDRESS+UART_RBR);
 }
+
+void uart_read_string(void *buffer, int count)
+{
+    char *p = buffer;
+    char *end = p + count;
+
+    while(p < end){
+        while(!(isa_read_byte(UART_ADDRESS+UART_LSR) & UART_LSR_DR));
+        *(p++) = isa_read_byte(UART_ADDRESS+UART_RBR);
+    }
+}
