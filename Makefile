@@ -28,8 +28,8 @@ ROMOBJ = arp.o boot.o cli.o dhcp.o except.o ff.o ffglue.o ffunicode.o icmp.o \
 
 all:	q40boot.rom
 
-test:	all
-	./sendrom /dev/ttyUSB0 57600 q40boot.rom
+serial:	all
+	./sendrom /dev/ttyUSB0 115200 q40boot.rom
 
 tftp:	all
 	scp -C q40boot.rom beastie:/storage/tftp/

@@ -4,7 +4,8 @@
 #include "q40uart.h"
 
 #define UART_ADDRESS    0x3f8
-#define UART_DIVISOR    (115200/57600)
+#define BAUD_RATE       115200
+#define UART_DIVISOR    (115200/BAUD_RATE)
 
 #define UART_THR        0       /* transmit holding register */
 #define UART_RBR        0       /* receive buffer register */
