@@ -273,11 +273,21 @@ static void do_softrom(char *argv[], int argc)
 
     // pad with 0xFF
     memset(romimage+loaded, 0xFF, Q40_ROMSIZE-loaded);
-    // prepare machine state for softrom
-    cpu_cache_flush();
-    cpu_interrupts_off();
-    // jump to assembler magic
-    q40_boot_softrom(romimage);
+
+    // check if what we've been given is different to what is already loaded
+    if(memcmp(romimage, rom_pointer, Q40_ROMSIZE)){
+        printf("softrom: rebooting ...\n\n\n");
+
+        // prepare machine state for softrom
+        cpu_interrupts_off();
+
+        // jump to assembler magic
+        q40_boot_softrom(romimage);
+    }else{
+        printf("softrom: matches running ROM\n");
+    } 
+
+    free(romimage);
 }
 #endif
 

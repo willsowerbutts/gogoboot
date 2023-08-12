@@ -5,6 +5,7 @@
         .globl  uart_write_str
         .globl  uart_write_byte
         .globl  report_exception
+        .globl  rom_pointer
 
         .section .text
         .align 4
@@ -126,5 +127,7 @@ timer_ticks:
         .section .rodata
 bad_interrupt_message:
         .ascii ":( UNEXPECTED INT \0"
+rom_pointer:
+        .long   0                       /* I prefer this to using -Wno-nonnull */
 
         .end

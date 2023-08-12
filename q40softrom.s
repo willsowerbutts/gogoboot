@@ -15,13 +15,17 @@
          */
 
 q40_boot_softrom:
-        /* enter with interrupts and cpu caches disabled */
+        /* enter with interrupts off, but cpu caches enabled */
         cpusha %bc                      /* write back and invalidate all data/instruction cache entries */
+        nop
         movea.l %sp@(4), %a2            /* a2 = pointer to new softrom image */
-        /* we might be running in a soft ROM already, so we need to copy ourselves
-           before we copy the new image in case we overwrite ourselves. The 32KB
-           RAM at 96KB seems a sensible place to choose. */
-        lea.l 0x18000, %a0              /* a0 = target pointer */
+        /* We might be running in LowRAM mode already. We need to turn off LowRAM
+           to write the new ROM image, so we can't execute our code from LowRAM
+           memory. Make a copy elsewhere in RAM and execute from there. Code has
+           to be position independent. Since we're not going back to C , I chose
+           to overwrite the .data and .bss segments. */
+
+        lea.l data_start, %a0           /* a0 = target pointer */
         lea.l copystart, %a1            /* a1 = source pointer */
         /* compute d0 = routine length in dwords, -1 as we don't skip over the first move */
         move.l #((copyend-copystart+3)/4)-1, %d0
@@ -30,7 +34,10 @@ nextword:
         dbra %d0, nextword
         cpusha %bc                      /* write back and invalidate all data/instruction cache entries */
         nop
-        jmp 0x18000                     /* continue execution but in new location */
+        move.w #0x2700, %sr             /* setup status register -- interrupts off */
+        jmp data_start                  /* continue execution but in new location */
+
+        /* below here is the code that is copied out of ROM to .data at the start of RAM */
 copystart:
         moveb #1,0xff010000             /* disable LowRAM mode */
         nop                             /* ... real ROM now mapped at address 0 */
@@ -42,32 +49,33 @@ romnextword:
         dbra %d0, romnextword
         cpusha %bc                      /* write back and invalidate all data/instruction cache entries */
         nop
-        /* the remainder of this routine is largely based on the original Q40 "SOFTROM" */
         moveq #0, %d0
-        movec %d0, %vbr                 /* reset VBR */
-        movec %d0, %cacr                /* reset CPU cache */
-        movec %d0, %tc                  /* reset MMU translation control */
-        movec %d0, %itt0                /* reset MMU transparent translation */
-        movec %d0, %itt1                /* reset MMU transparent translation */
-        movec %d0, %dtt0                /* reset MMU transparent translation */
-        movec %d0, %dtt1                /* reset MMU transparent translation */
+        movec %d0, %vbr                 /* clear VBR */
+        movec %d0, %cacr                /* clear CPU cache */
+        movec %d0, %tc                  /* clear MMU translation control */
+        movec %d0, %itt0                /* clear MMU transparent translation */
+        movec %d0, %itt1                /* clear MMU transparent translation */
+        movec %d0, %dtt0                /* clear MMU transparent translation */
+        movec %d0, %dtt1                /* clear MMU transparent translation */
         moveq #14, %d0
         movea.l #0xff000000, %a0        /* clear 15 MASTER CPLD registers */
 nextregister:                           /* at 0xff000000 -- 0xff000038 */
-        moveb #0, (%a0)                 /* byte write to register */
+        sf (%a0)                        /* byte write to clear register */
         addq #4, %a0                    /* registers are every 4 bytes */
         dbra %d0, nextregister          /* loop until done */
         moveb #1,0xff018000             /* enable LowRAM mode */
         nop                             /* ... RAM replaces ROM at address 0 */
         nop                             /* (and it is write protected) */
-        moveal 0x0, %sp                 /* load initial SP */
-        /* The Q40 SOFTROM program does this next; I'm not sure why */
-        movel %sp, %d0                  /* FP = SP & 0xFFFF8000 */
-        andiw #0x8000, %d0
-        moveal %d0, %fp
-        clrl %fp@                       /* *FP = 0 (WRS: why?) */
-        /* End mysterious code. It proceeds just as one might expect: */
-        moveal 0x4, %a0                 /* load initial PC */
-        jmp %a0@                        /* and off we go! */
+        moveal 0x0, %sp                 /* load initial SP - vector 0 */
+        /* The Q40 SOFTROM program does this next; I'm not sure why
+        /*   movel %sp, %d0                        SP
+        /*   andiw #0x8000, %d0                   ... & 0xFFFF8000
+        /*   moveal %d0, %fp                      -> FP (A6)
+        /*   clrl %fp@                     *FP = 0 (WRS: why??)
+        /* I don't understand why they do this, and for my ROM it just
+        /* scribbles on video RAM, so I won't replicate it */
+        moveal 0x4, %a0                 /* load initial PC - vector 1 */
+        jmp %a0@                        /* ... and off we go! */
 copyend:
+        /* this is where the code copying ends */
         .end

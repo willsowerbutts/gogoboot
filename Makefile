@@ -31,6 +31,9 @@ all:	q40boot.rom
 test:	all
 	./sendrom /dev/ttyUSB0 57600 q40boot.rom
 
+tftp:	all
+	scp -C q40boot.rom beastie:/storage/tftp/
+
 clean:
 	rm -f q40boot.rom q40boot.map *.o *.lst *.elf *.bin
 
