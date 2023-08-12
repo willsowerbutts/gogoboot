@@ -231,9 +231,12 @@ static bool tftp_process_data(packet_sink_t *sink, packet_t *packet)
             tftp->success = true;
             tftp_flush_data_and_ack(sink);
         }
+    }else{
+        //printf("tftp: last block %d, expected %d, got %d\n",
+        //        tftp->last_block, expected_block, rxblock);
     }
 
-    if(tftp->last_block >= (tftp->last_ack + tftp->window_size))
+    if(tftp->last_block == ((tftp->last_ack + tftp->window_size) & 0xffff))
         tftp_flush_data_and_ack(sink);
 
     sink->timer = set_timer_ms(DATA_TIMEOUT);
