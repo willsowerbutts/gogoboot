@@ -58,8 +58,11 @@ static void do_writemem(char *argv[], int argc);
 static void do_heapinfo(char *argv[], int argc);
 static void do_netinfo(char *argv[], int argc);
 static void do_tftp(char *argv[], int argc);
-static void do_loadimage(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
+#ifdef MACHINE_IS_Q40
+static void do_softrom(char *argv[], int argc);
+static void do_loadimage(char *argv[], int argc);
+#endif
 
 const cmd_entry_t cmd_table[] = {
     /* name         min     max function */
@@ -70,7 +73,6 @@ const cmd_entry_t cmd_table[] = {
     {"dump",        2,      2,  &do_dump,     "dump memory <from> <count>" },
     {"heapinfo",    0,      0,  &do_heapinfo, "info on internal malloc state" },
     {"help",        0,      0,  &help,        "list this help info"   },
-    {"loadimage",   1,      1,  &do_loadimage,"load image into graphics memory" }, // TODO write down the syntax
     {"ls",          0,      1,  &do_ls,       "synonym for DIR"  },
     {"mkdir",       1,      1,  &do_mkdir,    "make a directory" },
     {"mv",          2,      2,  &do_mv,       "rename a file" },
@@ -82,6 +84,10 @@ const cmd_entry_t cmd_table[] = {
     {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" }, // TODO write down the syntax
     {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
     {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
+#ifdef MACHINE_IS_Q40
+    {"softrom",     1,      1,  &do_softrom,  "load and boot a Q40 ROM image" },
+    {"loadimage",   1,      1,  &do_loadimage,"load image into Q40 graphics memory" },
+#endif
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -216,6 +222,7 @@ static void do_heapinfo(char *argv[], int argc)
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
 }
 
+#ifdef MACHINE_IS_Q40
 static void do_loadimage(char *argv[], int argc)
 {
     FRESULT fr;
@@ -228,6 +235,30 @@ static void do_loadimage(char *argv[], int argc)
     }
     cpu_cache_flush();
 }
+
+static void do_softrom(char *argv[], int argc)
+{
+    FRESULT fr;
+    UINT loaded;
+    FIL fd;
+    char *romimage;
+
+    fr = f_open(&fd, argv[0], FA_READ);
+    if(fr == FR_OK){
+        romimage = malloc(Q40_ROMSIZE);
+        f_read(&fd, romimage, Q40_ROMSIZE, &loaded);
+        f_close(&fd);
+        printf("softrom: loaded %d bytes from \"%s\"\n", loaded, argv[0]);
+        // pad with 0xFF
+        memset(romimage+loaded, 0xFF, Q40_ROMSIZE-loaded);
+        // prepare machine state for softrom
+        cpu_cache_flush();
+        cpu_interrupts_off();
+        // jump to assembler magic
+        q40_boot_softrom(romimage);
+    }
+}
+#endif
 
 static void do_tftp(char *argv[], int argc)
 {

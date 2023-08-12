@@ -363,33 +363,33 @@ Disassembly of section .data:
  2e6:	91c8           	subal %a0,%a0
  2e8:	e488           	lsrl #2,%d0
  2ea:	5380           	subql #1,%d0
- 2ec:	13fc 0001 ff01 	moveb #1,0xff010000
+ 2ec:	13fc 0001 ff01 	moveb #1,0xff010000             disable LOWRAM mode (low 96KB = real ROM)
  2f2:	0000 
  2f4:	4e71           	nop
  2f6:	4e71           	nop
- 2f8:	20d9           	movel %a1@+,%a0@+
- 2fa:	51c8 fffc      	dbf %d0,0x2f8
- 2fe:	7000           	moveq #0,%d0
- 300:	4e7b 0801      	movec %d0,%vbr
- 304:	4e7b 0002      	movec %d0,%cacr
- 308:	4e7b 0003      	movec %d0,%tc
- 30c:	4e7b 0004      	movec %d0,%itt0
- 310:	4e7b 0005      	movec %d0,%itt1
- 314:	4e7b 0006      	movec %d0,%dtt0
- 318:	4e7b 0007      	movec %d0,%dtt1
- 31c:	6120           	bsrs 0x33e
- 31e:	13fc 0001 ff01 	moveb #1,0xff018000
+ 2f8:	20d9           	movel %a1@+,%a0@+               copy image to low RAM
+ 2fa:	51c8 fffc      	dbf %d0,0x2f8                   ... loop until done
+ 2fe:	7000           	moveq #0,%d0                    reset machine state to 0s:
+ 300:	4e7b 0801      	movec %d0,%vbr                  vector base register
+ 304:	4e7b 0002      	movec %d0,%cacr                 cache control
+ 308:	4e7b 0003      	movec %d0,%tc                   MMU translation control
+ 30c:	4e7b 0004      	movec %d0,%itt0                 MMU instruction TT
+ 310:	4e7b 0005      	movec %d0,%itt1                 MMU instruction TT
+ 314:	4e7b 0006      	movec %d0,%dtt0                 MMU data TT
+ 318:	4e7b 0007      	movec %d0,%dtt1                 MMU data TT
+ 31c:	6120           	bsrs 0x33e                      branch to subroutine at 0x33e which resets chip registers
+ 31e:	13fc 0001 ff01 	moveb #1,0xff018000             enable LOWRAM mode (low 96KB = fake ROM, in RAM)
  324:	8000 
  326:	4e71           	nop
  328:	4e71           	nop
- 32a:	2e78 0000      	moveal 0x0,%sp
- 32e:	200f           	movel %sp,%d0
- 330:	0240 8000      	andiw #-32768,%d0
- 334:	2c40           	moveal %d0,%fp
- 336:	4296           	clrl %fp@
- 338:	2078 0004      	moveal 0x4,%a0
- 33c:	4ed0           	jmp %a0@
- 33e:	13fc 0000 ff00 	moveb #0,0xff000004
+ 32a:	2e78 0000      	moveal 0x0,%sp                  load from 0 into SP/a7
+ 32e:	200f           	movel %sp,%d0                   put SP in d0
+ 330:	0240 8000      	andiw #-32768,%d0               clear all except the top bit of the low word?
+ 334:	2c40           	moveal %d0,%fp                  put that into FP/a6
+ 336:	4296           	clrl %fp@                       clear the DWORD pointed to by a6 (WHY?)
+ 338:	2078 0004      	moveal 0x4,%a0                  load from 4 into a0 (reset vector)
+ 33c:	4ed0           	jmp %a0@                        jump to reset vector
+ 33e:	13fc 0000 ff00 	moveb #0,0xff000004             reset various chip registers to zero
  344:	0004 
  346:	13fc 0000 ff00 	moveb #0,0xff000008
  34c:	0008 

@@ -10,6 +10,7 @@ void q40_isa_reset(void);
 void q40_led(bool on);
 void q40_measure_ram_size(void); /* sets ram_size; overwrites some areas of memory */
 void q40_setup_interrupts(void);
+void q40_boot_softrom(void *rom_image);
 
 /* in startup.s */
 void cpu_cache_disable(void);
@@ -48,8 +49,9 @@ extern unsigned int ram_size;
 #define MASTER_ADDRESS  0xff000000
 #define RTC_ADDRESS     0xff020000
 
-#define MAX_RAM_SIZE  32 /* MB -- code needs adjusting to support 128MB boards */
-#define RAM_UNIT_SIZE (1024*1024) /* smallest granularity */
+#define MAX_RAM_SIZE  32                /* in MB; code needs adjusting to support 128MB option boards */
+#define RAM_UNIT_SIZE (1024*1024)       /* smallest granularity */
+#define Q40_ROMSIZE   (96*1024)         /* size of low ROM alias at base of physical memory */
 
 #define Q40_RTC_NVRAM(offset) ((volatile uint8_t *)(RTC_ADDRESS + (4 * offset)))
 #define Q40_RTC_REGISTER(offset) ((volatile uint8_t *)(RTC_ADDRESS + (4 * Q40_RTC_NVRAM_SIZE) + (4 * offset)))
