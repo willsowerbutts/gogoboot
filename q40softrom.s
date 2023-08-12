@@ -23,7 +23,8 @@ q40_boot_softrom:
            RAM at 96KB seems a sensible place to choose. */
         lea.l 0x18000, %a0              /* a0 = target pointer */
         lea.l copystart, %a1            /* a1 = source pointer */
-        move.l #(copyend-copystart+3)/4, %d0 /* d0 = length in dwords; round up */
+        /* compute d0 = routine length in dwords, -1 as we don't skip over the first move */
+        move.l #((copyend-copystart+3)/4)-1, %d0
 nextword:
         move.l (%a1)+, (%a0)+           /* copy routine into place */
         dbra %d0, nextword
@@ -35,7 +36,7 @@ copystart:
         nop                             /* ... real ROM now mapped at address 0 */
         nop                             /* ... writes to low 96KB go to underlying RAM */
         lea.l 0, %a0                    /* a0 = target pointer */
-        move.l #0x6000, %d0             /* copy 24K dwords = 96KB */
+        move.l #0x5fff, %d0             /* copy 96KB in dwords = 4 x (0x5fff+1) */
 romnextword:
         move.l (%a2)+, (%a0)+           /* copy ROM image into place in low RAM */
         dbra %d0, romnextword
@@ -50,20 +51,12 @@ romnextword:
         movec %d0, %itt1                /* reset MMU transparent translation */
         movec %d0, %dtt0                /* reset MMU transparent translation */
         movec %d0, %dtt1                /* reset MMU transparent translation */
-        moveb #0, 0xff000000            /* clear all MASTER CPLD registers */
-        moveb #0, 0xff000004
-        moveb #0, 0xff000008
-        moveb #0, 0xff00000c
-        moveb #0, 0xff000010
-        moveb #0, 0xff000014
-        moveb #0, 0xff000018
-        moveb #0, 0xff000020
-        moveb #0, 0xff000024
-        moveb #0, 0xff000028
-        moveb #0, 0xff00002c
-        moveb #0, 0xff000030            /* LED off */
-        moveb #0, 0xff000034
-        moveb #0, 0xff000038
+        moveq #14, %d0
+        movea.l #0xff000000, %a0        /* clear 15 MASTER CPLD registers */
+nextregister:                           /* at 0xff000000 -- 0xff000038 */
+        moveb #0, (%a0)                 /* byte write to register */
+        addq #4, %a0                    /* registers are every 4 bytes */
+        dbra %d0, nextregister          /* loop until done */
         moveb #1,0xff018000             /* enable LowRAM mode */
         nop                             /* ... RAM replaces ROM at address 0 */
         nop                             /* (and it is write protected) */
