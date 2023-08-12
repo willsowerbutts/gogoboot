@@ -59,6 +59,9 @@ int atoi(const char *cp);
 unsigned long strtoul(const char *cptr, const char **endptr, int radix);
 long strtol(const char *nptr, const char **endptr, int base);
 
+/* -- qsort.c -- */
+void qsort(void *base, size_t nel, size_t width, int (*cmp)(const void *, const void *));
+
 /* limits */
 
 /* Number of bits in a `char'.	*/
