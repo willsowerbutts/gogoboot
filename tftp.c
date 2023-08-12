@@ -188,7 +188,7 @@ static void tftp_flush_data_and_ack(packet_sink_t *sink)
         message = (tftp_header_t*)packet->data;
         size = packet->data_length - 4;
 
-        if(size > 0 && !tftp->completed){
+        if(size > 0){
             fr = f_write(&tftp->disk_file, message->payload.data.data, size, NULL);
             tftp->bytes_received += size;
             if(fr != FR_OK){
@@ -229,6 +229,7 @@ static bool tftp_process_data(packet_sink_t *sink, packet_t *packet)
             // a short data block indicates success
             tftp->completed = true;
             tftp->success = true;
+            tftp_flush_data_and_ack(sink);
         }
     }
 
