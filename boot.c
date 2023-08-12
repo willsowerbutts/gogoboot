@@ -42,7 +42,9 @@ extern const char copyright_msg[];
  * DONE - test TFTP robustness (large transfers = file ends up the wrong size!)
  * DONE - FAT FS long file name support (should be easy now we have malloc?)
  * DONE - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
- * - test my SOFTROM tool at 115200bps -- consider changing everything to use this rate?
+ * DONE - test my SOFTROM tool at 115200bps -- consider changing everything to use this rate?
+ * - ls sorts into order (switchable?)
+ * - autoexec (with abort key)
  * - ne2000 driver to work with other cards (we have 3; it works with exactly 1!)
  * - TFTP write mode
  * - TFTP server mode

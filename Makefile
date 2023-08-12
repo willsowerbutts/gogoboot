@@ -15,8 +15,8 @@ AOPT = -m68040 -alhmsg
 
 ROMOBJ = arp.o boot.o cli.o dhcp.o except.o ff.o ffglue.o ffunicode.o icmp.o \
 	 ipcsum.o ipv4.o memcpy.o memmove.o memset.o ne2000.o net.o packet.o \
-	 printf.o q40hw.o q40ide.o q40softrom.o q40uart.o startup.o stdlib.o \
-	 strdup.o strtoul.o tftp.o tinyalloc.o vectors.o version.o
+	 printf.o q40hw.o q40ide.o q40softrom.o q40uart.o qsort.o startup.o \
+	 stdlib.o strdup.o strtoul.o tftp.o tinyalloc.o vectors.o version.o
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 

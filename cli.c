@@ -529,13 +529,36 @@ static void do_rm(char *argv[], int argc)
     }
 }
 
+static int ls_sort_name(const void *_a, const void *_b)
+{
+    const FILINFO *a=_a;
+    const FILINFO *b=_b;
+
+    printf("[%s %s]", a->fname, b->fname);
+
+    return strcasecmp(a->fname, b->fname);
+}
+
+void ls_sort_directory(FILINFO *dir, int len)
+{
+    for(int i=0; i<len; i++)
+        printf("%s ", dir[i].fname);
+    printf("\n");
+    qsort(dir, len, sizeof(FILINFO), ls_sort_name);
+    printf("\n");
+    for(int i=0; i<len; i++)
+        printf("%s ", dir[i].fname);
+    printf("\n");
+}
+
 static void do_ls(char *argv[], int argc)
 {
     FRESULT fr;
-    const char *path, *filename;
+    const char *path;
     DIR fat_dir;
-    FILINFO fat_file;
-    bool dir;
+    FILINFO *fat_file;
+    int fat_file_used = 0;
+    int fat_file_length = 2;
 
     if(argc == 0)
         path = "";
@@ -549,53 +572,60 @@ static void do_ls(char *argv[], int argc)
         return;
     }
 
-    while(1){
-        fr = f_readdir(&fat_dir, &fat_file);
+    fat_file = malloc(sizeof(FILINFO) * fat_file_length);
+
+    while(true){
+        if(fat_file_used == fat_file_length){
+            fat_file_length *= 2;
+            fat_file = realloc(fat_file, sizeof(FILINFO) * fat_file_length);
+        }
+        fr = f_readdir(&fat_dir, &fat_file[fat_file_used]);
         if(fr != FR_OK){
             printf("f_readdir(): ");
             f_perror(fr);
             break;
         }
-        if(fat_file.fname[0] == 0) /* end of directory? */
+        if(fat_file[fat_file_used].fname[0] == 0) /* end of directory? */
             break;
-        filename = 
-#if _USE_LFN
-            *fat_file.lfname ? fat_file.lfname : 
-#endif
-            fat_file.fname;
+        fat_file_used++;
+    }
+    fr = f_closedir(&fat_dir);
 
-        dir = fat_file.fattrib & AM_DIR;
+    if(fr != FR_OK){
+        printf("f_closedir(): ");
+        f_perror(fr);
+        // report but keep going
+    }
 
-        if(dir){
+    // sort into name order
+    ls_sort_directory(fat_file, fat_file_used);
+    
+    for(int i=0; i<fat_file_used; i++){
+        if(fat_file[i].fattrib & AM_DIR){
             /* directory */
             printf("           %04d-%02d-%02d %02d:%02d %s/", 
-                    1980 + ((fat_file.fdate >> 9) & 0x7F),
-                    (fat_file.fdate >> 5) & 0xF,
-                    fat_file.fdate & 0x1F,
-                    fat_file.ftime >> 11,
-                    (fat_file.ftime >> 5) & 0x3F,
-                    filename);
+                    1980 + ((fat_file[i].fdate >> 9) & 0x7F),
+                    (fat_file[i].fdate >> 5) & 0xF,
+                    fat_file[i].fdate & 0x1F,
+                    fat_file[i].ftime >> 11,
+                    (fat_file[i].ftime >> 5) & 0x3F,
+                    fat_file[i].fname);
         }else{
             /* regular file */
             printf("%10lu %04d-%02d-%02d %02d:%02d %s", 
-                    fat_file.fsize, 
-                    1980 + ((fat_file.fdate >> 9) & 0x7F),
-                    (fat_file.fdate >> 5) & 0xF,
-                    fat_file.fdate & 0x1F,
-                    fat_file.ftime >> 11,
-                    (fat_file.ftime >> 5) & 0x3F,
-                    filename);
+                    fat_file[i].fsize, 
+                    1980 + ((fat_file[i].fdate >> 9) & 0x7F),
+                    (fat_file[i].fdate >> 5) & 0xF,
+                    fat_file[i].fdate & 0x1F,
+                    fat_file[i].ftime >> 11,
+                    (fat_file[i].ftime >> 5) & 0x3F,
+                    fat_file[i].fname);
         }
 
         printf("\n");
     }
 
-    fr = f_closedir(&fat_dir);
-    if(fr != FR_OK){
-        printf("f_closedir(): ");
-        f_perror(fr);
-        return;
-    }
+    free(fat_file);
 }
 
 static bool handle_cmd_builtin(char *arg[], int numarg)

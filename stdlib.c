@@ -29,12 +29,15 @@ char *strcat(char *d, const char *s)
 
 int strcasecmp(const char *s, const char *d)
 {
+    int a, b;
    for(;;)
    {
       if( *s != *d )
       {
-	 if( tolower(*s) != tolower(*d) )
-	    return *s - *d;
+          a = tolower(*s);
+          b = tolower(*d);
+	 if( a != b )
+	    return a - b;
       }
       else if( *s == '\0' ) break;
       s++; d++;
@@ -44,12 +47,15 @@ int strcasecmp(const char *s, const char *d)
 
 int strncasecmp(const char *s, const char *d, size_t l)
 {
+    int a, b;
    while(l>0)
    {
       if( *s != *d )
       {
-	 if( tolower(*s) != tolower(*d) )
-	    return *s - *d;
+          a = tolower(*s);
+          b = tolower(*d);
+	 if( a != b )
+	    return a - b;
       }
       else
 	 if( *s == '\0' ) return 0;
