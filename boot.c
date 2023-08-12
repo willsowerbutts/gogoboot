@@ -40,10 +40,11 @@ extern const char copyright_msg[];
  * DONE - ARP resolution
  * DONE - what is behind these "ne2000: rx too big" errors?! going too fast on the ISA bus!
  * DONE - test TFTP robustness (large transfers = file ends up the wrong size!)
+ * DONE - FAT FS long file name support (should be easy now we have malloc?)
+ * DONE - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
  * - ne2000 driver to work with other cards (we have 3; it works with exactly 1!)
  * - TFTP write mode
  * - TFTP server mode
- * - FAT FS long file name support (should be easy now we have malloc?)
  * - DNS?
  * - TFTP client protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
  * - TFTP server protocol too? wouldn't be hard!
@@ -52,7 +53,6 @@ extern const char copyright_msg[];
  *   - store ROM config in RTC NVRAM? serial port speed, boot script filename, etc? store as series of strings; cksum at end. store backwards in nvram.
  *   - printenv, set, save commands
  * - linux ne2000 driver: stop interrupt probing (=crashes machine)
- * - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
  * - build system: multiple targets (maybe use something better than a makefile?)
  *   - port back to kiss-68030
  *     - 030 cache modes

@@ -26,7 +26,7 @@ try:
 except Exception:
     hash = '(no git)'
 
-version_string = '%s git %s build %s/%d' % (date_str, hash, hostname, buildnum)
+version_string = 'git %s build %s %s/%d' % (hash, date_str, hostname, buildnum)
 
 fd = open("version.c", 'w')
 fd.write('#include "version.h"\n')

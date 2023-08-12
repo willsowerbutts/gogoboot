@@ -46,6 +46,7 @@ typedef struct
     const char *helpme;
 } cmd_entry_t;
 
+static void execute_cmd(char *linebuffer);
 static void do_cd(char *argv[], int argc);
 static void do_ls(char *argv[], int argc);
 static void do_rm(char *argv[], int argc);
@@ -882,6 +883,38 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     return true;
 }
 
+static void execute_script(FIL *fd)
+{
+    int i;
+    bool eof;
+    unsigned int bytes_read;
+
+    eof = false;
+    i = 0;
+    do{
+        if(f_read(fd, &cmd_buffer[i], 1, &bytes_read) != FR_OK || bytes_read != 1){
+            cmd_buffer[i] = '\n';
+            eof = true;
+        }
+        if(cmd_buffer[i] == '\n' || cmd_buffer[i] == '\r'){
+            cmd_buffer[i] = 0;
+            if(i > 0){
+                if(cmd_buffer[0] != '#'){
+                    printf("script: %s\n", cmd_buffer);
+                    execute_cmd(cmd_buffer);
+                }
+            }
+            i = 0;
+        }else
+            i++;
+        if(i == LINELEN){
+            printf("Script line too long!\n");
+            eof = true;
+        }
+    }while(!eof);
+}
+
+
 // static const char *exts[] = {
 //     "CMD", "ELF", "OUT", "68K", "SYS", NULL
 // };
@@ -924,6 +957,7 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
 const char coff_header_bytes[2] = { 0x01, 0x50 };
 const char elf_header_bytes[4]  = { 0x7F, 0x45, 0x4c, 0x46 };
 const char m68k_header_bytes[2] = { 0x60, 0x1a };
+const char script_header_bytes[8] = "#!script"; /* case insensitive */
 
 static bool handle_cmd_executable(char *argv[], int argc)
 {
@@ -960,6 +994,9 @@ static bool handle_cmd_executable(char *argv[], int argc)
         if(memcmp(buffer, elf_header_bytes, sizeof(elf_header_bytes)) == 0){
             printf("ELF.\n");
             load_elf_executable(argv, argc, &fd);
+        }else if(strncasecmp(buffer, script_header_bytes, sizeof(script_header_bytes)) == 0){
+            printf("script\n");
+            execute_script(&fd);
         }else if(memcmp(buffer, coff_header_bytes, sizeof(coff_header_bytes)) == 0){
             printf("COFF: unsupported\n");
         }else if(memcmp(buffer, m68k_header_bytes, sizeof(m68k_header_bytes)) == 0){
