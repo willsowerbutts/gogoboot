@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+import subprocess
+import socket
+import datetime
+
+def run_cmd(cmd):
+    return subprocess.check_output(cmd, encoding='utf-8')
+
+try:
+    buildnum = int(open(".buildnum", 'r').read())+1
+except Exception:
+    buildnum = 1
+open(".buildnum", 'w').write(str(buildnum))
+
+date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+hostname = socket.gethostname()
+
+try:
+    git_hash = run_cmd(['git', 'rev-parse', 'HEAD']).strip()
+    git_diff = run_cmd(['git', 'diff', '--numstat']).strip()
+
+    hash = git_hash[:7]
+    if git_diff:
+        hash += '+'
+except Exception:
+    hash = '(no git)'
+
+version_string = '%s git %s build %s/%d' % (date_str, hash, hostname, buildnum)
+
+fd = open("version.c", 'w')
+fd.write('#include "version.h"\n')
+fd.write('\n')
+fd.write('const char software_version_string[] = "%s";\n' % version_string)
+fd.write('const char software_version_git_rev[] = "%s";\n' % hash)

@@ -4,3 +4,5 @@
 *.lst
 *.map
 *.o
+version.c
+.buildnum

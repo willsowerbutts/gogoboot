@@ -9,6 +9,7 @@
 #include "q40uart.h"
 #include "net.h"
 #include "cli.h"
+#include "version.h"
 
 extern const char copyright_msg[];
 
@@ -38,7 +39,7 @@ extern const char copyright_msg[];
  * DONE - ARP cache and reply to queries for our MAC
  * DONE - ARP resolution
  * DONE - what is behind these "ne2000: rx too big" errors?! going too fast on the ISA bus!
- * - test TFTP robustness (large transfers = file ends up the wrong size!)
+ * DONE - test TFTP robustness (large transfers = file ends up the wrong size!)
  * - ne2000 driver to work with other cards (we have 3; it works with exactly 1!)
  * - TFTP write mode
  * - TFTP server mode
@@ -113,6 +114,7 @@ void boot_q40(void)
     printf(copyright_msg);
     report_linker_layout();
 
+    printf("Version %s\n", software_version_string);
     printf("RAM installed: ");
     q40_measure_ram_size();
     unsigned int heap_base = heap_init();
