@@ -16,6 +16,7 @@
 
 q40_boot_softrom:
         /* enter with interrupts and cpu caches disabled */
+        cpusha %bc                      /* write back and invalidate all data/instruction cache entries */
         movea.l %sp@(4), %a2            /* a2 = pointer to new softrom image */
         /* we might be running in a soft ROM already, so we need to copy ourselves
            before we copy the new image in case we overwrite ourselves. The 32KB
@@ -26,9 +27,11 @@ q40_boot_softrom:
 nextword:
         move.l (%a1)+, (%a0)+           /* copy routine into place */
         dbra %d0, nextword
+        cpusha %bc                      /* write back and invalidate all data/instruction cache entries */
+        nop
         jmp 0x18000                     /* continue execution but in new location */
 copystart:
-        st 0xff010000                   /* disable LowRAM mode */
+        moveb #1,0xff010000             /* disable LowRAM mode */
         nop                             /* ... real ROM now mapped at address 0 */
         nop                             /* ... writes to low 96KB go to underlying RAM */
         lea.l 0, %a0                    /* a0 = target pointer */
@@ -36,10 +39,9 @@ copystart:
 romnextword:
         move.l (%a2)+, (%a0)+           /* copy ROM image into place in low RAM */
         dbra %d0, romnextword
+        cpusha %bc                      /* write back and invalidate all data/instruction cache entries */
+        nop
         /* the remainder of this routine is largely based on the original Q40 "SOFTROM" */
-        st 0xff018000                   /* enable LowRAM mode */
-        nop                             /* ... RAM replaces ROM at address 0 */
-        nop                             /* (and it is write protected) */
         moveq #0, %d0
         movec %d0, %vbr                 /* reset VBR */
         movec %d0, %cacr                /* reset CPU cache */
@@ -59,9 +61,12 @@ romnextword:
         moveb #0, 0xff000024
         moveb #0, 0xff000028
         moveb #0, 0xff00002c
-        moveb #0, 0xff000030
+        moveb #0, 0xff000030            /* LED off */
         moveb #0, 0xff000034
         moveb #0, 0xff000038
+        moveb #1,0xff018000             /* enable LowRAM mode */
+        nop                             /* ... RAM replaces ROM at address 0 */
+        nop                             /* (and it is write protected) */
         moveal 0x0, %sp                 /* load initial SP */
         /* The Q40 SOFTROM program does this next; I'm not sure why */
         movel %sp, %d0                  /* FP = SP & 0xFFFF8000 */
