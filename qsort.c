@@ -17,8 +17,6 @@
 #include <stdlib.h>
 #include "tinyalloc.h"
 
-char *_qbuf = 0;		/* pointer to storage for qsort() */
-
 #define	PIVOT			((i+j)>>1)
 #define moveitem(dst,src,size)	if(dst != src) memcpy(dst, src, size)
 
@@ -98,6 +96,7 @@ static void _lqsort(long *base, int lo, int hi, int (*cmp)(const void *, const v
    }
 }
 
+static char *_qbuf = 0;		/* pointer to storage for _nqsort() */
 static void _nqsort(void *basep, int lo, int hi, int size,
 	       int (*cmp)(const void *, const void *))
 {
@@ -141,12 +140,14 @@ void qsort(void *base, size_t num, size_t size,
 	  int (*cmp)(const void *,const void *))
 {
     // WRS: let's just put our temp storage on the heap
-    _qbuf = malloc(size);
    if (size == 2)
       _wqsort(base, 0, num - 1, cmp);
    else if (size == 4)
       _lqsort(base, 0, num - 1, cmp);
-   else
+   else{
+       _qbuf = malloc(size);
       _nqsort(base, 0, num - 1, size, cmp);
-   free(_qbuf);
+      free(_qbuf);
+      _qbuf = 0;
+   }
 }
