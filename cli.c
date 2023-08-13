@@ -237,7 +237,7 @@ static void do_loadimage(char *argv[], int argc)
         f_read(&fd, (char*)VIDEO_RAM_BASE, (1024*1024), NULL);
         f_close(&fd);
     }
-    cpu_cache_flush();
+    cpu_cache_flush(); /* flush data to video memory */
 }
 
 static void do_softrom(char *argv[], int argc)
@@ -529,12 +529,9 @@ static void do_rm(char *argv[], int argc)
     }
 }
 
-static int ls_sort_name(const void *_a, const void *_b)
+static int ls_sort_name(const void *a, const void *b)
 {
-    const FILINFO *a=_a;
-    const FILINFO *b=_b;
-
-    return strcasecmp(a->fname, b->fname);
+    return strcasecmp((*(FILINFO**)a)->fname, (*(FILINFO**)b)->fname);
 }
 
 static void do_ls(char *argv[], int argc)
@@ -543,6 +540,7 @@ static void do_ls(char *argv[], int argc)
     const char *path;
     DIR fat_dir;
     FILINFO *fat_file;
+    FILINFO **fat_file_ptr;
     int fat_file_used = 0;
     int fat_file_length = 2;
 
@@ -584,34 +582,41 @@ static void do_ls(char *argv[], int argc)
     }
 
     // sort into name order
-    qsort(fat_file, fat_file_used, sizeof(FILINFO), ls_sort_name);
+    // it is faster to sort pointers, since it avoids copying around 
+    // the entries themselves, which are quite large with LFN enabled.
+    fat_file_ptr = (FILINFO**)malloc(sizeof(FILINFO*)*fat_file_used);
+    for(int i=0; i<fat_file_used; i++)
+        fat_file_ptr[i] = &fat_file[i];
+
+    qsort(fat_file_ptr, fat_file_used, sizeof(FILINFO*), ls_sort_name);
     
     for(int i=0; i<fat_file_used; i++){
-        if(fat_file[i].fattrib & AM_DIR){
+        if(fat_file_ptr[i]->fattrib & AM_DIR){
             /* directory */
             printf("           %04d-%02d-%02d %02d:%02d %s/", 
-                    1980 + ((fat_file[i].fdate >> 9) & 0x7F),
-                    (fat_file[i].fdate >> 5) & 0xF,
-                    fat_file[i].fdate & 0x1F,
-                    fat_file[i].ftime >> 11,
-                    (fat_file[i].ftime >> 5) & 0x3F,
-                    fat_file[i].fname);
+                    1980 + ((fat_file_ptr[i]->fdate >> 9) & 0x7F),
+                    (fat_file_ptr[i]->fdate >> 5) & 0xF,
+                    fat_file_ptr[i]->fdate & 0x1F,
+                    fat_file_ptr[i]->ftime >> 11,
+                    (fat_file_ptr[i]->ftime >> 5) & 0x3F,
+                    fat_file_ptr[i]->fname);
         }else{
             /* regular file */
             printf("%10lu %04d-%02d-%02d %02d:%02d %s", 
-                    fat_file[i].fsize, 
-                    1980 + ((fat_file[i].fdate >> 9) & 0x7F),
-                    (fat_file[i].fdate >> 5) & 0xF,
-                    fat_file[i].fdate & 0x1F,
-                    fat_file[i].ftime >> 11,
-                    (fat_file[i].ftime >> 5) & 0x3F,
-                    fat_file[i].fname);
+                    fat_file_ptr[i]->fsize, 
+                    1980 + ((fat_file_ptr[i]->fdate >> 9) & 0x7F),
+                    (fat_file_ptr[i]->fdate >> 5) & 0xF,
+                    fat_file_ptr[i]->fdate & 0x1F,
+                    fat_file_ptr[i]->ftime >> 11,
+                    (fat_file_ptr[i]->ftime >> 5) & 0x3F,
+                    fat_file_ptr[i]->fname);
         }
 
         printf("\n");
     }
 
     free(fat_file);
+    free(fat_file_ptr);
 }
 
 static bool handle_cmd_builtin(char *arg[], int numarg)
@@ -663,11 +668,19 @@ static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
         return false;
     }
 
-    void (*entry)(void) = (void(*)(void))load_address;
     printf("Loaded %d bytes. Entry at 0x%lx in supervisor mode\n", bytes_read, (long)load_address);
     q40_led(false);
-    cpu_cache_flush(); // cpu_cache_flush();
+    cpu_cache_flush();
+#if 0
+    // q40softboot.s does a "power on reset" of the machine, in a similar way to SOFTROM
+    // - CPU registers, MMU, caches reset to power-on defaults
+    // - CPLD registers all zeroed to power-on defaults
+    // - LowRAM mode is NOT changed, differing from power-on when it is always disabled
+    softboot(load_address); 
+#else
+    void (*entry)(void) = (void(*)(void))load_address;
     entry();
+#endif
         
     return true;
 }
@@ -903,6 +916,7 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         }
         void (*entry)(void) = (void(*)(void))header.entry;
         printf("Entry at 0x%lx in supervisor mode\n", (long)entry);
+        cpu_cache_flush();
         entry();
     }
 
