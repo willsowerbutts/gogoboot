@@ -33,6 +33,9 @@
 #define FPU_THIS FPU_68040
 #endif
 
+#define AUTOBOOT_FILENAME "boot"
+#define AUTOBOOT_TIMEOUT_MS 500 /* this is actually enough as you can pre-stuff the UART receiver */
+
 #define MAXARG 40
 #define LINELEN 1024
 char cmd_buffer[LINELEN];
@@ -534,21 +537,7 @@ static int ls_sort_name(const void *_a, const void *_b)
     const FILINFO *a=_a;
     const FILINFO *b=_b;
 
-    printf("[%s %s]", a->fname, b->fname);
-
     return strcasecmp(a->fname, b->fname);
-}
-
-void ls_sort_directory(FILINFO *dir, int len)
-{
-    for(int i=0; i<len; i++)
-        printf("%s ", dir[i].fname);
-    printf("\n");
-    qsort(dir, len, sizeof(FILINFO), ls_sort_name);
-    printf("\n");
-    for(int i=0; i<len; i++)
-        printf("%s ", dir[i].fname);
-    printf("\n");
 }
 
 static void do_ls(char *argv[], int argc)
@@ -598,7 +587,7 @@ static void do_ls(char *argv[], int argc)
     }
 
     // sort into name order
-    ls_sort_directory(fat_file, fat_file_used);
+    qsort(fat_file, fat_file_used, sizeof(FILINFO), ls_sort_name);
     
     for(int i=0; i<fat_file_used; i++){
         if(fat_file[i].fattrib & AM_DIR){
@@ -923,11 +912,15 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     return true;
 }
 
-static void execute_script(FIL *fd)
+static void execute_script(char *_name, FIL *fd) /* the buffer name lives in will be re-used shortly */
 {
     int i;
     bool eof;
     unsigned int bytes_read;
+    char name[40];
+
+    strncpy(name, _name, sizeof(name));
+    name[sizeof(name)-1] = 0; /* ensure null termination */
 
     eof = false;
     i = 0;
@@ -938,9 +931,10 @@ static void execute_script(FIL *fd)
         }
         if(cmd_buffer[i] == '\n' || cmd_buffer[i] == '\r'){
             cmd_buffer[i] = 0;
+            net_pump(); /* yes, once per line inside scripts! */
             if(i > 0){
                 if(cmd_buffer[0] != '#'){
-                    printf("script: %s\n", cmd_buffer);
+                    printf("%s: %s\n", name, cmd_buffer);
                     execute_cmd(cmd_buffer);
                 }
             }
@@ -1036,7 +1030,7 @@ static bool handle_cmd_executable(char *argv[], int argc)
             load_elf_executable(argv, argc, &fd);
         }else if(strncasecmp(buffer, script_header_bytes, sizeof(script_header_bytes)) == 0){
             printf("script\n");
-            execute_script(&fd);
+            execute_script(argv[0], &fd);
         }else if(memcmp(buffer, coff_header_bytes, sizeof(coff_header_bytes)) == 0){
             printf("COFF: unsupported\n");
         }else if(memcmp(buffer, m68k_header_bytes, sizeof(m68k_header_bytes)) == 0){
@@ -1145,10 +1139,41 @@ static int getline(char *line, int linesize)
     return k;
 }
 
+static void run_autoexec(const char *filename)
+{
+    FRESULT fr;
+    FIL fd;
+    int c;
+    timer_t timer;
+
+    fr = f_open(&fd, filename, FA_READ);
+    if(fr == FR_OK){
+        f_close(&fd);
+    }else{
+        printf("No \"%s\" script: %s\n", filename, f_errmsg(fr));
+        return; // nothing found
+    }
+
+    timer = set_timer_ms(AUTOBOOT_TIMEOUT_MS);
+    printf("Booting from \"%s\" (hit Q to cancel)\n", filename);
+    while(!timer_expired(timer)){
+        net_pump();
+        c = uart_read_byte();
+        if(c == 'q' || c == 'Q')
+            return;
+    }
+
+    strcpy(cmd_buffer, filename);
+    execute_cmd(cmd_buffer);
+}
+
 void command_line_interpreter(void)
 {
     /* select the first drive that is actually present */
     select_working_drive();
+
+    /* check for autoexec file */
+    run_autoexec(AUTOBOOT_FILENAME);
 
     while(true){
         f_getcwd(cmd_buffer, LINELEN);
