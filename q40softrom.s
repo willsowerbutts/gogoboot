@@ -17,7 +17,7 @@
 q40_boot_softrom:
         /* enter with interrupts on, cpu caches enabled */
         move.w #0x2700, %sr             /* setup status register -- interrupts off */
-        movea.l %sp@(4), %a2            /* a2 = pointer to new softrom image */
+        movea.l %sp@(4), %a2            /* a2 = pointer to new softrom image, 0=disable LowRAM mode ("hardrom") */
 
         /* We might be running in LowRAM mode already. We need to turn off LowRAM
            to write the new ROM image, so we can't execute our code from LowRAM
@@ -39,12 +39,18 @@ nextword:
 copystart:
         moveb #1,0xff010000             /* disable LowRAM mode */
         nop                             /* ... real ROM now at address 0; writes go to underlying RAM */
+        cmpa.l #0, %a2                  /* softrom pointer is 0? this means leave LowRAM turned off */
+        beq.s machinerestart            /* leave real ROM enabled, just restart */
         lea.l 0, %a0                    /* a0 = target pointer */
         move.l #0x5fff, %d0             /* copy 96KB in dwords = 4 x (0x5fff+1) */
 romnextword:
         move.l (%a2)+, (%a0)+           /* copy ROM image into place in low RAM */
         dbra %d0, romnextword
+        nop
         cpusha %bc                      /* write back and invalidate all data/instruction cache entries */
+        nop                             /* we need to flush writes from the cache before we ... */
+        moveb #1,0xff018000             /* enable LowRAM mode, write-protected RAM replaces ROM at address 0 */
+machinerestart:
         nop
         moveq #0, %d0
         movec %d0, %vbr                 /* clear VBR */
@@ -54,8 +60,6 @@ romnextword:
         movec %d0, %itt1                /* clear MMU transparent translation */
         movec %d0, %dtt0                /* clear MMU transparent translation */
         movec %d0, %dtt1                /* clear MMU transparent translation */
-        moveb #1,0xff018000             /* enable LowRAM mode */
-        nop                             /* ... write-protected RAM replaces ROM at address 0 */
         moveq #14, %d0                  /* clear 15 MASTER CPLD registers */
         movea.l #0xff000000, %a0        /* at 0xff000000 -- 0xff000038 */
 nextregister:

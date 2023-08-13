@@ -65,6 +65,7 @@ static void do_tftp(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
 #ifdef MACHINE_IS_Q40
 static void do_softrom(char *argv[], int argc);
+static void do_hardrom(char *argv[], int argc);
 static void do_loadimage(char *argv[], int argc);
 #endif
 
@@ -90,6 +91,7 @@ const cmd_entry_t cmd_table[] = {
     {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
 #ifdef MACHINE_IS_Q40
     {"softrom",     0,      1,  &do_softrom,  "load and boot a Q40 ROM image" },
+    {"hardrom",     0,      0,  &do_hardrom,  "reboot into Q40 hardware ROM" },
     {"loadimage",   1,      1,  &do_loadimage,"load image into Q40 graphics memory" },
 #endif
     {0, 0, 0, 0, 0 } /* terminator */
@@ -238,6 +240,12 @@ static void do_loadimage(char *argv[], int argc)
         f_close(&fd);
     }
     cpu_cache_flush(); /* flush data to video memory */
+}
+
+static void do_hardrom(char *argv[], int argc)
+{
+    printf("softrom: rebooting ...\n\n\n");
+    q40_boot_softrom(0);
 }
 
 static void do_softrom(char *argv[], int argc)
