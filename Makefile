@@ -16,7 +16,7 @@ AOPT = -m68040 -alhmsg
 ROMOBJ = arp.o boot.o cli.o dhcp.o except.o ff.o ffglue.o ffunicode.o icmp.o \
 	 ipcsum.o ipv4.o memcpy.o memmove.o memset.o ne2000.o net.o packet.o \
 	 printf.o q40hw.o q40ide.o q40softrom.o q40uart.o qsort.o startup.o \
-	 stdlib.o strdup.o strtoul.o tftp.o tinyalloc.o vectors.o version.o
+	 stdlib.o strdup.o strtoul.o tftp.o tinyalloc.o vectors.o
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 
@@ -35,15 +35,12 @@ tftp:	all
 	scp -C q40boot.rom beastie:/storage/tftp/
 
 clean:
-	rm -f q40boot.rom q40boot.map *.o *.lst *.elf *.bin
+	rm -f q40boot.rom q40boot.map *.o *.lst *.elf *.bin version.c
 
-q40boot.rom:	$(ROMOBJ)
-	$(LD) --gc-sections --script=q40boot.ld -z noexecstack -Map q40boot.map -o q40boot.elf $(ROMOBJ)
+q40boot.rom:	$(ROMOBJ) version.o
+	$(LD) --gc-sections --script=q40boot.ld -z noexecstack -Map q40boot.map -o q40boot.elf $(ROMOBJ) version.o
 	$(OBJCOPY) -O binary q40boot.elf q40boot.rom
 
-version.c:	.FORCE
+# update our version number whenever any object file changes
+version.c: $(ROMOBJ)
 	./makeversion
-
-.FORCE:
-
-.PHONY:	.FORCE
