@@ -281,9 +281,6 @@ static void do_softrom(char *argv[], int argc)
     if(memcmp(romimage, rom_pointer, Q40_ROMSIZE)){
         printf("softrom: rebooting ...\n\n\n");
 
-        // prepare machine state for softrom
-        cpu_interrupts_off();
-
         // jump to assembler magic
         q40_boot_softrom(romimage);
     }else{
