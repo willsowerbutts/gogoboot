@@ -26,15 +26,30 @@ copyright_msg:
         .text
         .even
 _start:
-        move.w #0x2700, %sr
+        move.w #0x2700, %sr             /* setup status register, interrupts off */
         reset
 
         /* load vector base register */
         lea vector_table, %a0
         movec %a0, %vbr
 
-        cpusha %bc              /* write back and invalidate all data/instruction cache entries */
+        cpusha %bc                      /* write back and invalidate all data/instruction cache entries */
         nop
+
+        moveq #0, %d0
+        movec %d0, %cacr                /* clear CPU cache control */
+        movec %d0, %tc                  /* clear MMU translation control */
+        movec %d0, %itt0                /* clear MMU transparent translation */
+        movec %d0, %itt1                /* clear MMU transparent translation */
+        movec %d0, %dtt0                /* clear MMU transparent translation */
+        movec %d0, %dtt1                /* clear MMU transparent translation */
+
+        moveq #14, %d0                  /* clear 15 MASTER CPLD registers */
+        movea.l #0xff000000, %a0        /* at 0xff000000 -- 0xff000038 */
+nextregister:
+        sf (%a0)                        /* byte write to clear register */
+        addq #4, %a0                    /* registers are every 4 bytes */
+        dbra %d0, nextregister          /* loop until done */
 
         /* setup the 040 transparent translation / cache registers 
            https://www.nxp.com/docs/en/reference-manual/MC68040UM.pdf page 3-5 
