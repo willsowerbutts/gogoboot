@@ -549,6 +549,8 @@ static void do_ls(char *argv[], int argc)
     DIR fat_dir;
     FILINFO *fat_file;
     FILINFO **fat_file_ptr;
+    DWORD free_clusters, csize, free_sectors;
+    FATFS *fatfs;
     int fat_file_used = 0;
     int fat_file_length = 2;
 
@@ -625,6 +627,27 @@ static void do_ls(char *argv[], int argc)
 
     free(fat_file);
     free(fat_file_ptr);
+
+    fr = f_getfree(path, &free_clusters, &fatfs);
+    if(fr != FR_OK){
+        printf("f_getfree(\"%s\"): ", path);
+        f_perror(fr);
+        return;
+    }
+
+    // calculate cluster size in bytes
+    csize = 
+        #if FF_MAX_SS != FF_MIN_SS
+        fatfs->ssize
+        #else
+        FF_MAX_SS
+        #endif
+        * fatfs->csize;
+
+    // free space measured in units of 512 bytes (max 2TB in 32 bits)
+    free_sectors = (csize >> 9) * free_clusters;
+        
+    printf("%ld MB free (%ld clusters of %ld bytes)\n", free_sectors >> 11, free_clusters, csize);
 }
 
 static bool handle_cmd_builtin(char *arg[], int numarg)
