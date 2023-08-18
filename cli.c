@@ -244,7 +244,7 @@ static void do_loadimage(char *argv[], int argc)
 
 static void do_hardrom(char *argv[], int argc)
 {
-    printf("softrom: rebooting ...\n\n\n");
+    printf("hardrom: rebooting ...\n\n\n");
     q40_boot_softrom(0);
 }
 

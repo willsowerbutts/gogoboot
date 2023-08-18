@@ -39,9 +39,9 @@ nextword:
 copystart:
         moveb #1,0xff010000             /* disable LowRAM mode */
         nop                             /* ... real ROM now at address 0; writes go to underlying RAM */
-        cmpa.l #0, %a2                  /* softrom pointer is 0? this means leave LowRAM turned off */
-        beq.s machinerestart            /* leave real ROM enabled, just restart */
         lea.l 0, %a0                    /* a0 = target pointer */
+        cmpa.l %a0, %a2                 /* image source pointer is 0? this means leave LowRAM turned off */
+        beq.s machinerestart            /* leave real ROM enabled, just restart */
         move.l #0x5fff, %d0             /* copy 96KB in dwords = 4 x (0x5fff+1) */
 romnextword:
         move.l (%a2)+, (%a0)+           /* copy ROM image into place in low RAM */
