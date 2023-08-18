@@ -35,11 +35,14 @@ tftp:	all
 	scp -C q40boot.rom beastie:/storage/tftp/
 
 clean:
-	rm -f q40boot.rom q40boot.map *.o *.lst *.elf *.bin version.c
+	rm -f *.rom *.map *.o *.lst *.elf *.bin version.c
 
 q40boot.rom:	$(ROMOBJ) version.o
 	$(LD) --gc-sections --script=q40boot.ld -z noexecstack -Map q40boot.map -o q40boot.elf $(ROMOBJ) version.o
 	$(OBJCOPY) -O binary q40boot.elf q40boot.rom
+
+splitrom:	q40boot.rom
+	./makesplitrom q40boot.rom q40boot-hi.rom q40boot-lo.rom
 
 # update our version number whenever any object file changes
 version.c: $(ROMOBJ)
