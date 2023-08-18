@@ -17,6 +17,6 @@ contents += bytes([255] * (romsize - len(contents)))
 
 # divide into two separate low/high ROMs
 while contents:
-    hiout.write(contents[0:2])
-    loout.write(contents[2:4])
+    hiout.write(bytes([contents[1], contents[0]]))
+    loout.write(bytes([contents[3], contents[2]]))
     contents = contents[4:]
