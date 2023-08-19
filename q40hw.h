@@ -11,6 +11,7 @@ void q40_led(bool on);
 void q40_measure_ram_size(void); /* sets ram_size; overwrites some areas of memory */
 void q40_setup_interrupts(void);
 void q40_boot_softrom(void *rom_image);
+void q40_boot_qdos(void *qdos_image);
 
 /* in startup.s */
 void cpu_cache_disable(void);

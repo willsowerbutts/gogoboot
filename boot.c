@@ -43,19 +43,19 @@ extern const char copyright_msg[];
  * DONE - FAT FS long file name support (should be easy now we have malloc?)
  * DONE - SOFTROM feature clone, so we can test new ROMs (higher baud rate, build as builtin cmd or ELF executable?)
  * DONE - test my SOFTROM tool at 115200bps -- consider changing everything to use this rate?
- * - ls sorts into order (switchable?)
- * - autoexec (with abort key)
+ * DONE - ls sorts into order (switchable?)
+ * DONE - autoexec (with abort key)
  * - ne2000 driver to work with other cards (we have 3; it works with exactly 1!)
  * - TFTP write mode
  * - TFTP server mode
  * - DNS?
- * - TFTP client protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
+ * DONE - TFTP client protocol to read/write files on disk (look into extensions for larger block size, pipeline, watch out for window > ethernet card memory limit)
  * - TFTP server protocol too? wouldn't be hard!
  * - would be nice if getline in the CLI somehow recovers after we overwrite it ...
  * - set and store environment vars in NVRAM (we have malloc now!)
  *   - store ROM config in RTC NVRAM? serial port speed, boot script filename, etc? store as series of strings; cksum at end. store backwards in nvram.
  *   - printenv, set, save commands
- * - linux ne2000 driver: stop interrupt probing (=crashes machine)
+ * DONE - linux ne2000 driver: stop interrupt probing (=crashes machine)
  * - build system: multiple targets (maybe use something better than a makefile?)
  *   - port back to kiss-68030
  *     - 030 cache modes

@@ -40,6 +40,28 @@
 #define LINELEN 1024
 char cmd_buffer[LINELEN];
 
+typedef struct environment_variable_t environment_variable_t;
+
+struct environment_variable_t
+{
+    char *name;
+    char *value;
+    environment_variable_t *next;
+};
+
+environment_variable_t *environment_list_head = NULL;
+
+static const char *get_environment_variable(const char *name)
+{
+    environment_variable_t *e;
+
+    for(e = environment_list_head; e; e = e->next)
+        if(strcasecmp(e->name, name)==0)
+            return e->value;
+
+    return NULL;
+}
+
 typedef struct
 {
     const char *name;
@@ -61,6 +83,7 @@ static void help(char *argv[], int argc);
 static void do_writemem(char *argv[], int argc);
 static void do_heapinfo(char *argv[], int argc);
 static void do_netinfo(char *argv[], int argc);
+static void do_set(char *argv[], int argc);
 static void do_tftp(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
 #ifdef MACHINE_IS_Q40
@@ -86,6 +109,7 @@ const cmd_entry_t cmd_table[] = {
     {"netinfo",     0,      0,  &do_netinfo,  "network statistics" },
     {"rename",      2,      2,  &do_mv,       "rename a file" },
     {"rm",          1, MAXARG,  &do_rm,       "delete a file" },
+    {"set",         0,      2,  &do_set,      "show or set environment variables" },
     {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" }, // TODO write down the syntax
     {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
     {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
@@ -299,10 +323,64 @@ static void do_softrom(char *argv[], int argc)
 }
 #endif
 
+static void do_set(char *argv[], int argc)
+{
+    environment_variable_t *e;
+
+    if(argc == 0){
+        // no args -- print environment
+        int count = 0;
+        for(e = environment_list_head; e; e = e->next){
+            printf("%s=%s\n", e->name, e->value);
+            count++;
+        }
+        printf("%d environment variables\n", count);
+        return;
+    }
+
+    if(argc >= 1){
+        bool found = false;
+        // remove variable (we will set it again in next step if argc == 2)
+        environment_variable_t **ptr;
+        ptr = &environment_list_head;
+        e = environment_list_head;
+        while(e){
+            if(strcasecmp(e->name, argv[0])==0){
+                *ptr = e->next;
+                free(e->name);
+                free(e->value);
+                free(e);
+                found = true;
+                break;
+            }
+            ptr = &e->next;
+            e = e->next;
+        }
+        if(argc == 1 && !found)
+            printf("Cannot find \"%s\" in environment\n", argv[0]);
+    }
+
+    if(argc >= 2){
+        // set variable
+        e = malloc(sizeof(environment_variable_t));
+        e->name = strdup(argv[0]);
+        e->value = strdup(argv[1]);
+        // convert e->name to lower case
+        for(char *p=e->name; *p; p++) 
+            *p = tolower(*p);
+        // add to linked list
+        e->next = environment_list_head;
+        environment_list_head = e;
+    }
+}
+
 static void do_tftp(char *argv[], int argc)
 {
     const char *server=NULL, *src, *dst;
-    uint32_t targetip = 0xc0a86450; // beastie 192.168.100.80  TODO
+    uint32_t targetip = 0;
+
+    // this needs some improvements to make it more user friendly
+    // right now it expects the user to know too much
     
     switch(argc){
         case 1:
@@ -320,6 +398,14 @@ static void do_tftp(char *argv[], int argc)
         default:
             printf("Unexpected number of arguments\n");
             return;
+    }
+
+    if(!server)
+        server = get_environment_variable("tftp_server");
+
+    if(!server){
+        printf("please specify the server IP address (or 'set tftp_server <ip>')\n");
+        return;
     }
 
     if(server){
@@ -687,7 +773,7 @@ static bool handle_cmd_builtin(char *arg[], int numarg)
 static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
 {
     unsigned int bytes_read;
-    void *load_address = (void*)(1*1024*1024); // 1MB
+    void *load_address = (void*)(4*1024*1024); // is highest or lowest best?! how to choose?
     FRESULT fr;
 
     f_lseek(fd, 0);
@@ -702,12 +788,12 @@ static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
     printf("Loaded %d bytes. Entry at 0x%lx in supervisor mode\n", bytes_read, (long)load_address);
     q40_led(false);
     cpu_cache_flush();
-#if 0
+#if 1
     // q40softboot.s does a "power on reset" of the machine, in a similar way to SOFTROM
     // - CPU registers, MMU, caches reset to power-on defaults
     // - CPLD registers all zeroed to power-on defaults
-    // - LowRAM mode is NOT changed, differing from power-on when it is always disabled
-    softboot(load_address); 
+    // - LowRAM mode is NOT changed, this differs from power-on, when it is always disabled
+    q40_boot_qdos(load_address); 
 #else
     void (*entry)(void) = (void(*)(void))load_address;
     entry();
