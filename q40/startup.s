@@ -17,7 +17,7 @@
         /* get this copyright message up near the head of the ROM */
         .align 16
 copyright_msg:
-        .ascii  "Q40BOOT: Copyright (c) 2023 William R. Sowerbutts <will@sowerbutts.com>\n\n"
+        .ascii  "GOGOBOOT Q40: Copyright (c) 2023 William R. Sowerbutts <will@sowerbutts.com>\n\n"
         .ascii  "This program is free software: you can redistribute it and/or modify it under\n"
         .ascii  "the terms of the GNU General Public License as published by the Free Software\n"
         .ascii  "Foundation, either version 3 of the License, or (at your option) any later\n"

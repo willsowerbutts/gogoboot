@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include <types.h>
-#include "timers.h"
+#include <timers.h>
 
 void q40_graphics_init(int mode);
 void q40_isa_reset(void);
