@@ -3,11 +3,11 @@
 
 #include <stdlib.h>
 #include <types.h>
-#include "ff.h"
-#include "diskio.h"
-#include "q40ide.h"
-#include "q40isa.h"
-#include "q40hw.h"
+#include <fatfs/ff.h>
+#include <fatfs/diskio.h>
+#include <disk.h>
+#include <q40/isa.h>
+#include <q40/hw.h>
 
 // configurable options
 #define MAX_IDE_DISKS FF_VOLUMES
@@ -65,13 +65,12 @@ enum {
         ATA_ID_LBA_CAPACITY = 2*60,
 };
 
-static ide_controller_t ide_controller[NUM_CONTROLLERS];
+static disk_controller_t disk_controller[NUM_CONTROLLERS];
+static disk_t disk_table[MAX_IDE_DISKS];
+static int disk_table_used = 0;
+static bool gogoboot_disk_init_done = false;
 
-static ide_disk_t ide_disk[MAX_IDE_DISKS];
-int ide_disk_used = 0;
-static bool q40_ide_init_done = false;
-
-static void q40_ide_controller_reset(ide_controller_t *ctrl)
+static void gogoboot_disk_controller_reset(disk_controller_t *ctrl)
 {
     printf("IDE reset controller at 0x%x:", ctrl->base_io);
     *ctrl->device_reg = 0xE0; /* select master */
@@ -82,7 +81,7 @@ static void q40_ide_controller_reset(ide_controller_t *ctrl)
     printf(" done\n");
 }
 
-static bool q40_ide_wait(ide_controller_t *ctrl, uint8_t bits)
+static bool gogoboot_disk_wait(disk_controller_t *ctrl, uint8_t bits)
 {
     uint8_t status;
     timer_t timeout;
@@ -108,7 +107,7 @@ static bool q40_ide_wait(ide_controller_t *ctrl, uint8_t bits)
     return false;
 }
 
-static void q40_ide_read_sector_data(ide_controller_t *ctrl, void *ptr)
+static void gogoboot_disk_read_sector_data(disk_controller_t *ctrl, void *ptr)
 {
     uint16_t *buffer = ptr;
 
@@ -117,7 +116,7 @@ static void q40_ide_read_sector_data(ide_controller_t *ctrl, void *ptr)
     }
 }
 
-static void q40_ide_write_sector_data(ide_controller_t *ctrl, const void *ptr)
+static void gogoboot_disk_write_sector_data(disk_controller_t *ctrl, const void *ptr)
 {
     const uint16_t *buffer = ptr;
 
@@ -126,23 +125,23 @@ static void q40_ide_write_sector_data(ide_controller_t *ctrl, const void *ptr)
     }
 }
 
-int q40_ide_get_disk_count(void)
+int gogoboot_disk_get_disk_count(void)
 {
-    return ide_disk_used;
+    return disk_table_used;
 }
 
-static bool q40_ide_readwrite(int disknr, void *buff, uint32_t sector, int sector_count, bool is_write)
+static bool gogoboot_disk_readwrite(int disknr, void *buff, uint32_t sector, int sector_count, bool is_write)
 {
-    ide_disk_t *disk;
-    ide_controller_t *ctrl;
+    disk_t *disk;
+    disk_controller_t *ctrl;
     int nsect;
 
-    if(disknr < 0 || disknr >= ide_disk_used){
+    if(disknr < 0 || disknr >= disk_table_used){
         printf("bad disk %d\n", disknr);
         return false;
     }
 
-    disk = &ide_disk[disknr];
+    disk = &disk_table[disknr];
     ctrl = disk->ctrl;
 
     while(sector_count > 0){
@@ -165,7 +164,7 @@ static bool q40_ide_readwrite(int disknr, void *buff, uint32_t sector, int secto
         *ctrl->nsect_reg  = nsect == 256 ? 0 : nsect;
 
         /* wait for device to be ready */
-        if(!q40_ide_wait(ctrl, IDE_STATUS_READY))
+        if(!gogoboot_disk_wait(ctrl, IDE_STATUS_READY))
             return false;
 
         /* send command */
@@ -174,12 +173,12 @@ static bool q40_ide_readwrite(int disknr, void *buff, uint32_t sector, int secto
         /* read result */
         while(nsect > 0){
             /* unclear if we need to wait for DRQ on each sector? play it safe */
-            if(!q40_ide_wait(ctrl, IDE_STATUS_DATAREQUEST))
+            if(!gogoboot_disk_wait(ctrl, IDE_STATUS_DATAREQUEST))
                 return false;
             if(is_write)
-                q40_ide_write_sector_data(ctrl, buff);
+                gogoboot_disk_write_sector_data(ctrl, buff);
             else
-                q40_ide_read_sector_data(ctrl, buff);
+                gogoboot_disk_read_sector_data(ctrl, buff);
             buff += 512;
             nsect--;
         }
@@ -188,17 +187,17 @@ static bool q40_ide_readwrite(int disknr, void *buff, uint32_t sector, int secto
     return true;
 }
 
-bool q40_ide_read(int disknr, void *buff, uint32_t sector, int sector_count)
+bool gogoboot_disk_read(int disknr, void *buff, uint32_t sector, int sector_count)
 {
-    return q40_ide_readwrite(disknr, buff, sector, sector_count, false);
+    return gogoboot_disk_readwrite(disknr, buff, sector, sector_count, false);
 }
 
-bool q40_ide_write(int disknr, const void *buff, uint32_t sector, int sector_count)
+bool gogoboot_disk_write(int disknr, const void *buff, uint32_t sector, int sector_count)
 {
-    return q40_ide_readwrite(disknr, (void*)buff, sector, sector_count, true);
+    return gogoboot_disk_readwrite(disknr, (void*)buff, sector, sector_count, true);
 }
 
-static void q40_ide_read_name(const uint8_t *id, char *buffer, int offset, int len)
+static void gogoboot_disk_read_name(const uint8_t *id, char *buffer, int offset, int len)
 {
     int rem;
     char *s;
@@ -220,7 +219,7 @@ static void q40_ide_read_name(const uint8_t *id, char *buffer, int offset, int l
     *s = 0;
 }
 
-static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
+static void gogoboot_disk_table_init(disk_controller_t *ctrl, int disk)
 {
     uint8_t sel, buffer[512];
     char prod[1+ATA_ID_PROD_LEN];
@@ -239,7 +238,7 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
     *ctrl->device_reg = sel; /* select master/slave */
 
     /* wait for drive to be ready */
-    if(!q40_ide_wait(ctrl, IDE_STATUS_READY)){
+    if(!gogoboot_disk_wait(ctrl, IDE_STATUS_READY)){
         printf("no disk found.\n");
         return;
     }
@@ -247,12 +246,12 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
     /* send identify command */
     *ctrl->command_reg = IDE_CMD_IDENTIFY;
 
-    if(!q40_ide_wait(ctrl, IDE_STATUS_DATAREQUEST)){
+    if(!gogoboot_disk_wait(ctrl, IDE_STATUS_DATAREQUEST)){
         printf("disk not responding.\n");
 	return;
     }
 
-    q40_ide_read_sector_data(ctrl, buffer);
+    gogoboot_disk_read_sector_data(ctrl, buffer);
 
     /* confirm disk has LBA support */
     if(!(buffer[99] & 0x02)) {
@@ -262,7 +261,7 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
 
     /* read out the disk's sector count, name etc */
     sectors = le32_to_cpu(*((uint32_t*)&buffer[ATA_ID_LBA_CAPACITY]));
-    q40_ide_read_name(buffer, prod,   ATA_ID_PROD,   ATA_ID_PROD_LEN);
+    gogoboot_disk_read_name(buffer, prod,   ATA_ID_PROD,   ATA_ID_PROD_LEN);
 
     printf("%s (%lu sectors, %lu MB)\n", prod, sectors, sectors>>11);
 
@@ -277,28 +276,28 @@ static void q40_ide_disk_init(ide_controller_t *ctrl, int disk)
     }
 #endif
 
-    if(ide_disk_used >= MAX_IDE_DISKS){
+    if(disk_table_used >= MAX_IDE_DISKS){
         printf("Max disks reached\n");
     }else{
         char path[4];
-        ide_disk[ide_disk_used].ctrl = ctrl;
-        ide_disk[ide_disk_used].disk = disk;
-        ide_disk[ide_disk_used].sectors = sectors;
-        ide_disk[ide_disk_used].fat_fs_status = STA_NOINIT;
+        disk_table[disk_table_used].ctrl = ctrl;
+        disk_table[disk_table_used].disk = disk;
+        disk_table[disk_table_used].sectors = sectors;
+        disk_table[disk_table_used].fat_fs_status = STA_NOINIT;
 
         /* prepare FatFs to talk to the volume */
-        path[0] = '0' + ide_disk_used;
+        path[0] = '0' + disk_table_used;
         path[1] = ':';
         path[2] = 0;
-        f_mount(&ide_disk[ide_disk_used].fat_fs_workarea, path, 0); /* lazy mount */
+        f_mount(&disk_table[disk_table_used].fat_fs_workarea, path, 0); /* lazy mount */
 
-        ide_disk_used++;
+        disk_table_used++;
     }
 
     return;
 }
 
-static void q40_ide_controller_init(ide_controller_t *ctrl, uint16_t base_io)
+static void gogoboot_disk_controller_init(disk_controller_t *ctrl, uint16_t base_io)
 {
     /* set up controller register pointers */
     ctrl->base_io = base_io;
@@ -321,31 +320,31 @@ static void q40_ide_controller_init(ide_controller_t *ctrl, uint16_t base_io)
 
     ctrl->data_reg    = ISA_XLATE_ADDR_WORD(base_io + ATA_REG_DATA);
 
-    q40_ide_controller_reset(ctrl);
+    gogoboot_disk_controller_reset(ctrl);
     for(int disk=0; disk<2; disk++){
-        q40_ide_disk_init(ctrl, disk);
+        gogoboot_disk_table_init(ctrl, disk);
     }
 
 }
 
-void q40_ide_init(void)
+void gogoboot_disk_init(void)
 {
     /* one per customer */
-    if(q40_ide_init_done){
-        printf("q40_ide_init: already done?\n");
+    if(gogoboot_disk_init_done){
+        printf("gogoboot_disk_init: already done?\n");
         return;
     }
-    q40_ide_init_done = true;
+    gogoboot_disk_init_done = true;
 
     /* initialise controllers */
     for(int i=0; i<NUM_CONTROLLERS; i++){
-        q40_ide_controller_init(&ide_controller[i], controller_base_io_addr[i]);
+        gogoboot_disk_controller_init(&disk_controller[i], controller_base_io_addr[i]);
     }
 }
 
-ide_disk_t *q40_get_disk_info(int nr)
+disk_t *gogoboot_get_disk_info(int nr)
 {
-    if(nr < 0 || nr >= q40_ide_get_disk_count())
+    if(nr < 0 || nr >= gogoboot_disk_get_disk_count())
         return NULL;
-    return &ide_disk[nr];
+    return &disk_table[nr];
 }

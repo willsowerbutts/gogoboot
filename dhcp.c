@@ -2,9 +2,9 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include "timers.h"
-#include "cli.h"
-#include "net.h"
+#include <timers.h>
+#include <cli.h>
+#include <net.h>
 #include "dhcp_internals.h"
 
 #undef DHCP_DEBUG
@@ -60,7 +60,7 @@ static packet_t *packet_create_dhcp(uint32_t target_ipv4, uint8_t message_type,
     d->htype = 1;       // 10M ethernet
     d->hlen = 6;        // ethernet
     d->hops = 0;
-    d->xid = q40_read_timer_ticks(); // no need to byte swap since it's random anyway
+    d->xid = gogoboot_read_timer(); // no need to byte swap since it's random anyway
     d->secs = ntohs(0);        // we can do better here, surely?
     d->flags = ntohs(0);
     d->ciaddr = d->yiaddr = d->siaddr = d->giaddr = htonl(0);

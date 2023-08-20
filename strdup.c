@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "tinyalloc.h"
+#include <tinyalloc.h>
 
 char *strdup(const char *s)
 {

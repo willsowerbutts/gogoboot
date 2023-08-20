@@ -15,7 +15,7 @@
  */
 
 #include <stdlib.h>
-#include "tinyalloc.h"
+#include <tinyalloc.h>
 
 #define	PIVOT			((i+j)>>1)
 #define moveitem(dst,src,size)	if(dst != src) memcpy(dst, src, size)

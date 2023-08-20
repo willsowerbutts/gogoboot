@@ -2,10 +2,10 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include "tinyalloc.h"
-#include "timers.h"
-#include "cli.h"
-#include "net.h"
+#include <tinyalloc.h>
+#include <timers.h>
+#include <cli.h>
+#include <net.h>
 
 static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto)
 {
@@ -20,7 +20,7 @@ static packet_t *packet_create_ipv4(uint32_t dest_ipv4, int data_size, int proto
     p->ipv4->version_length = 0x45;   // we don't use options so length = 5 x 4 = 20 bytes
     p->ipv4->diffserv_ecn = 0;
     p->ipv4->length = htons(sizeof(ipv4_header_t) + data_size);
-    p->ipv4->id = htons(q40_read_timer_ticks() & 0xffff);
+    p->ipv4->id = htons(gogoboot_read_timer() & 0xffff);
     p->ipv4->flags_and_frags = htons(0x4000); // don't fragment
     p->ipv4->ttl = DEFAULT_TTL;
     p->ipv4->protocol = proto;

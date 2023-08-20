@@ -2,14 +2,14 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
-#include "tinyalloc.h"
-#include "q40hw.h"
-#include "q40ide.h"
-#include "q40isa.h"
-#include "q40uart.h"
-#include "net.h"
-#include "cli.h"
-#include "version.h"
+#include <tinyalloc.h>
+#include <q40/hw.h>
+#include <disk.h>
+#include <q40/isa.h>
+#include <uart.h>
+#include <net.h>
+#include <cli.h>
+#include <version.h>
 
 extern const char copyright_msg[];
 
@@ -134,7 +134,7 @@ void boot_q40(void)
     q40_graphics_init(3);
     printf("done\n");
 
-    q40_ide_init();
+    gogoboot_disk_init();
 
     printf("Initialise ethernet: ");
     net_init();

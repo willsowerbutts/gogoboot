@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include <stdbool.h>
+#include <timers.h>
 
 typedef struct packet_t packet_t;
 typedef struct packet_queue_t packet_queue_t;

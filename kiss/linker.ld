@@ -32,6 +32,13 @@ SECTIONS
     } >rom 
     rodata_size = SIZEOF(.rodata);
 
+    .stack : {
+        stack_start = .;
+        *(.stack SORT(.stack.*))
+        stack_end = .;
+    } >ram
+    stack_size = SIZEOF(.stack);
+
     /* .data : AT(rodata_end) {  */
     .data : { 
         data_start = .;

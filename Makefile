@@ -10,25 +10,30 @@ OBJCOPY = m68k-linux-gnu-objcopy
 # List targets here
 TARGETS   = q40 kiss
 
-COPT_all  = -O1 -std=c18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
-	    -fdata-sections -ffunction-sections -Iinclude -I.
-COPT_q40  = -march=68040 -mcpu=68040 -mtune=68040 -Iq40  -DTARGET_Q40 
-COPT_kiss = -march=68030 -mcpu=68030 -mtune=68030 -Ikiss -DTARGET_KISS
-
 AOPT_all  = -alhmsg 
-AOPT_q40  = -m68040
-AOPT_kiss = -m68030
-
-SRC_all  = arp.c boot.c cli.c dhcp.c except.c ff.c ffglue.c ffunicode.c icmp.c \
+COPT_all  = -O1 -std=c18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
+	    -fdata-sections -ffunction-sections -Iinclude
+SRC_all  = arp.c cli.c dhcp.c except.c fatfs/ff.c fatfs/ffunicode.c ffglue.c \
            ipcsum.c ipv4.c memcpy.c memmove.c memset.c ne2000.c net.c packet.c \
-           printf.c qsort.c stdlib.c strdup.c strtoul.c tftp.c tinyalloc.c
-SRC_q40  = q40/vectors.s q40/qdos.s q40/softrom.s q40/startup.s q40/uart.c q40/hw.c q40/ide.c 
-SRC_kiss = 
+           printf.c qsort.c stdlib.c strdup.c strtoul.c tftp.c tinyalloc.c icmp.c
+
+# q40 target
+AOPT_q40  = -m68040
+COPT_q40  = -march=68040 -mcpu=68040 -mtune=68040 -DTARGET_Q40 
+SRC_q40  = q40/vectors.s q40/qdos.s q40/softrom.s q40/startup.s q40/uart.c q40/hw.c \
+	   q40/ide.c q40/boot.c q40/ffrtc.c
+
+# kiss target
+AOPT_kiss = -m68030
+COPT_kiss = -march=68030 -mcpu=68030 -mtune=68030 -DTARGET_KISS
+SRC_kiss = kiss/uart.c kiss/startup.s kiss/vectors.s kiss/boot.c
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 
-all:	$(foreach target,$(TARGETS),gogoboot-$(target).rom)
+TARGET_ROMS = $(foreach target,$(TARGETS),gogoboot-$(target).rom)
+all:	$(TARGET_ROMS)
 
+# these rules are expanded once for each target, with $(1) = target name
 define make_target =
 %.$(1).o:	%.s
 	$$(AS) $$(AOPT_all) $$(AOPT_$(1)) -a=$$*.lst $$< -o $$@
@@ -48,18 +53,18 @@ endef
 
 $(eval $(foreach target,$(TARGETS),$(call make_target,$(target))))
 
-serial:	all
-	./sendrom /dev/ttyUSB0 115200 q40boot.rom
-
-tftp:	all
-	scp -C q40boot.rom beastie:/storage/tftp/
-
 clean:
-	rm -f *.rom *.map *.o *.lst *.elf *.bin version.c $(foreach target,$(TARGETS),$(ROMOBJ_$(target)))
+	rm -f *.rom *.map *.o *.lst *.elf *.bin version.c $(foreach target,$(TARGETS),$(target)/*.lst $(ROMOBJ_$(target)))
 
-q40-split:	gogoboot-q40.rom
-	./makesplitrom gogoboot-q40.rom gogoboot-q40-hi.rom gogoboot-q40-lo.rom
-
-# update our version number whenever any object file changes
+# update our version number whenever any source file changes
 version.c:	$(SRC_all) $(foreach target,$(TARGETS),$(SRC_$(target)))
 	./makeversion
+
+tftp:	$(TARGET_ROMS)
+	scp -C $(TARGET_ROMS) beastie:/storage/tftp/
+
+q40-serial:	gogoboot-q40.rom
+	./q40/sendrom /dev/ttyUSB0 115200 gogoboot-q40.rom
+
+q40-split:	gogoboot-q40.rom
+	./q40/makesplitrom gogoboot-q40.rom gogoboot-q40-hi.rom gogoboot-q40-lo.rom

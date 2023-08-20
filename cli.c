@@ -5,13 +5,13 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include "q40uart.h"
-#include "q40hw.h"
-#include "ff.h"
-#include "elf.h"
-#include "bootinfo.h"
-#include "tinyalloc.h"
-#include "net.h"
+#include <uart.h>
+#include <q40/hw.h>
+#include <fatfs/ff.h>
+#include <elf.h>
+#include <bootinfo.h>
+#include <tinyalloc.h>
+#include <net.h>
 
 #define MACHINE_IS_Q40
 

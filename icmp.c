@@ -2,8 +2,8 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include "timers.h"
-#include "net.h"
+#include <timers.h>
+#include <net.h>
 
 static packet_sink_t *icmp_sink;
 static packet_sink_t *unwanted_ipv4_sink;

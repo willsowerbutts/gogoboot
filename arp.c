@@ -2,9 +2,9 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include "timers.h"
-#include "tinyalloc.h"
-#include "net.h"
+#include <timers.h>
+#include <tinyalloc.h>
+#include <net.h>
 
 #undef ARP_DEBUG
 

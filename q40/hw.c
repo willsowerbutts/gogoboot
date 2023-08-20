@@ -2,8 +2,8 @@
 
 #include <stdlib.h>
 #include <types.h>
-#include "q40isa.h"
-#include "q40hw.h"
+#include <q40/isa.h>
+#include <q40/hw.h>
 
 unsigned int ram_size = 0;
 extern volatile uint32_t timer_ticks;
@@ -90,7 +90,7 @@ void q40_rtc_write_clock(const q40_rtc_data_t *buffer)
     q40_rtc_write_control(ctrl & ~0xC0); /* unset READ, WRITE bits */
 }
 
-timer_t q40_read_timer_ticks(void)
+timer_t gogoboot_read_timer(void)
 {
     return timer_ticks; /* it's a single aligned long word, so this should be atomic? */
 }
@@ -105,12 +105,12 @@ timer_t set_timer_ticks(uint32_t duration_ticks)
         printf("bad timer duration %ld\n", duration_ticks);
         duration_ticks = 0x7fffffff;
     }
-    return q40_read_timer_ticks() + duration_ticks;
+    return gogoboot_read_timer() + duration_ticks;
 }
 
 bool timer_expired(timer_t timer)
 {
-    return ((timer - q40_read_timer_ticks()) & 0x80000000);
+    return ((timer - gogoboot_read_timer()) & 0x80000000);
 }
 
 void timer_wait(timer_t timeout)

@@ -2,10 +2,10 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include "tinyalloc.h"
-#include "timers.h"
-#include "cli.h"
-#include "net.h"
+#include <tinyalloc.h>
+#include <timers.h>
+#include <cli.h>
+#include <net.h>
 
 packet_sink_t *packet_sink_alloc(void)
 {

@@ -16,11 +16,11 @@
  * the N8VEM baby M68k CPU board project.
  */
 
-/* 2023-07-24 William R Sowerbutts -- modified for Q40BOOT */
+/* 2023-07-24 William R Sowerbutts -- modified for Q40BOOT/GOGOBOOT */
 
 #include <stdlib.h>
 #include <stdarg.h>
-#include "q40uart.h"
+#include <uart.h>
 
 #define NUMLTH 11
 static unsigned char * __numout(long i, int base, unsigned char out[]);

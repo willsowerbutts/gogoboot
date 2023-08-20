@@ -1,7 +1,7 @@
 /* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
 
-#include <q40isa.h>
-#include <q40uart.h>
+#include <q40/isa.h>
+#include <uart.h>
 
 #define UART_ADDRESS    0x3f8
 #define BAUD_RATE       115200

@@ -1,11 +1,11 @@
 #include <types.h>
 #include <stdlib.h>
-#include "q40uart.h"
-#include "timers.h"
-#include "ff.h"
-#include "tinyalloc.h"
-#include "cli.h"
-#include "net.h"
+#include <uart.h>
+#include <timers.h>
+#include <fatfs/ff.h>
+#include <tinyalloc.h>
+#include <cli.h>
+#include <net.h>
 
 // documentation:
 // https://www.rfc-editor.org/rfc/rfc1350 - TFTP Protocol (Revision 2)
@@ -322,7 +322,7 @@ bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char
     sink->match_interface_local_ip = true;
     sink->match_ipv4_protocol = ip_proto_udp;
     sink->match_remote_ip = tftp_server_ip;
-    sink->match_local_port = 8192 + (q40_read_timer_ticks() & 0x7fff);
+    sink->match_local_port = 8192 + (gogoboot_read_timer() & 0x7fff);
     sink->sink_private = tftp;
     tftp->block_size = 512;
     tftp->window_size = 1;
@@ -342,7 +342,7 @@ bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char
                 tftp->tftp_filename,
                 tftp->disk_filename);
 
-        start = q40_read_timer_ticks();
+        start = gogoboot_read_timer();
         sink->cb_packet_received = tftp_client_packet_received;
         sink->cb_timer_expired = tftp_client_timer_expired;
         net_add_packet_sink(sink);
@@ -372,7 +372,7 @@ bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char
 
         if(tftp->success){
             printf("Transfer success.\n");
-            taken = q40_read_timer_ticks() - start;
+            taken = gogoboot_read_timer() - start;
             taken /= (TIMER_HZ/10); // taken is now in 10ths of a second
             if(taken == 0)
                 taken = 1; // avoid div 0

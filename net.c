@@ -2,10 +2,10 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include "tinyalloc.h"
-#include "timers.h"
-#include "cli.h"
-#include "net.h"
+#include <tinyalloc.h>
+#include <timers.h>
+#include <cli.h>
+#include <net.h>
 
 macaddr_t const broadcast_macaddr = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 macaddr_t interface_macaddr; // MAC address of our interface
@@ -191,7 +191,7 @@ void net_dump_packet_sinks(void) // used by "netinfo" command
                 sink->match_ethertype,
                 packet_queue_length(&sink->queue),
                 sink->packets_queued,
-                sink->timer ? sink->timer - q40_read_timer_ticks() : -1,
+                sink->timer ? sink->timer - gogoboot_read_timer() : -1,
                 sink->cb_timer_expired ? " timer":"",
                 sink->cb_packet_received ? " packet":""
                 );

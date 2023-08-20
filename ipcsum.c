@@ -2,10 +2,10 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include "tinyalloc.h"
-#include "timers.h"
-#include "cli.h"
-#include "net.h"
+#include <tinyalloc.h>
+#include <timers.h>
+#include <cli.h>
+#include <net.h>
 
 static uint32_t checksum_update(uint32_t sum, uint16_t *addr, unsigned int count)
 {

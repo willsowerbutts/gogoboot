@@ -11,12 +11,12 @@
 
 #include <stdlib.h>
 #include <types.h>
-#include "tinyalloc.h"
-#include "q40isa.h"
-#include "q40hw.h"
-#include "net.h"
-#include "cli.h"
-#include "8390.h"
+#include <ne2000.h>
+#include <tinyalloc.h>
+#include <q40/isa.h>
+#include <q40/hw.h>
+#include <net.h>
+#include <cli.h>
 
 /* forward definition of function used for the uboot interface */
 static void push_packet_ready(int len);
@@ -32,7 +32,7 @@ static void push_packet_ready(int len);
 #define DEBUG_LINE() do {} while(0)
 #endif
 
-#include "ne2000.h"
+#include <ne2000.h>
 
 #ifdef DEBUG
 #define PRINTK(args...) printf(args)

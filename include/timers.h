@@ -7,9 +7,9 @@
 #define TIMER_HZ                200     // choose 50 or 200
 #define TIMER_MS_PER_TICK       (1000/TIMER_HZ)
 
-/* timers - use only after q40_setup_interrupts() called */
+/* timers - on Q40, use only after q40_setup_interrupts() called */
 typedef uint32_t timer_t;
-timer_t q40_read_timer_ticks(void);
+timer_t gogoboot_read_timer(void);
 timer_t set_timer_ticks(uint32_t duration); /* duration in ticks */
 bool timer_expired(timer_t timer);
 void timer_wait(timer_t timeout);
