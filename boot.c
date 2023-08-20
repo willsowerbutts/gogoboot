@@ -9,6 +9,7 @@
 #include <uart.h>
 #include <net.h>
 #include <cli.h>
+#include <init.h>
 #include <version.h>
 
 extern const char copyright_msg[];
@@ -72,11 +73,17 @@ extern char text_start, text_size;
 extern char rodata_start, rodata_size;
 extern char data_start, data_load_start, data_size;
 extern char bss_start, bss_size;
+#ifdef TARGET_KISS
+extern char stack_start, stack_size;
+#endif
 
 void report_linker_layout(void)
 {
     printf("  .text    0x%08x length 0x%08x\n", (int)&text_start, (int)&text_size); 
     printf("  .rodata  0x%08x length 0x%08x\n", (int)&rodata_start, (int)&rodata_size); 
+#ifdef TARGET_KISS
+    printf("  .stack   0x%08x length 0x%08x\n", (int)&stack_start, (int)&stack_size); 
+#endif
     printf("  .data    0x%08x length 0x%08x (load from 0x%08x)\n", (int)&data_start, (int)&data_size, (int)&data_load_start);
     printf("  .bss     0x%08x length 0x%08x\n\n", (int)&bss_start, (int)&bss_size);
 
@@ -85,7 +92,7 @@ void report_linker_layout(void)
     }
 }
 
-#define MAXHEAP (4 << 20) /* 4MB */
+#define MAXHEAP (2 << 20) /* 4MB */
 
 static unsigned int heap_init(void)
 {
@@ -108,10 +115,9 @@ static unsigned int heap_init(void)
     return (unsigned int)base;
 }
 
-void boot_q40(void)
+void gogoboot(void)
 {
-    q40_led(false);
-    q40_isa_reset();
+    early_init();
     uart_init();
 
     printf(copyright_msg);
@@ -119,22 +125,20 @@ void boot_q40(void)
 
     printf("Version %s\n", software_version_string);
     printf("RAM installed: ");
-    q40_measure_ram_size();
+    measure_ram_size();
     unsigned int heap_base = heap_init();
     printf("%ld MB, %ld MB heap at 0x%08x\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
 
     printf("Setup interrupts: ");
-    q40_setup_interrupts(); /* do this early to get timers ticking */
+    setup_interrupts(); /* do this early to get timers ticking */
     printf("done\n");
 
     printf("Initialise RTC: ");
-    q40_rtc_init();
+    rtc_init();
 
-    printf("\nInitialise video: ");
-    q40_graphics_init(3);
-    printf("done\n");
+    target_hardware_init();
 
-    gogoboot_disk_init();
+    disk_init();
 
     printf("Initialise ethernet: ");
     net_init();
@@ -142,10 +146,10 @@ void boot_q40(void)
         dhcp_init();
     }
 
-    q40_led(true);
+    late_init();
 
     command_line_interpreter();
 
-    q40_led(false);
+    // should not get here
     puts("[halted]");
 }

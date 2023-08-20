@@ -2,7 +2,7 @@
         .include "kiss/kisshw.s"
 
         .globl  _start
-        .globl  boot_kiss
+        .globl  gogoboot
         .globl  copyright_msg
         .globl  cpu_cache_disable
         .globl  cpu_cache_flush
@@ -78,7 +78,7 @@ zap_loop:
 zap_bss:
         dbra    %d0, zap_loop
 
-        jsr boot_kiss                   /* off to C land */
+        jsr gogoboot                    /* off to C land */
 
         /* halt */
 halt:   stop #0x2700                    /* all done */

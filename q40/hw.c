@@ -11,7 +11,25 @@ volatile uint32_t timer_ticks;
 
 const char * const weekday[8] = { "???", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
 
-void q40_rtc_init(void)
+void early_init(void)
+{
+    q40_led(false);
+    q40_isa_reset();
+}
+
+void late_init(void)
+{
+    q40_led(true);
+}
+
+void target_hardware_init(void)
+{
+    printf("\nInitialise video: ");
+    q40_graphics_init(3);
+    printf("done\n");
+}
+
+void rtc_init(void)
 {
     q40_rtc_data_t data_prev, data;
     q40_rtc_read_clock(&data_prev);
@@ -96,7 +114,7 @@ timer_t gogoboot_read_timer(void)
     return timer_ticks; /* it's a single aligned long word, so this should be atomic? */
 }
 
-void q40_setup_interrupts(void)
+void setup_interrupts(void)
 {
     /* configure MASTER chip */
     *q40_keyboard_interrupt_enable = 0;
@@ -152,7 +170,7 @@ void q40_graphics_init(int mode)
     cpu_cache_flush();
 }
 
-void q40_measure_ram_size(void)
+void measure_ram_size(void)
 {
     /* we write a longword at the end of each MB of RAM, from
        the highest possible address downwards. Then we read

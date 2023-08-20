@@ -1,7 +1,7 @@
         .chip 68040
 
         .globl  _start
-        .globl  boot_q40
+        .globl  gogoboot
         .globl  copyright_msg
         .globl  cpu_cache_disable
         .globl  cpu_cache_flush
@@ -101,7 +101,7 @@ zap_loop:
 zap_bss:
         dbra    %d0, zap_loop
 
-        jsr boot_q40                    /* off to C land */
+        jsr gogoboot                    /* off to C land */
 
         /* halt */
 halted: stop #0x2700                    /* all done */

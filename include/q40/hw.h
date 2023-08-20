@@ -8,8 +8,6 @@
 void q40_graphics_init(int mode);
 void q40_isa_reset(void);
 void q40_led(bool on);
-void q40_measure_ram_size(void); /* sets ram_size; overwrites some areas of memory */
-void q40_setup_interrupts(void);
 void q40_boot_softrom(void *rom_image);
 void q40_boot_qdos(void *qdos_image);
 
@@ -27,16 +25,12 @@ typedef struct {
     uint8_t second;
 } q40_rtc_data_t;
 
-void q40_rtc_init(void);
 uint8_t q40_rtc_read_nvram(int offset);
 void    q40_rtc_write_nvram(int offset, uint8_t value);
 uint8_t q40_rtc_read_control(void);
 void q40_rtc_write_control(uint8_t value);
 void q40_rtc_read_clock(q40_rtc_data_t *buffer);
 void q40_rtc_write_clock(const q40_rtc_data_t *buffer);
-
-extern uint32_t ram_size; /* use only after q40_measure_ram_size() called */
-extern void *rom_pointer;     /* this is a pointer to 0 that the compiler doesn't know will always point to 0 */
 
 /* hardware details */
 #define VIDEO_RAM_BASE  0xfe800000

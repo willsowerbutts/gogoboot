@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <types.h>
 #include <cpu.h>
+#include <init.h>
 #include <timers.h>
 #include <kiss/ecb.h>
 #include <kiss/hw.h>
@@ -54,7 +55,7 @@ static void ns32202_test(uint16_t high, uint16_t low)
     halt();
 }
 
-void kiss_setup_interrupts(void)
+void setup_interrupts(void)
 {
     ns32202_write_reg_byte(NS32202_CCTL, 0x40);   /* counter control: no prescaling, counters off */
     ns32202_write_reg_byte(NS32202_MCTL, MCTL_NORMAL); /* datasheet recommends setting COUTD=1 at start of setup */

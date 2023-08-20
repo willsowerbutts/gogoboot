@@ -8,7 +8,7 @@ uint32_t ram_size = 0;
 
 #define RAM_UNIT_SIZE (1024*1024)       /* smallest granularity */
 
-void kiss_measure_ram_size(void)
+void measure_ram_size(void)
 {
     /* we write a longword at the end of each MB of RAM, from
        the highest possible address downwards. Then we read
@@ -36,4 +36,24 @@ void kiss_measure_ram_size(void)
             ram_size = (unit * RAM_UNIT_SIZE);
         else
             break;
+}
+
+void early_init(void)
+{
+    // not required
+}
+
+void late_init(void)
+{
+    // not required
+}
+
+void target_hardware_init(void)
+{
+    // not required
+}
+
+void rtc_init(void)
+{
+    // not implemented
 }

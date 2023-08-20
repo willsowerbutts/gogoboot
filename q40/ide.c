@@ -34,7 +34,7 @@ static void disk_controller_reset(disk_controller_t *ctrl)
     printf(" done\n");
 }
 
-static bool gogoboot_disk_wait(disk_controller_t *ctrl, uint8_t bits)
+static bool disk_wait(disk_controller_t *ctrl, uint8_t bits)
 {
     uint8_t status;
     timer_t timeout;
@@ -60,7 +60,7 @@ static bool gogoboot_disk_wait(disk_controller_t *ctrl, uint8_t bits)
     return false;
 }
 
-static void disk_read_sector_data(disk_controller_t *ctrl, void *ptr)
+static void disk_data_read_sector_data(disk_controller_t *ctrl, void *ptr)
 {
     uint16_t *buffer = ptr;
 
@@ -69,7 +69,7 @@ static void disk_read_sector_data(disk_controller_t *ctrl, void *ptr)
     }
 }
 
-static void disk_write_sector_data(disk_controller_t *ctrl, const void *ptr)
+static void disk_data_write_sector_data(disk_controller_t *ctrl, const void *ptr)
 {
     const uint16_t *buffer = ptr;
 
@@ -78,7 +78,7 @@ static void disk_write_sector_data(disk_controller_t *ctrl, const void *ptr)
     }
 }
 
-static bool disk_readwrite(int disknr, void *buff, uint32_t sector, int sector_count, bool is_write)
+static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sector_count, bool is_write)
 {
     disk_t *disk;
     disk_controller_t *ctrl;
@@ -112,7 +112,7 @@ static bool disk_readwrite(int disknr, void *buff, uint32_t sector, int sector_c
         *ctrl->nsect_reg  = nsect == 256 ? 0 : nsect;
 
         /* wait for device to be ready */
-        if(!gogoboot_disk_wait(ctrl, IDE_STATUS_READY))
+        if(!disk_wait(ctrl, IDE_STATUS_READY))
             return false;
 
         /* send command */
@@ -121,12 +121,12 @@ static bool disk_readwrite(int disknr, void *buff, uint32_t sector, int sector_c
         /* read result */
         while(nsect > 0){
             /* unclear if we need to wait for DRQ on each sector? play it safe */
-            if(!gogoboot_disk_wait(ctrl, IDE_STATUS_DATAREQUEST))
+            if(!disk_wait(ctrl, IDE_STATUS_DATAREQUEST))
                 return false;
             if(is_write)
-                disk_write_sector_data(ctrl, buff);
+                disk_data_write_sector_data(ctrl, buff);
             else
-                disk_read_sector_data(ctrl, buff);
+                disk_data_read_sector_data(ctrl, buff);
             buff += 512;
             nsect--;
         }
@@ -135,7 +135,7 @@ static bool disk_readwrite(int disknr, void *buff, uint32_t sector, int sector_c
     return true;
 }
 
-static void disk_read_name(const uint8_t *id, char *buffer, int offset, int len)
+static void disk_data_read_name(const uint8_t *id, char *buffer, int offset, int len)
 {
     int rem;
     char *s;
@@ -157,7 +157,7 @@ static void disk_read_name(const uint8_t *id, char *buffer, int offset, int len)
     *s = 0;
 }
 
-static void disk_init(disk_controller_t *ctrl, int disk)
+static void disk_init_disk(disk_controller_t *ctrl, int disk)
 {
     uint8_t sel, buffer[512];
     char prod[1+ATA_ID_PROD_LEN];
@@ -176,7 +176,7 @@ static void disk_init(disk_controller_t *ctrl, int disk)
     *ctrl->device_reg = sel; /* select master/slave */
 
     /* wait for drive to be ready */
-    if(!gogoboot_disk_wait(ctrl, IDE_STATUS_READY)){
+    if(!disk_wait(ctrl, IDE_STATUS_READY)){
         printf("no disk found.\n");
         return;
     }
@@ -184,12 +184,12 @@ static void disk_init(disk_controller_t *ctrl, int disk)
     /* send identify command */
     *ctrl->command_reg = IDE_CMD_IDENTIFY;
 
-    if(!gogoboot_disk_wait(ctrl, IDE_STATUS_DATAREQUEST)){
+    if(!disk_wait(ctrl, IDE_STATUS_DATAREQUEST)){
         printf("disk not responding.\n");
 	return;
     }
 
-    disk_read_sector_data(ctrl, buffer);
+    disk_data_read_sector_data(ctrl, buffer);
 
     /* confirm disk has LBA support */
     if(!(buffer[99] & 0x02)) {
@@ -199,7 +199,7 @@ static void disk_init(disk_controller_t *ctrl, int disk)
 
     /* read out the disk's sector count, name etc */
     sectors = le32_to_cpu(*((uint32_t*)&buffer[ATA_ID_LBA_CAPACITY]));
-    disk_read_name(buffer, prod,   ATA_ID_PROD,   ATA_ID_PROD_LEN);
+    disk_data_read_name(buffer, prod,   ATA_ID_PROD,   ATA_ID_PROD_LEN);
 
     printf("%s (%lu sectors, %lu MB)\n", prod, sectors, sectors>>11);
 
@@ -260,37 +260,37 @@ static void disk_controller_init(disk_controller_t *ctrl, uint16_t base_io)
 
     disk_controller_reset(ctrl);
     for(int disk=0; disk<2; disk++){
-        disk_init(ctrl, disk);
+        disk_init_disk(ctrl, disk);
     }
 }
 
-int gogoboot_disk_get_disk_count(void)
+int disk_get_count(void)
 {
     return disk_table_used;
 }
 
-disk_t *gogoboot_get_disk_info(int nr)
+disk_t *disk_get_info(int nr)
 {
-    if(nr < 0 || nr >= gogoboot_disk_get_disk_count())
+    if(nr < 0 || nr >= disk_get_count())
         return NULL;
     return &disk_table[nr];
 }
 
-bool gogoboot_disk_read(int disknr, void *buff, uint32_t sector, int sector_count)
+bool disk_data_read(int disknr, void *buff, uint32_t sector, int sector_count)
 {
-    return disk_readwrite(disknr, buff, sector, sector_count, false);
+    return disk_data_readwrite(disknr, buff, sector, sector_count, false);
 }
 
-bool gogoboot_disk_write(int disknr, const void *buff, uint32_t sector, int sector_count)
+bool disk_data_write(int disknr, const void *buff, uint32_t sector, int sector_count)
 {
-    return disk_readwrite(disknr, (void*)buff, sector, sector_count, true);
+    return disk_data_readwrite(disknr, (void*)buff, sector, sector_count, true);
 }
 
-void gogoboot_disk_init(void)
+void disk_init(void)
 {
     /* one per customer */
     if(disk_init_done){
-        printf("gogoboot_disk_init: already done?\n");
+        printf("disk_init: already done?\n");
         return;
     }
     disk_init_done = true;

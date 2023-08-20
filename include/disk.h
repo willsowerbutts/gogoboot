@@ -18,11 +18,11 @@ typedef struct disk_t {
     /* could parse full partition table? */
 } disk_t;
 
-void gogoboot_disk_init(void);
-disk_t *gogoboot_get_disk_info(int nr);
-int gogoboot_disk_get_disk_count(void);
-bool gogoboot_disk_read(int disk, void *buff, uint32_t sector, int sector_count);
-bool gogoboot_disk_write(int disk, const void *buff, uint32_t sector, int sector_count);
+void disk_init(void);
+disk_t *disk_get_info(int nr);
+int disk_get_count(void);
+bool disk_data_read(int disk, void *buff, uint32_t sector, int sector_count);
+bool disk_data_write(int disk, const void *buff, uint32_t sector, int sector_count);
 
 /* IDE status register bits */
 #define IDE_STATUS_BUSY         0x80

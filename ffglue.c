@@ -15,7 +15,7 @@
 
 DSTATUS disk_status(BYTE pdrv)
 {
-    disk_t *disk_disk = gogoboot_get_disk_info(pdrv);
+    disk_t *disk_disk = disk_get_info(pdrv);
 
     if(!disk_disk)
         return STA_NOINIT;
@@ -25,7 +25,7 @@ DSTATUS disk_status(BYTE pdrv)
 
 DSTATUS disk_initialize(BYTE pdrv)
 {
-    disk_t *disk_disk = gogoboot_get_disk_info(pdrv);
+    disk_t *disk_disk = disk_get_info(pdrv);
 
     if(!disk_disk)
         return STA_NOINIT;
@@ -36,7 +36,7 @@ DSTATUS disk_initialize(BYTE pdrv)
 
 DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
 {
-    disk_t *disk_disk = gogoboot_get_disk_info(pdrv);
+    disk_t *disk_disk = disk_get_info(pdrv);
 
     if(!disk_disk)
         return RES_PARERR;
@@ -44,7 +44,7 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
     if(disk_disk->fat_fs_status & (STA_NOINIT | STA_NODISK))
         return RES_NOTRDY;
 
-    if(gogoboot_disk_read(pdrv, buff, sector, count))
+    if(disk_data_read(pdrv, buff, sector, count))
         return RES_OK;
     else
         return RES_ERROR;
@@ -52,7 +52,7 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
 
 DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
 {
-    disk_t *disk_disk = gogoboot_get_disk_info(pdrv);
+    disk_t *disk_disk = disk_get_info(pdrv);
 
     if(!disk_disk)
         return RES_PARERR;
@@ -63,7 +63,7 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
     if(disk_disk->fat_fs_status & STA_PROTECT)
         return RES_WRPRT;
 
-    if(gogoboot_disk_write(pdrv, buff, sector, count))
+    if(disk_data_write(pdrv, buff, sector, count))
         return RES_OK;
     else
         return RES_ERROR;
@@ -71,7 +71,7 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
 
 DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
 {
-    disk_t *disk_disk = gogoboot_get_disk_info(pdrv);
+    disk_t *disk_disk = disk_get_info(pdrv);
 
     if(!disk_disk)
         return RES_PARERR;
