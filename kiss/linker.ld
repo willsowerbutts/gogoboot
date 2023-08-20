@@ -4,8 +4,8 @@ ENTRY(_start)
 
 MEMORY 
 {
-    rom    : ORIGIN = 0x00000000, LENGTH = 96K     /* first 96KB only; full 256KB is at 0xFE000000 */
-    ram    : ORIGIN = 0x00028000, LENGTH = 3936K   /* assume a minimum 4MB RAM system */
+    rom    : ORIGIN = 0xFFF00000, LENGTH = 512K
+    ram    : ORIGIN = 0x00000000, LENGTH = 4096K   /* assume a minimum 4MB RAM system */
 }
 
 SECTIONS
@@ -24,7 +24,6 @@ SECTIONS
     } >rom
     text_size = SIZEOF(.text);
 
-    /* .rodata : AT(text_end) { */
     .rodata : { 
         rodata_start = .;
         *(.rodata SORT(.rodata.*) SORT(.gnu.linkonce.r.*))
@@ -39,8 +38,7 @@ SECTIONS
     } >ram
     stack_size = SIZEOF(.stack);
 
-    /* .data : AT(rodata_end) {  */
-    .data : { 
+    .data stack_end : { 
         data_start = .;
         *(.data SORT(.data.*) SORT(.gnu.linkonce.d.*))
         data_end = .;
@@ -48,7 +46,7 @@ SECTIONS
     data_size = SIZEOF(.data);
     data_load_start = LOADADDR(.data);
 
-    .bss : { 
+    .bss data_end : { 
         bss_start = .;
         *(.dynbss)
         *(.bss SORT(.bss.*) SORT(.gnu.linkonce.b.*))

@@ -3,7 +3,7 @@
 #include <kiss/ecb.h>
 #include <uart.h>
 
-#define UART_ADDRESS    0x3f8
+#define UART_ADDRESS    (KISS68030_MFPIC_UART)
 #define BAUD_RATE       115200
 #define UART_DIVISOR    (115200/BAUD_RATE)
 

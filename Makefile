@@ -26,7 +26,8 @@ SRC_q40  = q40/vectors.s q40/qdos.s q40/softrom.s q40/startup.s q40/uart.c q40/h
 # kiss target
 AOPT_kiss = -m68030
 COPT_kiss = -march=68030 -mcpu=68030 -mtune=68030 -DTARGET_KISS
-SRC_kiss = kiss/uart.c kiss/startup.s kiss/vectors.s kiss/boot.c
+SRC_kiss = kiss/uart.c kiss/startup.s kiss/vectors.s kiss/boot.c kiss/timer.c \
+	   kiss/ffrtc.c kiss/ide.c kiss/hw.c
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 
@@ -43,7 +44,7 @@ define make_target =
 
 ROMOBJ_$(1) = $(patsubst %.s,%.$(1).o,$(patsubst %.c,%.$(1).o,$(SRC_all) $(SRC_$(1))))
 
-gogoboot-$(1).elf:	version.$(1).o $$(ROMOBJ_$(1))
+gogoboot-$(1).elf:	version.$(1).o $$(ROMOBJ_$(1)) $(1)/linker.ld
 	$$(LD) --gc-sections --script=$(1)/linker.ld -z noexecstack -Map gogoboot-$(1).map -o gogoboot-$(1).elf $$(ROMOBJ_$(1)) version.$(1).o
 
 gogoboot-$(1).rom:	gogoboot-$(1).elf

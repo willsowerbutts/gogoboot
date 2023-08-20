@@ -13,9 +13,7 @@
 #include <tinyalloc.h>
 #include <net.h>
 
-#define MACHINE_IS_Q40
-
-#ifdef MACHINE_IS_KISS68030
+#ifdef TARGET_KISS
 #define EXECUTABLE_LOAD_ADDRESS 0
 #define MACH_THIS MACH_KISS68030
 #define THIS_BOOTI_VERSION KISS68030_BOOTI_VERSION
@@ -24,7 +22,7 @@
 #define FPU_THIS 0 /* no FPU */
 #endif
 
-#ifdef MACHINE_IS_Q40
+#ifdef TARGET_Q40
 #define EXECUTABLE_LOAD_ADDRESS (256*1024)
 #define MACH_THIS MACH_Q40
 #define THIS_BOOTI_VERSION Q40_BOOTI_VERSION
@@ -86,7 +84,7 @@ static void do_netinfo(char *argv[], int argc);
 static void do_set(char *argv[], int argc);
 static void do_tftp(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
-#ifdef MACHINE_IS_Q40
+#ifdef TARGET_Q40
 static void do_softrom(char *argv[], int argc);
 static void do_hardrom(char *argv[], int argc);
 static void do_loadimage(char *argv[], int argc);
@@ -113,7 +111,7 @@ const cmd_entry_t cmd_table[] = {
     {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" }, // TODO write down the syntax
     {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
     {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
-#ifdef MACHINE_IS_Q40
+#ifdef TARGET_Q40
     {"softrom",     0,      1,  &do_softrom,  "load and boot a Q40 ROM image" },
     {"hardrom",     0,      0,  &do_hardrom,  "reboot into Q40 hardware ROM" },
     {"loadimage",   1,      1,  &do_loadimage,"load image into Q40 graphics memory" },
@@ -252,7 +250,7 @@ static void do_heapinfo(char *argv[], int argc)
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
 }
 
-#ifdef MACHINE_IS_Q40
+#ifdef TARGET_Q40
 static void do_loadimage(char *argv[], int argc)
 {
     FRESULT fr;
@@ -786,9 +784,8 @@ static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
     }
 
     printf("Loaded %d bytes. Entry at 0x%lx in supervisor mode\n", bytes_read, (long)load_address);
-    q40_led(false);
     cpu_cache_flush();
-#if 1
+#ifdef TARGET_Q40
     // q40softboot.s does a "power on reset" of the machine, in a similar way to SOFTROM
     // - CPU registers, MMU, caches reset to power-on defaults
     // - CPLD registers all zeroed to power-on defaults
@@ -951,11 +948,11 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
             bootinfo->tag = BI_MEMCHUNK;
             bootinfo->size = sizeof(struct bi_record) + sizeof(struct mem_info);
             meminfo = (struct mem_info*)bootinfo->data;
-#ifdef MACHINE_IS_KISS68030
+#ifdef TARGET_KISS
             meminfo->addr = 0;
-            meminfo->size = (unsigned long)h_m_a;
+            meminfo->size = (unsigned long)ram_size;
 #endif
-#ifdef MACHINE_IS_Q40
+#ifdef TARGET_Q40
             // we need to make sure our RAM starts on a multiple of 256KB it seems
             meminfo->addr = (unsigned long)EXECUTABLE_LOAD_ADDRESS;
             if(ram_size > 32*1024*1024){

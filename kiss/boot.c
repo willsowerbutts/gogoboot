@@ -53,6 +53,8 @@ void report_linker_layout(void)
 //     return (unsigned int)base;
 // }
 
+int some_global_variable = 0x12345678;
+
 void boot_kiss(void)
 {
     uart_init();
@@ -61,6 +63,9 @@ void boot_kiss(void)
     report_linker_layout();
 
     printf("Version %s\n", software_version_string);
+
+    printf("debug %x\n", some_global_variable);
+
     // printf("RAM installed: ");
     // q40_measure_ram_size();
     // unsigned int heap_base = heap_init();

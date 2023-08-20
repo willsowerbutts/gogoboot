@@ -119,11 +119,6 @@ unhandled_exception:
 halt:   stop #2701
         br.s halt
 
-        .section .bss
-        .align 4
-timer_ticks:
-        .zero 4
-
         .section .rodata
 bad_interrupt_message:
         .ascii ":( UNEXPECTED INT \0"
