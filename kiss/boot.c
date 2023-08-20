@@ -33,26 +33,26 @@ void report_linker_layout(void)
 
 #define MAXHEAP (4 << 20) /* 4MB */
 
-// static unsigned int heap_init(void)
-// {
-//     int heap;
-//     void *base;
-// 
-//     // this is an attempt to leave enough space
-//     // above .data for us to load a sizeable
-//     // program (ie, linux). it's not ideal.
-//     // shame that talloc cannot allocate from
-//     // the top downwards.
-// 
-//     heap = ram_size / 4;  /* not more than 25% of RAM */
-//     if(heap > MAXHEAP)    /* and not too much */
-//         heap = MAXHEAP;
-// 
-//     base = (void*)ram_size - heap;
-//     ta_init(base, (void*)ram_size-1, 2048, 16, 8);
-// 
-//     return (unsigned int)base;
-// }
+static unsigned int heap_init(void)
+{
+    int heap;
+    void *base;
+
+    // this is an attempt to leave enough space
+    // above .data for us to load a sizeable
+    // program (ie, linux). it's not ideal.
+    // shame that talloc cannot allocate from
+    // the top downwards.
+
+    heap = ram_size / 4;  /* not more than 25% of RAM */
+    if(heap > MAXHEAP)    /* and not too much */
+        heap = MAXHEAP;
+
+    base = (void*)ram_size - heap;
+    ta_init(base, (void*)ram_size-1, 2048, 16, 8);
+
+    return (unsigned int)base;
+}
 
 void boot_kiss(void)
 {
@@ -63,10 +63,10 @@ void boot_kiss(void)
 
     printf("Version %s\n", software_version_string);
 
-    // printf("RAM installed: ");
-    // q40_measure_ram_size();
-    // unsigned int heap_base = heap_init();
-    // printf("%d MB, %d MB heap at 0x%08x\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
+    printf("RAM installed: ");
+    kiss_measure_ram_size();
+    unsigned int heap_base = heap_init();
+    printf("%ld MB, %ld MB heap at 0x%08x\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
 
     printf("Setup interrupts: ");
     kiss_setup_interrupts(); /* do this early to get timers ticking */
@@ -79,7 +79,7 @@ void boot_kiss(void)
     // q40_graphics_init(3);
     // printf("done\n");
 
-    // gogoboot_disk_init();
+    gogoboot_disk_init();
 
     // printf("Initialise ethernet: ");
     // net_init();

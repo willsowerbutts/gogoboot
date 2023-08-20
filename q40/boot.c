@@ -121,7 +121,7 @@ void boot_q40(void)
     printf("RAM installed: ");
     q40_measure_ram_size();
     unsigned int heap_base = heap_init();
-    printf("%d MB, %d MB heap at 0x%08x\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
+    printf("%ld MB, %ld MB heap at 0x%08x\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
 
     printf("Setup interrupts: ");
     q40_setup_interrupts(); /* do this early to get timers ticking */

@@ -97,9 +97,8 @@ void kiss_setup_interrupts(void)
      * the NS32202 so the vector range is 0x40 -- 0x4F, ie VEC_USER -- VEC_USER+16 */
     ecb_write_byte_pause(KISS68030_MFPIC_CFGREG, 0x44);
 
-    /* unmask our timer interupt */
+    /* unmask only our timer interupt */
     ns32202_write_reg_word(NS32202_IMSK, ns32202_read_reg_word(NS32202_IMSK) & ~(1 << KISS68030_TIMERH_IRQ));
-    printf("imsk=%x\n", ns32202_read_reg_word(NS32202_IMSK));
 
     cpu_interrupts_on();
 }

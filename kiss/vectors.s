@@ -6,6 +6,7 @@
         .globl  uart_write_byte
         .globl  report_exception
         .globl  rom_pointer
+        .globl  timer_ticks
         .globl  halt
 
         .section .text
@@ -214,11 +215,6 @@ unhandled_exception:
         pea (%sp)
         jsr report_exception
         bra halt
-
-        .section .bss
-        .align 4
-timer_ticks:
-        .zero 4
 
         .section .rodata
 bad_ns202_irq_message:

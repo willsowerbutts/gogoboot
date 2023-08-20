@@ -35,7 +35,7 @@ void q40_rtc_write_control(uint8_t value);
 void q40_rtc_read_clock(q40_rtc_data_t *buffer);
 void q40_rtc_write_clock(const q40_rtc_data_t *buffer);
 
-extern unsigned int ram_size; /* use only after q40_measure_ram_size() called */
+extern uint32_t ram_size; /* use only after q40_measure_ram_size() called */
 extern void *rom_pointer;     /* this is a pointer to 0 that the compiler doesn't know will always point to 0 */
 
 /* hardware details */

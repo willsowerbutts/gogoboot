@@ -6,7 +6,7 @@
 #include <q40/hw.h>
 #include <cpu.h>
 
-unsigned int ram_size = 0;
+uint32_t ram_size = 0;
 volatile uint32_t timer_ticks;
 
 const char * const weekday[8] = { "???", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };

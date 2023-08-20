@@ -28,7 +28,7 @@ SRC_q40  = q40/vectors.s q40/qdos.s q40/softrom.s q40/startup.s q40/uart.c q40/h
 AOPT_kiss = -m68030
 COPT_kiss = -march=68030 -mcpu=68030 -mtune=68030 -DTARGET_KISS
 SRC_kiss = kiss/uart.c kiss/startup.s kiss/vectors.s kiss/boot.c kiss/timer.c \
-	   kiss/ffrtc.c kiss/ide.c kiss/hw.c
+	   kiss/ffrtc.c kiss/ide.c kiss/idexfer.s kiss/hw.c
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 

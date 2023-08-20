@@ -6,6 +6,7 @@
 #include <fatfs/ff.h>
 #include <fatfs/diskio.h>
 #include <disk.h>
+#include <q40/ide.h>
 #include <q40/isa.h>
 #include <q40/hw.h>
 
@@ -17,60 +18,12 @@ static const uint16_t controller_base_io_addr[] = {0x1f0,};
 // debugging options:
 #undef ATA_DUMP_IDENTIFY_RESULT
 
-/* IDE status register bits */
-#define IDE_STATUS_BUSY         0x80
-#define IDE_STATUS_READY        0x40
-#define IDE_STATUS_DEVFAULT     0x20
-#define IDE_STATUS_SEEKCOMPLETE 0x10 // not important
-#define IDE_STATUS_DATAREQUEST  0x08
-#define IDE_STATUS_CORRECTED    0x04 // not important
-#define IDE_STATUS_INDEX        0x02 // not important
-#define IDE_STATUS_ERROR        0x01
-
-/* IDE command codes */
-#define IDE_CMD_READ_SECTOR     0x20
-#define IDE_CMD_WRITE_SECTOR    0x30
-#define IDE_CMD_FLUSH_CACHE     0xE7
-#define IDE_CMD_IDENTIFY        0xEC
-#define IDE_CMD_SET_FEATURES    0xEF
-
-/* excerpted from linux kernel include/linux/ata.h */
-enum {  
-        /* ATA command block registers */
-        ATA_REG_DATA            = 0x00,
-        ATA_REG_ERR             = 0x01,
-        ATA_REG_NSECT           = 0x02,
-        ATA_REG_LBAL            = 0x03,
-        ATA_REG_LBAM            = 0x04,
-        ATA_REG_LBAH            = 0x05,
-        ATA_REG_DEVICE          = 0x06,
-        ATA_REG_STATUS          = 0x07,
-
-        ATA_REG_FEATURE         = ATA_REG_ERR, /* and their aliases */
-        ATA_REG_CMD             = ATA_REG_STATUS,
-        ATA_REG_BYTEL           = ATA_REG_LBAM,
-        ATA_REG_BYTEH           = ATA_REG_LBAH,
-        ATA_REG_DEVSEL          = ATA_REG_DEVICE,
-        ATA_REG_IRQ             = ATA_REG_NSECT,
-
-        /* identity page offsets and lengths (in bytes, not words) */
-        ATA_ID_FW_REV       = 2*23,
-        ATA_ID_FW_REV_LEN   = 8,
-        ATA_ID_PROD         = 2*27,
-        ATA_ID_PROD_LEN     = 40,
-        ATA_ID_SERNO        = 2*10,
-        ATA_ID_SERNO_LEN    = 20,
-        ATA_ID_MAX_MULTSECT = 2*47,
-        ATA_ID_MULTSECT     = 2*59,
-        ATA_ID_LBA_CAPACITY = 2*60,
-};
-
 static disk_controller_t disk_controller[NUM_CONTROLLERS];
 static disk_t disk_table[MAX_IDE_DISKS];
 static int disk_table_used = 0;
-static bool gogoboot_disk_init_done = false;
+static bool disk_init_done = false;
 
-static void gogoboot_disk_controller_reset(disk_controller_t *ctrl)
+static void disk_controller_reset(disk_controller_t *ctrl)
 {
     printf("IDE reset controller at 0x%x:", ctrl->base_io);
     *ctrl->device_reg = 0xE0; /* select master */
@@ -107,7 +60,7 @@ static bool gogoboot_disk_wait(disk_controller_t *ctrl, uint8_t bits)
     return false;
 }
 
-static void gogoboot_disk_read_sector_data(disk_controller_t *ctrl, void *ptr)
+static void disk_read_sector_data(disk_controller_t *ctrl, void *ptr)
 {
     uint16_t *buffer = ptr;
 
@@ -116,7 +69,7 @@ static void gogoboot_disk_read_sector_data(disk_controller_t *ctrl, void *ptr)
     }
 }
 
-static void gogoboot_disk_write_sector_data(disk_controller_t *ctrl, const void *ptr)
+static void disk_write_sector_data(disk_controller_t *ctrl, const void *ptr)
 {
     const uint16_t *buffer = ptr;
 
@@ -125,12 +78,7 @@ static void gogoboot_disk_write_sector_data(disk_controller_t *ctrl, const void 
     }
 }
 
-int gogoboot_disk_get_disk_count(void)
-{
-    return disk_table_used;
-}
-
-static bool gogoboot_disk_readwrite(int disknr, void *buff, uint32_t sector, int sector_count, bool is_write)
+static bool disk_readwrite(int disknr, void *buff, uint32_t sector, int sector_count, bool is_write)
 {
     disk_t *disk;
     disk_controller_t *ctrl;
@@ -176,9 +124,9 @@ static bool gogoboot_disk_readwrite(int disknr, void *buff, uint32_t sector, int
             if(!gogoboot_disk_wait(ctrl, IDE_STATUS_DATAREQUEST))
                 return false;
             if(is_write)
-                gogoboot_disk_write_sector_data(ctrl, buff);
+                disk_write_sector_data(ctrl, buff);
             else
-                gogoboot_disk_read_sector_data(ctrl, buff);
+                disk_read_sector_data(ctrl, buff);
             buff += 512;
             nsect--;
         }
@@ -187,17 +135,7 @@ static bool gogoboot_disk_readwrite(int disknr, void *buff, uint32_t sector, int
     return true;
 }
 
-bool gogoboot_disk_read(int disknr, void *buff, uint32_t sector, int sector_count)
-{
-    return gogoboot_disk_readwrite(disknr, buff, sector, sector_count, false);
-}
-
-bool gogoboot_disk_write(int disknr, const void *buff, uint32_t sector, int sector_count)
-{
-    return gogoboot_disk_readwrite(disknr, (void*)buff, sector, sector_count, true);
-}
-
-static void gogoboot_disk_read_name(const uint8_t *id, char *buffer, int offset, int len)
+static void disk_read_name(const uint8_t *id, char *buffer, int offset, int len)
 {
     int rem;
     char *s;
@@ -219,7 +157,7 @@ static void gogoboot_disk_read_name(const uint8_t *id, char *buffer, int offset,
     *s = 0;
 }
 
-static void gogoboot_disk_table_init(disk_controller_t *ctrl, int disk)
+static void disk_init(disk_controller_t *ctrl, int disk)
 {
     uint8_t sel, buffer[512];
     char prod[1+ATA_ID_PROD_LEN];
@@ -251,7 +189,7 @@ static void gogoboot_disk_table_init(disk_controller_t *ctrl, int disk)
 	return;
     }
 
-    gogoboot_disk_read_sector_data(ctrl, buffer);
+    disk_read_sector_data(ctrl, buffer);
 
     /* confirm disk has LBA support */
     if(!(buffer[99] & 0x02)) {
@@ -261,7 +199,7 @@ static void gogoboot_disk_table_init(disk_controller_t *ctrl, int disk)
 
     /* read out the disk's sector count, name etc */
     sectors = le32_to_cpu(*((uint32_t*)&buffer[ATA_ID_LBA_CAPACITY]));
-    gogoboot_disk_read_name(buffer, prod,   ATA_ID_PROD,   ATA_ID_PROD_LEN);
+    disk_read_name(buffer, prod,   ATA_ID_PROD,   ATA_ID_PROD_LEN);
 
     printf("%s (%lu sectors, %lu MB)\n", prod, sectors, sectors>>11);
 
@@ -297,7 +235,7 @@ static void gogoboot_disk_table_init(disk_controller_t *ctrl, int disk)
     return;
 }
 
-static void gogoboot_disk_controller_init(disk_controller_t *ctrl, uint16_t base_io)
+static void disk_controller_init(disk_controller_t *ctrl, uint16_t base_io)
 {
     /* set up controller register pointers */
     ctrl->base_io = base_io;
@@ -320,26 +258,15 @@ static void gogoboot_disk_controller_init(disk_controller_t *ctrl, uint16_t base
 
     ctrl->data_reg    = ISA_XLATE_ADDR_WORD(base_io + ATA_REG_DATA);
 
-    gogoboot_disk_controller_reset(ctrl);
+    disk_controller_reset(ctrl);
     for(int disk=0; disk<2; disk++){
-        gogoboot_disk_table_init(ctrl, disk);
+        disk_init(ctrl, disk);
     }
-
 }
 
-void gogoboot_disk_init(void)
+int gogoboot_disk_get_disk_count(void)
 {
-    /* one per customer */
-    if(gogoboot_disk_init_done){
-        printf("gogoboot_disk_init: already done?\n");
-        return;
-    }
-    gogoboot_disk_init_done = true;
-
-    /* initialise controllers */
-    for(int i=0; i<NUM_CONTROLLERS; i++){
-        gogoboot_disk_controller_init(&disk_controller[i], controller_base_io_addr[i]);
-    }
+    return disk_table_used;
 }
 
 disk_t *gogoboot_get_disk_info(int nr)
@@ -347,4 +274,29 @@ disk_t *gogoboot_get_disk_info(int nr)
     if(nr < 0 || nr >= gogoboot_disk_get_disk_count())
         return NULL;
     return &disk_table[nr];
+}
+
+bool gogoboot_disk_read(int disknr, void *buff, uint32_t sector, int sector_count)
+{
+    return disk_readwrite(disknr, buff, sector, sector_count, false);
+}
+
+bool gogoboot_disk_write(int disknr, const void *buff, uint32_t sector, int sector_count)
+{
+    return disk_readwrite(disknr, (void*)buff, sector, sector_count, true);
+}
+
+void gogoboot_disk_init(void)
+{
+    /* one per customer */
+    if(disk_init_done){
+        printf("gogoboot_disk_init: already done?\n");
+        return;
+    }
+    disk_init_done = true;
+
+    /* initialise controllers */
+    for(int i=0; i<NUM_CONTROLLERS; i++){
+        disk_controller_init(&disk_controller[i], controller_base_io_addr[i]);
+    }
 }
