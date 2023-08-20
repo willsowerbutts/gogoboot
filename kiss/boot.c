@@ -8,6 +8,7 @@
 #include <net.h>
 #include <cli.h>
 #include <version.h>
+#include <kiss/hw.h>
 
 extern const char copyright_msg[];
 
@@ -53,8 +54,6 @@ void report_linker_layout(void)
 //     return (unsigned int)base;
 // }
 
-int some_global_variable = 0x12345678;
-
 void boot_kiss(void)
 {
     uart_init();
@@ -64,16 +63,14 @@ void boot_kiss(void)
 
     printf("Version %s\n", software_version_string);
 
-    printf("debug %x\n", some_global_variable);
-
     // printf("RAM installed: ");
     // q40_measure_ram_size();
     // unsigned int heap_base = heap_init();
     // printf("%d MB, %d MB heap at 0x%08x\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
 
-    // printf("Setup interrupts: ");
-    // q40_setup_interrupts(); /* do this early to get timers ticking */
-    // printf("done\n");
+    printf("Setup interrupts: ");
+    kiss_setup_interrupts(); /* do this early to get timers ticking */
+    printf("done\n");
 
     // printf("Initialise RTC: ");
     // q40_rtc_init();

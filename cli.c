@@ -12,6 +12,7 @@
 #include <bootinfo.h>
 #include <tinyalloc.h>
 #include <net.h>
+#include <cpu.h>
 
 #ifdef TARGET_KISS
 #define EXECUTABLE_LOAD_ADDRESS 0

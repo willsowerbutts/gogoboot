@@ -46,8 +46,31 @@
 #define PPIDE_SIGNALS                   2 /* 8255 port C */
 #define PPIDE_CONTROL                   3 /* 8255 command register */
 
-#define ISA_XLATE_ADDR_BYTE(addr) ((volatile uint8_t *)(ISA_BASE_ADDR+1+((addr)<<2)))
-#define ISA_XLATE_ADDR_WORD(addr) ((volatile uint16_t*)(ISA_BASE_ADDR + ((addr)<<2)))
+/* NS32202 registers */
+#define NS32202_HVCT                    0  /* 8-bit byte size */
+#define NS32202_SVCT                    1  /* 8-bit byte size */
+#define NS32202_ELTG                    2  /* 16-bit word size */
+#define NS32202_TPL                     4  /* 16-bit word size */
+#define NS32202_IPND                    6  /* 16-bit word size */
+#define NS32202_ISRV                    8  /* 16-bit word size */
+#define NS32202_IMSK                    10 /* 16-bit word size */
+#define NS32202_CSRC                    12 /* 16-bit word size */
+#define NS32202_FPRT                    14 /* 16-bit word size */
+#define NS32202_MCTL                    16 /* 8-bit byte size */
+#define NS32202_OCASN                   17 /* 8-bit byte size */
+#define NS32202_CIPTR                   18 /* 16-bit word size */
+#define NS32202_PDAT                    19 /* 8-bit byte size */
+#define NS32202_IPS                     20 /* 8-bit byte size */
+#define NS32202_PDIR                    21 /* 8-bit byte size */
+#define NS32202_CCTL                    22 /* 8-bit byte size */
+#define NS32202_CICTL                   23 /* 8-bit byte size */
+#define NS32202_LCSV                    24 /* 16-bit word size */
+#define NS32202_HCSV                    26 /* 16-bit word size */
+#define NS32202_LCCV                    28 /* 16-bit word size */
+#define NS32202_HCCV                    30 /* 16-bit word size */
+#define NS32202_SVCTI                   32 /* 8-bit byte size */
+#define NS32202_EOI                     32 /* 8-bit byte size */
+#define NS32202_CLK_INPUT  KISS68030_UART_CLK   /* shares the UART crystal */
 
 static volatile uint8_t * const ECB_DEVICE_IO = (volatile uint8_t *)KISS68030_IO_BASE;
 static volatile uint8_t * const ECB_PAUSE = (volatile uint8_t *)KISS68030_ROM_BASE;

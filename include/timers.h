@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <types.h>
 
-#define TIMER_HZ                200     // choose 50 or 200
+#define TIMER_HZ                200     // Q40 supports only 50 or 200
 #define TIMER_MS_PER_TICK       (1000/TIMER_HZ)
 
 /* timers - on Q40, use only after q40_setup_interrupts() called */

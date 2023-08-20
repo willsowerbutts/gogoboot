@@ -13,13 +13,6 @@ void q40_setup_interrupts(void);
 void q40_boot_softrom(void *rom_image);
 void q40_boot_qdos(void *qdos_image);
 
-/* in startup.s */
-void cpu_cache_disable(void);
-void cpu_cache_flush(void);
-void cpu_cache_invalidate(void);
-void cpu_interrupts_on(void);
-void cpu_interrupts_off(void);
-
 /* RTC */
 #define Q40_RTC_NVRAM_SIZE (2040) /* bytes */
 #define Q40_RTC_CLOCK_SIZE (8)    /* bytes */

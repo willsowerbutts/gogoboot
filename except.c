@@ -14,7 +14,7 @@ const char * const vector_name[] = {
     "Unimplemented opcode A",
     "Unimplemented opcode F",
     NULL, // reserved
-    NULL, // undefined for 68040
+    "Coprocessor protocol", // undefined for 68040
     "Format error",
     "Uninitialised interrupt",
 };

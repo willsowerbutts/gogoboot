@@ -10,6 +10,7 @@
         .globl  cpu_interrupts_on
         .globl  cpu_interrupts_off
         .globl  vector_table
+        .globl  halt
 
         .section .rom_header
         dc.l    stack_top               /* initial SP: 32KB of RAM */
@@ -79,8 +80,8 @@ zap_bss:
         jsr boot_kiss                   /* off to C land */
 
         /* halt */
-halted: stop #0x2700                    /* all done */
-        br.s halted                     /* loop on NMI */
+halt:   stop #0x2700                    /* all done */
+        br.s halt                       /* loop on NMI */
 
 cpu_cache_flush:
 cpu_cache_invalidate:
