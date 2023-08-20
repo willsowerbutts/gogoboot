@@ -13,13 +13,7 @@ const char * const weekday[8] = { "???", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat
 
 void early_init(void)
 {
-    q40_led(false);
     q40_isa_reset();
-}
-
-void late_init(void)
-{
-    q40_led(true);
 }
 
 void target_hardware_init(void)
@@ -27,6 +21,8 @@ void target_hardware_init(void)
     printf("\nInitialise video: ");
     q40_graphics_init(3);
     printf("done\n");
+
+    q40_led(true);
 }
 
 void rtc_init(void)

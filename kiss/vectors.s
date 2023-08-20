@@ -5,7 +5,6 @@
         .globl  uart_write_str
         .globl  uart_write_byte
         .globl  report_exception
-        .globl  rom_pointer
         .globl  timer_ticks
         .globl  halt
 
@@ -221,7 +220,5 @@ bad_ns202_irq_message:
         .ascii ":( UNEXPECTED NS32202 IRQ \0"
 bad_interrupt_message:
         .ascii ":( UNEXPECTED INT \0"
-rom_pointer:
-        .long   0                       /* I prefer this to using -Wno-nonnull */
 
         .end

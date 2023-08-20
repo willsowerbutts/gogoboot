@@ -13,6 +13,7 @@
 #include <tinyalloc.h>
 #include <net.h>
 #include <cpu.h>
+#include <cli.h>
 #include <init.h>
 
 #ifdef TARGET_KISS
@@ -51,7 +52,7 @@ struct environment_variable_t
 
 environment_variable_t *environment_list_head = NULL;
 
-static const char *get_environment_variable(const char *name)
+const char *get_environment_variable(const char *name)
 {
     environment_variable_t *e;
 
@@ -61,15 +62,6 @@ static const char *get_environment_variable(const char *name)
 
     return NULL;
 }
-
-typedef struct
-{
-    const char *name;
-    const int min_args;
-    const int max_args;
-    void (* function)(char *argv[], int argc);
-    const char *helpme;
-} cmd_entry_t;
 
 static void execute_cmd(char *linebuffer);
 static void do_cd(char *argv[], int argc);
@@ -86,13 +78,8 @@ static void do_netinfo(char *argv[], int argc);
 static void do_set(char *argv[], int argc);
 static void do_tftp(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
-#ifdef TARGET_Q40
-static void do_softrom(char *argv[], int argc);
-static void do_hardrom(char *argv[], int argc);
-static void do_loadimage(char *argv[], int argc);
-#endif
 
-const cmd_entry_t cmd_table[] = {
+static const cmd_entry_t builtin_cmd_table[] = {
     /* name         min     max function */
     {"cd",          1,      1,  &do_cd,       "change directory <dir>"},
     {"del",         1, MAXARG,  &do_rm,       "delete a file" },
@@ -113,11 +100,6 @@ const cmd_entry_t cmd_table[] = {
     {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" }, // TODO write down the syntax
     {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
     {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
-#ifdef TARGET_Q40
-    {"softrom",     0,      1,  &do_softrom,  "load and boot a Q40 ROM image" },
-    {"hardrom",     0,      0,  &do_hardrom,  "reboot into Q40 hardware ROM" },
-    {"loadimage",   1,      1,  &do_loadimage,"load image into Q40 graphics memory" },
-#endif
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -152,7 +134,7 @@ const char *f_errmsg(int errno)
     return "???";
 }
 
-static void f_perror(int errno)
+void f_perror(int errno)
 {
     if(errno >= 0 && errno <= 19)
         printf("Error: %s\n", fatfs_errmsg[errno]);
@@ -219,17 +201,20 @@ static void do_dump(char *argv[], int argc)
     pretty_dump_memory((void*)start, count);
 }
 
+static void help_cmd_table(const cmd_entry_t *cmd)
+{
+    while (cmd->name) {
+        printf("%12s : %s\n", cmd->name, cmd->helpme);
+        cmd++;
+    }
+}
+
 static void help(char *argv[], int argc)
 {
-    extern const cmd_entry_t cmd_table[];
-    int i = 0;
-
     printf("\nBuilt-in commands:\n");
-    while (cmd_table[i].name) {
-        printf("%12s : %s\n", cmd_table[i].name,
-                cmd_table[i].helpme);
-        ++i;
-    }
+
+    help_cmd_table(builtin_cmd_table);
+
     printf("\nCommand syntax:  [u|s] [<builtin>|<file[.ext]>] [<args> ...]\n"
             "    <file[.ext]> may be *.CMD *.OUT *.68K *.SYS *.ELF  (all with Magic ID)\n\n");
 }
@@ -251,77 +236,6 @@ static void do_heapinfo(char *argv[], int argc)
             ta_num_fresh(), ta_num_free(), ta_num_used());
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
 }
-
-#ifdef TARGET_Q40
-static void do_loadimage(char *argv[], int argc)
-{
-    FRESULT fr;
-    FIL fd;
-
-    fr = f_open(&fd, argv[0], FA_READ);
-    if(fr == FR_OK){
-        f_read(&fd, (char*)VIDEO_RAM_BASE, (1024*1024), NULL);
-        f_close(&fd);
-    }
-    cpu_cache_flush(); /* flush data to video memory */
-}
-
-static void do_hardrom(char *argv[], int argc)
-{
-    printf("hardrom: rebooting ...\n\n\n");
-    q40_boot_softrom(0);
-}
-
-static void do_softrom(char *argv[], int argc)
-{
-    FRESULT fr;
-    UINT loaded;
-    FIL fd;
-    char *romimage = malloc(Q40_ROMSIZE);
-
-    if(argc == 0){
-        /* load from UART */
-        uint32_t count;
-        printf("softrom: loading from UART ...\n");
-        uart_read_string(&count, sizeof(count));
-        count--; // match bug in Q40 SOFTROM: load one byte less than instructed
-        if(count > Q40_ROMSIZE){
-            printf("softrom: too big (%ld)!\n", count);
-            free(romimage);
-            return;
-        }
-        uart_read_string(romimage, count);
-        loaded = count;
-    }else{
-        /* load from file */
-        fr = f_open(&fd, argv[0], FA_READ);
-        if(fr != FR_OK){
-            free(romimage);
-            printf("softrom: failed to read \"%s\": ", argv[0]);
-            f_perror(fr);
-            return;
-        }
-        f_read(&fd, romimage, Q40_ROMSIZE, &loaded);
-        f_close(&fd);
-        printf("softrom: loaded %d bytes from \"%s\"\n", loaded, argv[0]);
-    }
-
-    // pad with 0xFF
-    memset(romimage+loaded, 0xFF, Q40_ROMSIZE-loaded);
-
-    // check if what we've been given is different to what is already loaded
-    if(memcmp(romimage, rom_pointer, Q40_ROMSIZE)){
-        printf("softrom: rebooting ...\n\n\n");
-
-        // jump to assembler magic
-        q40_boot_softrom(romimage);
-    }else{
-        printf("softrom: matches running ROM\n");
-    } 
-
-    free(romimage);
-}
-#endif
 
 static void do_set(char *argv[], int argc)
 {
@@ -736,10 +650,9 @@ static void do_ls(char *argv[], int argc)
     printf("%ld MB free (%ld clusters of %ld bytes)\n", free_sectors >> 11, free_clusters, csize);
 }
 
-static bool handle_cmd_builtin(char *arg[], int numarg)
+static bool handle_cmd_drive(char *arg[], int numarg)
 {
     FRESULT fr;
-    const cmd_entry_t *cmd;
 
     if(numarg == 1 && arg[0][strlen(arg[0])-1] == ':'){
         /* change drive */
@@ -749,23 +662,27 @@ static bool handle_cmd_builtin(char *arg[], int numarg)
             printf("Cannot use drive %s\n", arg[0]);
         }
         return true;
-    } else {
-        /* built-in command */
-        for(cmd = cmd_table; cmd->name; cmd++){
-            if(!strcasecmp(arg[0], cmd->name)){
-                if((numarg-1) >= cmd->min_args && 
-                        (cmd->max_args == 0 || (numarg-1) <= cmd->max_args)){
-                    cmd->function(arg+1, numarg-1);
+    }
+    return false;
+}
+
+static bool handle_cmd_table(char *arg[], int numarg, const cmd_entry_t *cmd)
+{
+    while(cmd->name){
+        if(!strcasecmp(arg[0], cmd->name)){
+            if((numarg-1) >= cmd->min_args && 
+                    (cmd->max_args == 0 || (numarg-1) <= cmd->max_args)){
+                cmd->function(arg+1, numarg-1);
+            }else{
+                if(cmd->min_args == cmd->max_args){
+                    printf("%s: takes exactly %d argument%s\n", arg[0], cmd->min_args, cmd->min_args == 1 ? "" : "s");
                 }else{
-                    if(cmd->min_args == cmd->max_args){
-                        printf("%s: takes exactly %d argument%s\n", arg[0], cmd->min_args, cmd->min_args == 1 ? "" : "s");
-                    }else{
-                        printf("%s: takes %d to %d arguments\n", arg[0], cmd->min_args, cmd->max_args);
-                    }
+                    printf("%s: takes %d to %d arguments\n", arg[0], cmd->min_args, cmd->max_args);
                 }
-                return true;
             }
+            return true;
         }
+        cmd++;
     }
     return false;
 }
@@ -1223,10 +1140,16 @@ static void execute_cmd(char *linebuffer)
     handle_any_command(arg, numarg);
 }
 
-static void handle_any_command(char *argv[], int argc) {
-    if(argc > 0){
-        if(!handle_cmd_builtin(argv, argc) && !handle_cmd_executable(argv, argc))
-            printf("%s: Unknown command.  Try 'help'.\n", argv[0]);
+static void handle_any_command(char *argv[], int argc) 
+{
+    if(argc == 0)
+        return;
+
+    if(!handle_cmd_drive(argv, argc) && 
+       !handle_cmd_table(argv, argc, target_cmd_table) && 
+       !handle_cmd_table(argv, argc, builtin_cmd_table) && 
+       !handle_cmd_executable(argv, argc)) {
+        printf("%s: Unknown command.  Try 'help'.\n", argv[0]);
     }
 }
 

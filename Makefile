@@ -21,14 +21,14 @@ SRC_all  = arp.c cli.c dhcp.c except.c fatfs/ff.c fatfs/ffunicode.c ffglue.c \
 # q40 target
 AOPT_q40  = -m68040
 COPT_q40  = -march=68040 -mcpu=68040 -mtune=68040 -DTARGET_Q40 
-SRC_q40  = q40/vectors.s q40/qdos.s q40/softrom.s q40/startup.s q40/uart.c q40/hw.c \
-	   q40/ide.c q40/ffrtc.c
+SRC_q40  = q40/startup.s q40/vectors.s q40/uart.c q40/cli.c q40/hw.c q40/ide.c \
+	   q40/ffrtc.c q40/qdos.s q40/softrom.s
 
 # kiss target
 AOPT_kiss = -m68030
 COPT_kiss = -march=68030 -mcpu=68030 -mtune=68030 -DTARGET_KISS
-SRC_kiss = kiss/uart.c kiss/startup.s kiss/vectors.s kiss/timer.c \
-	   kiss/ffrtc.c kiss/ide.c kiss/idexfer.s kiss/hw.c
+SRC_kiss = kiss/startup.s kiss/vectors.s kiss/uart.c kiss/timer.c kiss/cli.c \
+	   kiss/hw.c kiss/ppide.c kiss/ffrtc.c kiss/idexfer.s
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 

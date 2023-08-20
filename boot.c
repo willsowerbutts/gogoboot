@@ -94,7 +94,7 @@ void report_linker_layout(void)
 
 #define MAXHEAP (2 << 20) /* 4MB */
 
-static unsigned int heap_init(void)
+static uint32_t heap_init(void)
 {
     int heap;
     void *base;
@@ -112,22 +112,25 @@ static unsigned int heap_init(void)
     base = (void*)ram_size - heap;
     ta_init(base, (void*)ram_size-1, 2048, 16, 8);
 
-    return (unsigned int)base;
+    return (uint32_t)base;
 }
 
 void gogoboot(void)
 {
+    uint32_t heap_base;
+
     early_init();
+
     uart_init();
 
     printf(copyright_msg);
     report_linker_layout();
-
     printf("Version %s\n", software_version_string);
+
     printf("RAM installed: ");
     measure_ram_size();
-    unsigned int heap_base = heap_init();
-    printf("%ld MB, %ld MB heap at 0x%08x\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
+    heap_base = heap_init();
+    printf("%ld MB, %ld MB heap at 0x%08lx\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
 
     printf("Setup interrupts: ");
     setup_interrupts(); /* do this early to get timers ticking */
@@ -136,17 +139,15 @@ void gogoboot(void)
     printf("Initialise RTC: ");
     rtc_init();
 
-    target_hardware_init();
-
     disk_init();
+
+    target_hardware_init();
 
     printf("Initialise ethernet: ");
     net_init();
     if(eth_init()){
         dhcp_init();
     }
-
-    late_init();
 
     command_line_interpreter();
 

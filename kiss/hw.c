@@ -43,11 +43,6 @@ void early_init(void)
     // not required
 }
 
-void late_init(void)
-{
-    // not required
-}
-
 void target_hardware_init(void)
 {
     // not required
@@ -55,5 +50,5 @@ void target_hardware_init(void)
 
 void rtc_init(void)
 {
-    // not implemented
+    printf("no driver yet!\n");
 }
