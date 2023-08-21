@@ -26,7 +26,7 @@ static void push_packet_ready(int len);
 /* 8-bit bus targets: KISS-68030 */
 #include <kiss/ecb.h>
 #undef NE2000_16BIT_PIO         /* use 8-bit PIO data transfer */
-static uint16_t const portlist[] = { 0x80, 0xA0, 0 };
+static uint16_t const portlist[] = { 0 };
 static inline void    write_port_byte_pause(uint16_t port, uint8_t val) { ecb_write_byte_pause(port, val); }
 static inline void    write_port_byte(uint16_t port, uint8_t val)       { ecb_write_byte(port, val); }
 static inline uint8_t  read_port_byte(uint16_t port)             { return ecb_read_byte(port); }

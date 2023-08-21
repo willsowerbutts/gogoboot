@@ -11,7 +11,6 @@
         .globl  cpu_interrupts_off
         .globl  vector_table
         .globl  halt
-        .globl  kiss_check_double_jumper
 
         .section .rom_header
         dc.l    stack_top               /* initial SP: 32KB of RAM */
@@ -111,34 +110,5 @@ cpu_interrupts_on:
 cpu_interrupts_off:
         or.w #0x0700, %sr
         rts
-
-/* KISS-68030 has a hardware jumper named "DOUBLE". Accessing memory above 
-   64MB when DOUBLE=0 will lead to a bus exception.  When DOUBLE=1 the limit 
-   is instead 256MB. This routine tries to access memory >64MB and traps
-   the resulting bus error (if it occurs) in order to determine the setting
-   of the DOUBLE jumper, and thus the maximum possible installed memory. */
-
-        .align 4                        /* vector 0 (unspecified) initial ISP */
-temp_vectors:                           /* vector 1 (unspecified) initial PC */
-        .long   doublefault             /* vector 2 (specified)   access fault / bus error */
-
-kiss_check_double_jumper:
-        move.w %sr, -(%sp)              /* save SR including interrupt level */
-        or.w #0x0700, %sr               /* force interrupts off */
-        movec.l %vbr, %d1               /* save VBR */
-        move.l %sp, %a1                 /* save SP in %a1 */
-        move.l #(temp_vectors-8), %a0   /* load VBR with temporary vector table */
-        movec.l %a0, %vbr               /* (only vector 2 can be used) */
-        lea 64*1024*1024, %a0           /* load test address */
-        move.b (%a0), %d0               /* test it */
-        move.l #256, %d0                /* if we get here, DOUBLE=1 */
-        bra.s doubledone
-doublefault:
-        move.l #64, %d0                 /* if we get here, DOUBLE=0 */
-doubledone:
-        move.l %a1, %sp                 /* restore SP */
-        movec.l %d1, %vbr
-        move.w (%sp)+, %sr              /* restore SR including interrupt level */
-        rts                             /* return with value in %d0 */
 
         .end

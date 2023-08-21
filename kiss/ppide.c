@@ -58,9 +58,9 @@ static void disk_controller_reset(disk_controller_t *ctrl)
 
     ide_set_register(ctrl, PPIDE_REG_DEVHEAD, 0xE0);   /* select master */
     ide_set_register(ctrl, PPIDE_REG_ALTSTATUS, 0x06); /* assert reset, no interrupts */
-    delay_ms(100);
-    ide_set_register(ctrl, PPIDE_REG_ALTSTATUS, 0x02); /* release reset, no interrupts */
     delay_ms(50);
+    ide_set_register(ctrl, PPIDE_REG_ALTSTATUS, 0x02); /* release reset, no interrupts */
+    delay_ms(200);
     printf(" done\n");
 }
 
