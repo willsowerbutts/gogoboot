@@ -1,5 +1,4 @@
-/* 2023-07-25 William R Sowerbutts
- * Includes some code from my "devide" FUZIX IDE driver.  */
+/* 2023-08-20 William R Sowerbutts */
 
 #include <stdlib.h>
 #include <timers.h>
