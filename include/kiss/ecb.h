@@ -7,6 +7,7 @@
 #define KISS68030_ECBMEM_BASE           0xFFF80000 /* 256KB */
 #define KISS68030_SRAM_BASE             0xFFFE0000 /* 64KB (32KB chip is mapped twice) */
 #define KISS68030_IO_BASE               0xFFFF0000 /* 64KB */
+#define KISS68030_ROM_SIZE              (512*1024)
 
 /* interrupts */
 /* the KISS68030_*_IRQ defines are for the NS32202 IRQ pin numbers

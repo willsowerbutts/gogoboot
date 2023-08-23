@@ -4,5 +4,6 @@
 #include <types.h>
 
 uint32_t kiss_check_double_jumper(void);
+void kiss_boot_softrom(void *romimage);
 
 #endif

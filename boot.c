@@ -12,8 +12,6 @@
 #include <init.h>
 #include <version.h>
 
-extern const char copyright_msg[];
-
 /* TODO:
  * DONE - 040 cache modes
  * DONE - debug odd crashes (SOFTROM bug)
@@ -72,12 +70,13 @@ extern const char copyright_msg[];
  * - gzip/gunzip?
  */
 
-extern char text_start, text_size;
-extern char rodata_start, rodata_size;
-extern char data_start, data_load_start, data_size;
-extern char bss_start, bss_size;
+extern const char copyright_msg[];
+extern const char text_start, text_size;
+extern const char rodata_start, rodata_size;
+extern const char data_start, data_load_start, data_size;
+extern const char bss_start, bss_size;
 #ifdef TARGET_KISS
-extern char stack_start, stack_size;
+extern const char stack_start, stack_size;
 #endif
 
 void report_linker_layout(void)
