@@ -46,6 +46,9 @@ extern const char copyright_msg[];
  * DONE - test my SOFTROM tool at 115200bps -- consider changing everything to use this rate?
  * DONE - ls sorts into order (switchable?)
  * DONE - autoexec (with abort key)
+ * - kiss: copy ROM -> RAM and run from RAM
+ * - kiss: download new image over UART / load from disk, "reboot" into it ("softrom")
+ * - kiss: in-system flash reprogramming utility (based on flash4)
  * - ne2000 driver to work with other cards (we have 3; it works with exactly 1!)
  * - TFTP write mode
  * - TFTP server mode
