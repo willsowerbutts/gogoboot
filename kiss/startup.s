@@ -27,7 +27,7 @@ copyright_msg:
 
         /* define some space in DRAM for the stack to live */
         .section .stack
-        .align 16
+        .align 4
 stack_bottom:
         .space  (16*1024)
 stack_top:
