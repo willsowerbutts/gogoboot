@@ -48,7 +48,7 @@ define make_target =
 ROMOBJ_$(1) = $(patsubst %.s,%.$(1).o,$(patsubst %.c,%.$(1).o,$(SRC_all) $(SRC_$(1))))
 
 gogoboot-$(1).elf:	version.$(1).o $$(ROMOBJ_$(1)) $(1)/linker.ld
-	$$(LD) --gc-sections --script=$(1)/linker.ld -z noexecstack -Map gogoboot-$(1).map -o gogoboot-$(1).elf $$(ROMOBJ_$(1)) version.$(1).o
+	$$(LD) --gc-sections --script=$(1)/linker.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-$(1).map -o gogoboot-$(1).elf $$(ROMOBJ_$(1)) version.$(1).o
 
 gogoboot-$(1).rom:	gogoboot-$(1).elf
 	$(OBJCOPY) -O binary gogoboot-$(1).elf gogoboot-$(1).rom
