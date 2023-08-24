@@ -70,7 +70,7 @@ tftp:	$(TARGET_ROMS)
 q40-serial:	gogoboot-q40.rom
 	./q40/sendrom /dev/ttyUSB0 115200 gogoboot-q40.rom
 
-kiss-serial:	gogoboot-q40.rom
+kiss-serial:	gogoboot-kiss.rom
 	./q40/sendrom /dev/ttyUSB0 115200 gogoboot-kiss.rom
 
 q40-split:	gogoboot-q40.rom
