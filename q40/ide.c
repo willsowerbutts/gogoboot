@@ -6,6 +6,7 @@
 #include <fatfs/ff.h>
 #include <fatfs/diskio.h>
 #include <disk.h>
+#include <ide.h>
 #include <q40/ide.h>
 #include <q40/isa.h>
 #include <q40/hw.h>

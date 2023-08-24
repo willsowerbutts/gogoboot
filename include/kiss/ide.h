@@ -7,15 +7,14 @@ void ide_sector_xfer_output(const void *buf, volatile uint8_t *port);
 
 struct disk_controller_t
 {
-    uint16_t base_io;
-    volatile uint8_t *lsb;
-    volatile uint8_t *msb;
-    volatile uint8_t *select;
-    volatile uint8_t *control;
+    uint16_t lsb;
+    uint16_t msb;
+    uint16_t select;
+    uint16_t control;
     bool read_mode;
 };
 
-/* IDE control signal to 8255 port C mapping */
+/* IDE control signal to 8255 port C bit mapping */
 #define PPIDE_A0_LINE           0x01 // Direct from 8255 to IDE interface
 #define PPIDE_A1_LINE           0x02 // Direct from 8255 to IDE interface
 #define PPIDE_A2_LINE           0x04 // Direct from 8255 to IDE interface
