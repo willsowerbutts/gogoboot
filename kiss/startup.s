@@ -56,7 +56,7 @@ _start:
         nop
 
         /* copy .text section into RAM from ROM -- note limited to 256KB */
-        lea.l   %pc@(text_start - .), %a0    /* source address */
+        lea.l   %pc@(text_start), %a0   /* source address */
         lea.l   text_start, %a1         /* dest address */
         move.l  #(text_size+3), %d0     /* num bytes to copy */
         lsr.l   #2, %d0                 /* convert to longwords (div 4) */
@@ -71,7 +71,7 @@ copy_text:
         movec.l %a0, %vbr
 
         /* copy .rodata section into RAM from ROM -- note limited to 256KB */
-        lea.l   %pc@(rodata_start - .), %a0    /* source address */
+        lea.l   %pc@(rodata_start), %a0   /* source address */
         lea.l   rodata_start, %a1         /* dest address */
         move.l  #(rodata_size+3), %d0     /* num bytes to copy */
         lsr.l   #2, %d0                 /* convert to longwords (div 4) */
@@ -82,7 +82,7 @@ copy_rodata:
         dbra    %d0,copy_rodata_loop
 
         /* load .data section into RAM from ROM -- note limited to 256KB */
-        lea.l   %pc@(data_start - .), %a0    /* source address */
+        lea.l   %pc@(data_start), %a0   /* source address */
         lea.l   data_start, %a1         /* dest address */
         move.l  #(data_size+3), %d0     /* num bytes to copy */
         lsr.l   #2, %d0                 /* convert to longwords (div 4) */
@@ -98,7 +98,8 @@ copy_data:
         nop
 
         /* jump and continue at our target address */
-        bra target_address
+        movea.l #target_address, %a0
+        jmp (%a0)
 target_address:
         /* phew ... we're done using only PC-relative addresses */
 
