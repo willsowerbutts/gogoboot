@@ -16,7 +16,7 @@ ide_sector_xfer_input:
     lea %a1@(3),%a2             /* 8255 control register */
     moveq #13, %d2
     moveq #12, %d3
-    move.l #127, %d1            /* total 128x4=512 bytes */
+    moveq #127, %d1             /* total 128x4=512 bytes */
 
 ide_input_nextword:
     /* read a DWORD */
@@ -50,7 +50,7 @@ ide_sector_xfer_output:
     lea %a1@(3),%a2             /* 8255 control register */
     moveq #11, %d2
     moveq #10, %d3
-    move.l #127, %d1            /* total 128x4=512 bytes */
+    moveq #127, %d1             /* total (127+1)*4=512 bytes */
 
     /* note that to give the drive time to latch the data we do
        housekeeping including swaps and branches while the /WR
@@ -71,7 +71,6 @@ ide_output_nextword:
     movew %d0, %a1@             /* set up data lines */
     moveb %d2, %a2@             /* begin /WR pulse */
     /* loop until done */
-ide_output_loop:
     dbra %d1, ide_output_nextword
 
     moveb %d3, %a2@          /* end the final /WR pulse */
