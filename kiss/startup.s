@@ -13,8 +13,13 @@
         .globl  halt
 
         .section .rom_header
-        bra     _start                          /* initial SP - junk - actually a relative jump to _start */
-        dc.l    _start + KISS68030_ROM_BASE     /* initial PC - jump to in-ROM address of _start */
+rom_start:
+        /* initial SP: actually contain a relative jump to _start, we load SP manually later */
+        /* this is instead used when we "softrom" the ROM image */
+        bra     _start                          
+        /* initial PC - jump to ROM address of _start */
+        /* this is used at machine power on */
+        dc.l    _start - rom_start + KISS68030_ROM_BASE  
 
         /* get this copyright message up near the head of the ROM */
         .align 16
@@ -55,42 +60,18 @@ _start:
         movec.l %d0, %cacr
         nop
 
-        /* copy .text section into RAM from ROM -- note limited to 256KB */
-        lea.l   %pc@(text_start), %a0   /* source address */
-        lea.l   text_start, %a1         /* dest address */
-        move.l  #(text_size+3), %d0     /* num bytes to copy */
+        /* copy .text+.rodata+.data sections into RAM from ROM -- note limited to 256KB */
+        lea.l   %pc@(text_start), %a0   /* source address - PC relative */
+        movea.l #text_start, %a1        /* dest address */
+        /* there must be a better way for the assembler/linker to compute how many longwords to copy! */
+        move.l  #(data_end+3), %d0      /* last byte to copy (round up to next longword) */
+        sub.l   %a1, %d0                /* subtract start address */
         lsr.l   #2, %d0                 /* convert to longwords (div 4) */
         br.s    copy_text
 copy_text_loop:
         move.l  (%a0)+,(%a1)+
 copy_text:
         dbra    %d0,copy_text_loop
-
-        /* load vector base register */
-        lea vector_table, %a0
-        movec.l %a0, %vbr
-
-        /* copy .rodata section into RAM from ROM -- note limited to 256KB */
-        lea.l   %pc@(rodata_start), %a0   /* source address */
-        lea.l   rodata_start, %a1         /* dest address */
-        move.l  #(rodata_size+3), %d0     /* num bytes to copy */
-        lsr.l   #2, %d0                 /* convert to longwords (div 4) */
-        br.s    copy_rodata
-copy_rodata_loop:
-        move.l  (%a0)+,(%a1)+
-copy_rodata:
-        dbra    %d0,copy_rodata_loop
-
-        /* load .data section into RAM from ROM -- note limited to 256KB */
-        lea.l   %pc@(data_start), %a0   /* source address */
-        lea.l   data_start, %a1         /* dest address */
-        move.l  #(data_size+3), %d0     /* num bytes to copy */
-        lsr.l   #2, %d0                 /* convert to longwords (div 4) */
-        br.s    copy_data
-copy_data_loop:
-        move.l  (%a0)+,(%a1)+
-copy_data:
-        dbra    %d0,copy_data_loop
 
         /* flush (and keep enabled) data, instruction caches */
         move.l #(CACR_EI + CACR_ED + CACR_CI + CACR_CD), %d0 
@@ -102,6 +83,10 @@ copy_data:
         jmp (%a0)
 target_address:
         /* phew ... we're done using only PC-relative addresses */
+
+        /* load vector base register */
+        lea vector_table, %a0
+        movec.l %a0, %vbr
 
         /* set stack pointer */
         lea stack_top, %sp
