@@ -211,12 +211,8 @@ static void help_cmd_table(const cmd_entry_t *cmd)
 
 static void help(char *argv[], int argc)
 {
-    printf("\nBuilt-in commands:\n");
-
     help_cmd_table(builtin_cmd_table);
-
-    printf("\nCommand syntax:  [u|s] [<builtin>|<file[.ext]>] [<args> ...]\n"
-            "    <file[.ext]> may be *.CMD *.OUT *.68K *.SYS *.ELF  (all with Magic ID)\n\n");
+    help_cmd_table(target_cmd_table);
 }
 
 static int fromhex(char c)
