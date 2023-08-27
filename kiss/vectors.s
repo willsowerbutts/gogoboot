@@ -77,22 +77,22 @@ vector_table:
         .long   unhandled_exception  /* 61 reserved */
         .long   unhandled_exception  /* 62 reserved */
         .long   unhandled_exception  /* 63 reserved */
-        .long   ns202_irq_0  /* 64 user vector 0 (NS32202 IRQ) */
-        .long   ns202_irq_1  /* 65 user vector 1 (NS32202 IRQ) */
-        .long   ns202_irq_2  /* 66 user vector 2 (NS32202 IRQ) */
-        .long   ns202_irq_3  /* 67 user vector 3 (NS32202 IRQ) */
-        .long   ns202_irq_4  /* 68 user vector 4 (NS32202 IRQ) */
-        .long   ns202_irq_5  /* 69 user vector 5 (NS32202 IRQ) */
-        .long   ns202_irq_6  /* 70 user vector 6 (NS32202 IRQ) */
-        .long   ns202_irq_7  /* 71 user vector 7 (NS32202 IRQ) */
-        .long   ns202_irq_8  /* 72 user vector 8 (NS32202 IRQ) */
-        .long   ns202_irq_9  /* 73 user vector 9 (NS32202 IRQ) */
-        .long   ns202_irq_a  /* 74 user vector 10 (NS32202 IRQ) */
-        .long   ns202_irq_b  /* 75 user vector 11 (NS32202 IRQ) */
-        .long   ns202_irq_c  /* 76 user vector 12 (NS32202 IRQ) */
-        .long   ns202_irq_d  /* 77 user vector 13 (NS32202 IRQ) */
-        .long   ns202_irq_e  /* 78 user vector 14 (NS32202 IRQ) */
-        .long   ns202_irq_f  /* 79 user vector 15 (NS32202 IRQ) */
+        .long   ns202_irq_0          /* 64 user vector 0 (NS32202 IRQ) */
+        .long   ns202_irq_1          /* 65 user vector 1 (NS32202 IRQ) */
+        .long   ns202_irq_2          /* 66 user vector 2 (NS32202 IRQ) */
+        .long   ns202_irq_3          /* 67 user vector 3 (NS32202 IRQ) */
+        .long   ns202_irq_4          /* 68 user vector 4 (NS32202 IRQ) */
+        .long   ns202_irq_5          /* 69 user vector 5 (NS32202 IRQ) */
+        .long   ns202_irq_6          /* 70 user vector 6 (NS32202 IRQ) */
+        .long   ns202_irq_7          /* 71 user vector 7 (NS32202 IRQ) */
+        .long   ns202_irq_8          /* 72 user vector 8 (NS32202 IRQ) */
+        .long   ns202_irq_9          /* 73 user vector 9 (NS32202 IRQ) */
+        .long   ns202_irq_a          /* 74 user vector 10 (NS32202 IRQ) */
+        .long   ns202_irq_b          /* 75 user vector 11 (NS32202 IRQ) */
+        .long   ns202_irq_c          /* 76 user vector 12 (NS32202 IRQ) */
+        .long   ns202_irq_d          /* 77 user vector 13 (NS32202 IRQ) */
+        .long   ns202_irq_e          /* 78 user vector 14 (NS32202 IRQ) */
+        .long   ns202_irq_f          /* 79 user vector 15 (NS32202 IRQ) */
 
 /* handlers for things that might happen and which are, generally, bad */
 
