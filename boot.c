@@ -61,13 +61,13 @@
  *   - store ROM config in RTC NVRAM? serial port speed, boot script filename, etc? store as series of strings; cksum at end. store backwards in nvram.
  *   - printenv, set, save commands
  * DONE - linux ne2000 driver: stop interrupt probing (=crashes machine)
- * - build system: multiple targets (maybe use something better than a makefile?)
- *   - port back to kiss-68030
- *     - 030 cache modes
- *     - ns202 interrupts
+ * DONE - build system: multiple targets (maybe use something better than a makefile?)
+ * DONE   - port back to kiss-68030
+ * DONE     - 030 cache modes
+ * DONE     - ns202 interrupts
  *     - move int handlers -> C?
  * - add "linux" command - make loading a kernel an explicit command (linux [filename] [-i initrd] [kcmdline])
- * - add LRESPR command - so I can boot SMSQ/E image from disk -- started, but crashes. Write to SMSQ/E maintainer?
+ * - add LRESPR command - so I can boot SMSQ/E image from disk -- works with older (from ROMs) but fails with newer. Write to SMSQ/E maintainer?
  * - serial interrupts (at least on receive? pretty much required for zmodem to disk I expect)
  * - ZMODEM! https://github.com/spk121/libzmodem ?
  * - gzip/gunzip?
