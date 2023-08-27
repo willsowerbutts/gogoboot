@@ -90,7 +90,7 @@ port.flush()
 # report progress
 taken = time.time() - start
 print(f'\rall sent in {taken:.3f} seconds.              ')
-print('---- entering terminal mode ----')
-
-t = Replica1Terminal(port)
-t.run()
+if '--term' in sys.argv:
+    print('---- entering terminal mode ----')
+    t = Replica1Terminal(port)
+    t.run()
