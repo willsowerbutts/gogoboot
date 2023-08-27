@@ -31,6 +31,7 @@ enum {
         ATA_REG_LBAH            = 0x05,
         ATA_REG_DEVICE          = 0x06,
         ATA_REG_STATUS          = 0x07,
+        ATA_REG_ALTSTATUS       = 0x206,
 
         ATA_REG_FEATURE         = ATA_REG_ERR, /* and their aliases */
         ATA_REG_CMD             = ATA_REG_STATUS,

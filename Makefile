@@ -16,7 +16,7 @@ COPT_all  = -O1 -std=c18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
 SRC_all  = arp.c cli.c dhcp.c except.c fatfs/ff.c fatfs/ffunicode.c ffglue.c \
            ipcsum.c ipv4.c memcpy.c memmove.c memset.c ne2000.c net.c packet.c \
            printf.c qsort.c stdlib.c strdup.c strtoul.c tftp.c tinyalloc.c \
-	   icmp.c timer.c boot.c
+	   icmp.c ide.c timer.c boot.c
 
 # q40 target
 AOPT_q40  = -m68040

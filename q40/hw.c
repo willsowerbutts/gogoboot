@@ -18,7 +18,7 @@ void early_init(void)
 
 void target_hardware_init(void)
 {
-    printf("\nInitialise video: ");
+    printf("Initialise video: ");
     q40_graphics_init(3);
     printf("done\n");
 
@@ -38,7 +38,7 @@ void rtc_init(void)
     data.minute  &= 0x7F;
     data.second  &= 0x7F; /* clears the STOP bit, oscillator runs */
 
-    printf("%s 20%d%d-%d%d-%d%d %d%d:%d%d:%d%d ",
+    printf("%s 20%d%d-%d%d-%d%d %d%d:%d%d:%d%d",
             weekday[data.weekday],
             data.year   >> 4 & 0x0F, data.year   & 0x0F,
             data.month  >> 4 & 0x0F, data.month  & 0x0F,
@@ -49,9 +49,10 @@ void rtc_init(void)
 
     /* write back only if we changed anything */
     if(memcmp(&data, &data_prev, sizeof(data))){
-        printf("(started RTC oscillator) ");
+        printf(" (started RTC oscillator)");
         q40_rtc_write_clock(&data);
     }
+    printf("\n");
 }
 
 uint8_t q40_rtc_read_nvram(int offset)
