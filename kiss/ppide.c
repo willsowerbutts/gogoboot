@@ -27,7 +27,7 @@ static bool disk_init_done = false;
 static void ide_set_data_direction(disk_controller_t *ctrl, bool read_mode)
 {
     if(ctrl->read_mode != read_mode){
-        ecb_write_byte(ctrl->control, read_mode ? PPIDE_PPI_BUS_READ : PPIDE_PPI_BUS_WRITE);
+        *ctrl->control = read_mode ? PPIDE_PPI_BUS_READ : PPIDE_PPI_BUS_WRITE;
         ctrl->read_mode = read_mode;
     }
 }
@@ -36,25 +36,25 @@ static uint8_t ide_get_register(disk_controller_t *ctrl, uint8_t reg)
 {
     uint8_t val;
     ide_set_data_direction(ctrl, true);
-    ecb_write_byte(ctrl->select, reg);
-    ecb_write_byte(ctrl->control, 1 | (PPIDE_RD_BIT << 1));
-    val = ecb_read_byte(ctrl->lsb);
-    ecb_write_byte(ctrl->control, 0 | (PPIDE_RD_BIT << 1));
+    *ctrl->select = reg;
+    *ctrl->control = 1 | (PPIDE_RD_BIT << 1);
+    val = *ctrl->lsb;
+    *ctrl->control = 0 | (PPIDE_RD_BIT << 1);
     return val;
 }
 
 static void ide_set_register(disk_controller_t *ctrl, uint8_t reg, uint8_t val)
 {
     ide_set_data_direction(ctrl, false);
-    ecb_write_byte(ctrl->select, reg);
-    ecb_write_byte(ctrl->lsb, val);
-    ecb_write_byte(ctrl->control, 1 | (PPIDE_WR_BIT << 1));
-    ecb_write_byte(ctrl->control, 0 | (PPIDE_WR_BIT << 1));
+    *ctrl->select = reg;
+    *ctrl->lsb = val;
+    *ctrl->control = 1 | (PPIDE_WR_BIT << 1);
+    *ctrl->control = 0 | (PPIDE_WR_BIT << 1);
 }
 
 static void disk_controller_reset(disk_controller_t *ctrl)
 {
-    printf("PPIDE reset controller at 0x%x:", ctrl->lsb);
+    printf("PPIDE reset controller at 0x%x:", ctrl->base_io);
 
     ide_set_register(ctrl, PPIDE_REG_DEVHEAD, 0xE0);   /* select master */
     ide_set_register(ctrl, PPIDE_REG_ALTSTATUS, 0x06); /* assert reset, no interrupts */
@@ -94,16 +94,16 @@ static void disk_data_read_sector_data(disk_controller_t *ctrl, void *ptr)
 {
     //printf("read sector\n");
     ide_set_data_direction(ctrl, true);
-    ecb_write_byte(ctrl->select, PPIDE_REG_DATA);
-    ide_sector_xfer_input(ptr, (void*)((uint32_t)ctrl->lsb + KISS68030_IO_BASE));
+    *ctrl->select = PPIDE_REG_DATA;
+    ide_sector_xfer_input(ptr, ctrl->lsb);
 }
 
 static void disk_data_write_sector_data(disk_controller_t *ctrl, const void *ptr)
 {
     //printf("write sector\n");
     ide_set_data_direction(ctrl, false);
-    ecb_write_byte(ctrl->select, PPIDE_REG_DATA);
-    ide_sector_xfer_output(ptr, (void*)((uint32_t)ctrl->lsb + KISS68030_IO_BASE));
+    *ctrl->select = PPIDE_REG_DATA;
+    ide_sector_xfer_output(ptr, ctrl->lsb);
 }
 
 static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sector_count, bool is_write)
@@ -161,6 +161,10 @@ static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sec
             buff += 512;
             nsect--;
         }
+
+        if(is_write) /* wait for write operations to complete */
+            if(!disk_wait(ctrl, IDE_STATUS_READY))
+                return false;
     }
 
     return true;
@@ -194,7 +198,7 @@ static void disk_init_disk(disk_controller_t *ctrl, int disk)
     char prod[1+ATA_ID_PROD_LEN];
     uint32_t sectors;
 
-    printf("PPIDE probe 0x%x disk %d: ", ctrl->lsb, disk);
+    printf("PPIDE probe 0x%x disk %d: ", ctrl->base_io, disk);
 
     switch(disk){
         case 0: sel = 0xE0; break;
@@ -269,10 +273,11 @@ static void disk_init_disk(disk_controller_t *ctrl, int disk)
 static void disk_controller_init(disk_controller_t *ctrl, uint16_t base_io)
 {
     /* set up controller register pointers */
-    ctrl->lsb     = base_io + PPIDE_LSB;
-    ctrl->msb     = base_io + PPIDE_MSB;
-    ctrl->select  = base_io + PPIDE_SIGNALS;
-    ctrl->control = base_io + PPIDE_CONTROL;
+    ctrl->base_io = base_io;
+    ctrl->lsb     = &ECB_DEVICE_IO[base_io + PPIDE_LSB];
+    ctrl->msb     = &ECB_DEVICE_IO[base_io + PPIDE_MSB];
+    ctrl->select  = &ECB_DEVICE_IO[base_io + PPIDE_SIGNALS];
+    ctrl->control = &ECB_DEVICE_IO[base_io + PPIDE_CONTROL];
 
     /* force a change in input mode to force configuration of the 8255 */
     ctrl->read_mode = false;

@@ -119,7 +119,7 @@ static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sec
         /* send command */
         *ctrl->command_reg = is_write ? IDE_CMD_WRITE_SECTOR : IDE_CMD_READ_SECTOR;
 
-        /* read result */
+        /* transfer sectors */
         while(nsect > 0){
             /* unclear if we need to wait for DRQ on each sector? play it safe */
             if(!disk_wait(ctrl, IDE_STATUS_DATAREQUEST))
@@ -131,6 +131,10 @@ static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sec
             buff += 512;
             nsect--;
         }
+
+        if(is_write) /* wait for write operations to complete */
+            if(!disk_wait(ctrl, IDE_STATUS_READY))
+                return false;
     }
 
     return true;
