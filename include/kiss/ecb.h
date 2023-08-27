@@ -89,12 +89,12 @@ static inline void ecb_write_byte(uint16_t addr, uint8_t val)
 static inline void ecb_write_byte_pause(uint16_t addr, uint8_t val)
 {
     ECB_DEVICE_IO[addr] = val;
-    *ECB_PAUSE = 0x80;
+    *ECB_PAUSE = 0x00;
 }
 
 static inline void ecb_slow_down(void)
 {
-    *ECB_PAUSE = 0x80;
+    *ECB_PAUSE = 0x00;
 }
 
 #endif
