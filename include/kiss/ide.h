@@ -7,10 +7,11 @@ void ide_sector_xfer_output(const void *buf, volatile uint8_t *port);
 
 struct disk_controller_t
 {
-    uint16_t lsb;
-    uint16_t msb;
-    uint16_t select;
-    uint16_t control;
+    uint16_t base_io;
+    volatile uint8_t *lsb;
+    volatile uint8_t *msb;
+    volatile uint8_t *select;
+    volatile uint8_t *control;
     bool read_mode;
 };
 
