@@ -48,6 +48,7 @@
  * DONE - kiss: download new image over UART / load from disk, "reboot" into it ("softrom")
  * DONE - kiss: cannot write to disk? looks like memory is being corrupted, perhaps?
  * - kiss: ? in-system flash reprogramming utility (based on flash4)
+ * - can we share more IDE driver code?
  * - move heap to be in low memory (and smaller?), set kernel load address dynamically based on computed highest used address?
  * - ne2000 driver to work with other cards (we have 3; it works with exactly 1!)
  * - TFTP write mode
