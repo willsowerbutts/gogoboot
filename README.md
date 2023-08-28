@@ -1,25 +1,29 @@
 GogoBoot
 ========
 
-GogoBoot is a boot ROM for 68K machines.  It is mostly written in C with just
-enough assembler to make it work.  C was chosen to make the software easy to
-port and extend.
+GogoBoot is a boot ROM for 68K machines.
 
 GogoBoot provides a command-line interface on a serial port to control the
-machine.  It provides simple scripting, including a script executed
-automatically on boot.
+machine.  It provides simple scripting, including a "boot" script which is
+executed automatically on boot.
 
 It supports FAT16/FAT32 (and optionally exFAT) filesystems, with long file
-names, on IDE disks.
+names. It includes a driver for IDE disks.
 
 It includes a simple IPv4 stack which supports DHCP and can transfer files to
-the hard disk using TFTP over an ethernet network. 
+the hard disk using TFTP over an ethernet network.
+
+It has commands to read and write to system memory from the CLI.
 
 It can load ELF executables, including support for booting the Linux kernel.
 
+It is mostly written in C with just enough assembler to make it work.  C was
+chosen to make the software easy to port and extend.
+
 The main purpose of GogoBoot is to provide an environment to load and run
-software under development, typically operating system kernels. It does not
-provide a system call (BIOS) interface for software to use at run time.
+software under development, typically operating system kernels. It is not a
+operating system and does not provide a system call (BIOS) interface for
+software to use at run time.
 
 
 Supported Targets
