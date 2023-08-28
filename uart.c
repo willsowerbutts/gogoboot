@@ -16,8 +16,15 @@
 #pragma error update uart.c for your target
 #endif
 
-#define BAUD_RATE       115200
-#define UART_DIVISOR    (115200/BAUD_RATE)
+#ifndef BAUD_RATE
+#define BAUD_RATE       115200 /* desired RS232 baud rate */
+#endif
+
+#ifndef UART_CLK
+#define UART_CLK        115200 /* UART CLK input */
+#endif
+
+#define UART_DIVISOR    (BAUD_RATE/UART_CLK)
 
 void uart_init(void)
 {
