@@ -40,6 +40,7 @@ GogoBoot currently supports three target machines:
 It should be easy to port GogoBoot to a new target. The Mini-68K target was
 written in just a few hours.
 
+
 Supported Hardware
 ------------------
 
@@ -65,6 +66,17 @@ to afford easy interchange of disks with other computers.
 
 On Q40 machines, GogoBoot will look for an NE2000 ISA ethernet card at the
 common I/O addresses (I use 0x300).
+
+
+Building GoGoBoot
+-----------------
+
+I use a Debian (12) Linux system with the gcc-m68k-linux-gnu. Just type `make`
+and you will end up with a `*.rom` file for each target.
+
+To program EPROMs for the Q40, run `make q40-split` and separate high/low ROMs
+will be generated.
+
 
 CLI
 ---
