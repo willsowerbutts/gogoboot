@@ -35,7 +35,7 @@ void *memset(void *s, int c, size_t count)
 	temp = count >> 2;
 	if (temp) {
 		long *ls = s;
-#if defined(CONFIG_M68000) || defined(CONFIG_COLDFIRE)
+#if defined(TARGET_MINI)
 		for (; temp; temp--)
 			*ls++ = c;
 #else

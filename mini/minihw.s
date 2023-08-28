@@ -1,0 +1,12 @@
+# 2023-08-28 Will Sowerbutts
+
+/* Mini68K has a 4MB address space */
+MINI68K_ROM_BASE      = 0x380000
+MINI68K_ROM_SIZE      = 0x070000        /* 512KB - */
+MINI68K_ECBMEM_BASE   = 0x300000
+MINI68K_ECBMEM_SIZE   = 0x080000        /* 512KB ECB MEM window */
+MINI68K_ECBIO_BASE    = 0x3F0000
+MINI68K_ECBIO_SIZE    = 0x010000        /* 64KB ECB IO window */
+
+MINI68K_MFPIC_ADDR    = 0x40
+NS32202_EOI           = 32

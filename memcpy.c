@@ -25,7 +25,7 @@ void *memcpy(void *to, const void *from, size_t n)
 		from = cfrom;
 		n--;
 	}
-#if defined(CONFIG_M68000)
+#if defined(TARGET_MINI)
 	if ((long)from & 1) {
 		char *cto = to;
 		const char *cfrom = from;
@@ -46,7 +46,7 @@ void *memcpy(void *to, const void *from, size_t n)
 	if (temp) {
 		long *lto = to;
 		const long *lfrom = from;
-#if defined(CONFIG_M68000) || defined(CONFIG_COLDFIRE)
+#if defined(TARGET_MINI)
 		for (; temp; temp--)
 			*lto++ = *lfrom++;
 #else

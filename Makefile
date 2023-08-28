@@ -8,7 +8,7 @@ LIB = m68k-linux-gnu-ar
 OBJCOPY = m68k-linux-gnu-objcopy
 
 # List targets here
-TARGETS   = q40 kiss
+TARGETS   = q40 kiss mini
 
 AOPT_all  = -alhmsg 
 COPT_all  = -O1 -std=c18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
@@ -18,19 +18,26 @@ SRC_all  = arp.c cli.c dhcp.c except.c fatfs/ff.c fatfs/ffunicode.c ffglue.c \
            printf.c qsort.c stdlib.c strdup.c strtoul.c tftp.c tinyalloc.c \
 	   icmp.c ide.c timer.c boot.c
 
-# q40 target
+# q40 target (Q40.de)
 AOPT_q40  = -m68040
 COPT_q40  = -march=68040 -mcpu=68040 -mtune=68040 -DTARGET_Q40 
 SRC_q40  = q40/startup.s q40/vectors.s q40/uart.c q40/cli.c q40/hw.c q40/ide.c \
 	   q40/ffrtc.c q40/qdos.s q40/softrom.s
 
-# kiss target
+# kiss target (Retrobrew Computers KISS-68030)
 AOPT_kiss = -m68030
 COPT_kiss = -march=68030 -mcpu=68030 -mtune=68030 -DTARGET_KISS
 SRC_kiss = kiss/startup.s kiss/vectors.s kiss/uart.c kiss/timer.c kiss/cli.c \
 	   kiss/hw.c kiss/ppide.c kiss/ffrtc.c kiss/idexfer.s kiss/double.s \
 	   kiss/softrom.s
 
+# mini target (Retrobrew Computers Mini68K)
+# shares a lot with kiss!
+AOPT_mini = -m68000
+COPT_mini = -march=68000 -mcpu=68000 -mtune=68000 -DTARGET_MINI
+LDOPT_mini = -L/usr/lib/gcc-cross/m68k-linux-gnu/12 -lgcc --require-defined=vector_table
+SRC_mini = mini/startup.s mini/vectors.s kiss/uart.c kiss/timer.c mini/cli.c \
+	   mini/hw.c kiss/ppide.c kiss/ffrtc.c kiss/idexfer.s 
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 
@@ -48,7 +55,7 @@ define make_target =
 ROMOBJ_$(1) = $(patsubst %.s,%.$(1).o,$(patsubst %.c,%.$(1).o,$(SRC_all) $(SRC_$(1))))
 
 gogoboot-$(1).elf:	version.$(1).o $$(ROMOBJ_$(1)) $(1)/linker.ld
-	$$(LD) --gc-sections --script=$(1)/linker.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-$(1).map -o gogoboot-$(1).elf $$(ROMOBJ_$(1)) version.$(1).o
+	$$(LD) --gc-sections --script=$(1)/linker.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-$(1).map -o gogoboot-$(1).elf $$(ROMOBJ_$(1)) version.$(1).o $$(LDOPT_$(1))
 
 gogoboot-$(1).rom:	gogoboot-$(1).elf
 	$(OBJCOPY) -O binary gogoboot-$(1).elf gogoboot-$(1).rom

@@ -16,6 +16,10 @@
 #include <cli.h>
 #include <init.h>
 
+#ifdef TARGET_MINI
+#define EXECUTABLE_LOAD_ADDRESS (256*1024)
+#endif
+
 #ifdef TARGET_KISS
 #define EXECUTABLE_LOAD_ADDRESS (256*1024)
 #define MACH_THIS MACH_KISS68030
@@ -716,15 +720,17 @@ static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
 
 static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
 {
-    int i, proghead_num;
+    int proghead_num;
     unsigned int bytes_read;
     unsigned int highest=0;
     unsigned int lowest=~0;
     elf32_header header;
     elf32_program_header proghead;
+#ifdef MACH_THIS
     struct bootversion *bootver;
     struct bi_record *bootinfo;
     struct mem_info *meminfo;
+#endif
     bool loaded = false;
 
     f_lseek(fd, 0);
@@ -807,16 +813,16 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     }
 
     if(loaded){
+#ifdef MACH_THIS
         /* check for linux kernel */
         bootver = (struct bootversion*)lowest;
         if(bootver->magic == BOOTINFOV_MAGIC){
             printf("Linux kernel detected:");
 
             /* check machine type is supported by this kernel */
-            i=0;
-            while(true){
+            for(int i=0;; i++){
                 if(!bootver->machversions[i].machtype){
-                    printf(" does not support Q40/Q60.\n");
+                    printf(" does not support this machine type.\n");
                     return false;
                 }
                 if(bootver->machversions[i].machtype == MACH_THIS){
@@ -827,7 +833,6 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
                         return false;
                     }
                 }
-                i++; /* next machversion */
             }
 
             /* now we write a linux bootinfo structure at the start of the 4K page following the kernel image */
@@ -885,7 +890,7 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
             char kernel_cmdline[MAXCMDLEN+1];
             kernel_cmdline[0] = 0;
 
-            for(i=1; i<numarg; i++){
+            for(int i=1; i<numarg; i++){
                 if(!strncasecmp(arg[i], "initrd=", 7)){
                     initrd_name = &arg[i][7];
                 }else{
@@ -896,7 +901,7 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
             }
 
             /* Command line */
-            i = strlen(kernel_cmdline) + 1;
+            int i = strlen(kernel_cmdline) + 1;
             i = (i+3) & ~3; /* pad to 32-bit boundary */
             bootinfo->tag = BI_COMMAND_LINE;
             bootinfo->size = sizeof(struct bi_record) + i;
@@ -943,6 +948,7 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
             /* run_program(umode, (void*)header.entry); */
             return false;
         }
+#endif
         void (*entry)(void) = (void(*)(void))header.entry;
         printf("Entry at 0x%lx in supervisor mode\n", (long)entry);
         cpu_cache_flush();
