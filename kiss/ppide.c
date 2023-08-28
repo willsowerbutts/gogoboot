@@ -25,31 +25,11 @@ static void ide_set_data_direction(disk_controller_t *ctrl, bool read_mode)
 
 static void ide_select_register(disk_controller_t *ctrl, int reg)
 {
+    if(reg <= ATA_REG_STATUS){
+        *ctrl->select = PPIDE_CS0_LINE | reg;
+        return;
+    }
     switch(reg){
-        case ATA_REG_DATA:
-            *ctrl->select = PPIDE_REG_DATA;
-            break;
-        case ATA_REG_ERR:
-            *ctrl->select = PPIDE_REG_ERROR;
-            break;
-        case ATA_REG_NSECT:
-            *ctrl->select = PPIDE_REG_SEC_COUNT;
-            break;
-        case ATA_REG_LBAL:
-            *ctrl->select = PPIDE_REG_LBA_0;
-            break;
-        case ATA_REG_LBAM:
-            *ctrl->select = PPIDE_REG_LBA_1;
-            break;
-        case ATA_REG_LBAH:
-            *ctrl->select = PPIDE_REG_LBA_2;
-            break;
-        case ATA_REG_DEVICE:
-            *ctrl->select = PPIDE_REG_DEVHEAD;
-            break;
-        case ATA_REG_STATUS:
-            *ctrl->select = PPIDE_REG_STATUS;
-            break;
         case ATA_REG_ALTSTATUS:
             *ctrl->select = PPIDE_REG_ALTSTATUS;
             break;
