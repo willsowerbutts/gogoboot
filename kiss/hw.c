@@ -1,7 +1,6 @@
 /* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
 
 #include <stdlib.h>
-#include <kiss/ecb.h>
 #include <kiss/hw.h>
 
 uint32_t ram_size = 0;

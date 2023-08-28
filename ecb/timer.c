@@ -5,8 +5,7 @@
 #include <cpu.h>
 #include <init.h>
 #include <timers.h>
-#include <kiss/ecb.h>
-#include <kiss/hw.h>
+#include <ecb/ecb.h>
 
 #define MCTL_NORMAL 0x02                 /* 8-bit bus, fixed interrupt priority mode */
 #define MCTL_NOCOUT (MCTL_NORMAL | 0x40) /* COUTD=1: override internal interrupt sampling oscillator */
@@ -23,18 +22,18 @@ timer_t gogoboot_read_timer(void)
 
 static inline uint8_t ns32202_read_reg_byte(uint8_t reg)
 {
-    return ecb_read_byte(KISS68030_MFPIC_NS32202 + (reg << 8));
+    return ecb_read_byte(MFPIC_NS32202 + (reg << 8));
 }
 
 static inline void ns32202_write_reg_byte(uint8_t reg, uint8_t val)
 {
-    ecb_write_byte_pause(KISS68030_MFPIC_NS32202 + (reg << 8), val);
+    ecb_write_byte_pause(MFPIC_NS32202 + (reg << 8), val);
 }
 
 static inline void ns32202_write_reg_word(uint8_t reg, unsigned short val)
 {
-    ecb_write_byte(KISS68030_MFPIC_NS32202 + (reg << 8), val);
-    ecb_write_byte_pause(KISS68030_MFPIC_NS32202 + ((reg + 1) << 8), val >> 8);
+    ecb_write_byte(MFPIC_NS32202 + (reg << 8), val);
+    ecb_write_byte_pause(MFPIC_NS32202 + ((reg + 1) << 8), val >> 8);
 }
 
 static inline unsigned short ns32202_read_reg_word(uint8_t reg)
@@ -68,7 +67,7 @@ void setup_interrupts(void)
     ns32202_write_reg_byte(NS32202_CCTL, 0x40);   /* counter control: no prescaling, counters off */
     ns32202_write_reg_word(NS32202_LCSV, 0xFFFF); /* program low counter for full-scale */
     ns32202_write_reg_word(NS32202_HCSV, COUNT_PER_TICK - 1); /* program high counter for HZ */
-    ns32202_write_reg_byte(NS32202_CIPTR, KISS68030_TIMERL_IRQ | (KISS68030_TIMERH_IRQ << 4));  /* assign counter irqs */
+    ns32202_write_reg_byte(NS32202_CIPTR, MFPIC_TIMERL_IRQ | (MFPIC_TIMERH_IRQ << 4));  /* assign counter irqs */
     ns32202_write_reg_word(NS32202_HCCV, 0);      /* reset counter to zero */
     ns32202_write_reg_word(NS32202_LCCV, 0);      /* reset counter to zero */
     ns32202_write_reg_byte(NS32202_CICTL, 0x31);  /* clear errors, enable only high counter IRQ */
@@ -83,7 +82,7 @@ void setup_interrupts(void)
     ns32202_write_reg_word(NS32202_ISRV, 0x0000); /* Clear all in-service bits */
     ns32202_write_reg_word(NS32202_CSRC, 0x0000); /* Interrupt cascade: Disabled on all inputs */
     ns32202_write_reg_word(NS32202_ISRV, 0);      /* Clear ISRV */
-    ns32202_write_reg_byte(NS32202_FPRT, KISS68030_UART_IRQ);      /* Set highest priority */
+    ns32202_write_reg_byte(NS32202_FPRT, MFPIC_UART_IRQ);      /* Set highest priority */
     /* unused IRQ lines are tied high; mark them as active low */
     /* used IRQ lines are active high (the bus lines go through an inverter) */
     ns32202_write_reg_word(NS32202_TPL, NS32202_USABLE_IRQS); /* Polarity: 0=Falling/Low, 1=Rising/High (Edge/Level) */
@@ -96,10 +95,10 @@ void setup_interrupts(void)
     /* set MF/PIC config register to 16 interrupt mode, vector base 0x40, shift 00.
      * Top four vector bits are set in the config register, low four bits are from
      * the NS32202 so the vector range is 0x40 -- 0x4F, ie VEC_USER -- VEC_USER+16 */
-    ecb_write_byte_pause(KISS68030_MFPIC_CFGREG, 0x44);
+    ecb_write_byte_pause(MFPIC_CFGREG, 0x44);
 
     /* unmask only our timer interupt */
-    ns32202_write_reg_word(NS32202_IMSK, ns32202_read_reg_word(NS32202_IMSK) & ~(1 << KISS68030_TIMERH_IRQ));
+    ns32202_write_reg_word(NS32202_IMSK, ns32202_read_reg_word(NS32202_IMSK) & ~(1 << MFPIC_TIMERH_IRQ));
 
     cpu_interrupts_on();
 }

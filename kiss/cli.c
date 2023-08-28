@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <uart.h>
 #include <fatfs/ff.h>
-#include <kiss/ecb.h>
+#include <ecb/ecb.h>
 #include <kiss/hw.h>
 #include <tinyalloc.h>
 #include <cpu.h>
@@ -13,7 +13,7 @@ extern const char text_start;
 static void do_hardrom(char *argv[], int argc)
 {
     printf("hardrom: rebooting ...\n\n\n");
-    kiss_boot_softrom((void*)KISS68030_ROM_BASE);
+    kiss_boot_softrom((void*)ECB_ROM_BASE);
 }
 
 static void do_softrom(char *argv[], int argc)
@@ -40,7 +40,7 @@ static void do_softrom(char *argv[], int argc)
         count = f_size(&fd);
     }
 
-    if(count > KISS68030_ROM_SIZE){
+    if(count > ECB_ROM_SIZE){
         printf("softrom: too big (%ld)!\n", count);
         if(argc != 0)
             f_close(&fd);

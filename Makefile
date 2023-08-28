@@ -27,17 +27,16 @@ SRC_q40  = q40/startup.s q40/vectors.s q40/uart.c q40/cli.c q40/hw.c q40/ide.c \
 # kiss target (Retrobrew Computers KISS-68030)
 AOPT_kiss = -m68030
 COPT_kiss = -march=68030 -mcpu=68030 -mtune=68030 -DTARGET_KISS
-SRC_kiss = kiss/startup.s kiss/vectors.s kiss/uart.c kiss/timer.c kiss/cli.c \
-	   kiss/hw.c kiss/ppide.c kiss/ffrtc.c kiss/idexfer.s kiss/double.s \
+SRC_kiss = kiss/startup.s kiss/vectors.s ecb/uart.c ecb/timer.c kiss/cli.c \
+	   kiss/hw.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s kiss/double.s \
 	   kiss/softrom.s
 
 # mini target (Retrobrew Computers Mini68K)
-# shares a lot with kiss!
 AOPT_mini = -m68000
 COPT_mini = -march=68000 -mcpu=68000 -mtune=68000 -DTARGET_MINI
 LDOPT_mini = --require-defined=vector_table
-SRC_mini = mini/startup.s mini/vectors.s kiss/uart.c kiss/timer.c mini/cli.c \
-	   mini/hw.c kiss/ppide.c kiss/ffrtc.c kiss/idexfer.s \
+SRC_mini = mini/startup.s mini/vectors.s ecb/uart.c ecb/timer.c mini/cli.c \
+	   mini/hw.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s \
 	   libgcc/divmod.c libgcc/udivmod.c libgcc/udivmodsi4.c libgcc/mulsi3.s
 
 .SUFFIXES:   .c .s .o .out .hex .bin

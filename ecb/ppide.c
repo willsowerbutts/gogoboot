@@ -7,13 +7,13 @@
 #include <fatfs/diskio.h>
 #include <disk.h>
 #include <ide.h>
-#include <kiss/ide.h>
-#include <kiss/ecb.h>
+#include <ecb/ppide.h>
+#include <ecb/ecb.h>
 
 #define NUM_CONTROLLERS 2
 static disk_controller_t disk_controller[NUM_CONTROLLERS];
-static const uint16_t controller_base_io_addr[] = { KISS68030_MFPIC_8255,        /* primary MF/PIC */
-                                                    KISS68030_MFPIC_8255+0x10 }; /* secondary MF/PIC */
+static const uint16_t controller_base_io_addr[] = { MFPIC_8255,        /* primary MF/PIC */
+                                                    MFPIC_8255+0x10 }; /* secondary MF/PIC */
 
 static void ide_set_data_direction(disk_controller_t *ctrl, bool read_mode)
 {

@@ -46,8 +46,8 @@ _start:
         reset
 
         /* copy .text+.rodata+.data sections into RAM from ROM -- note limited to 256KB */
-        lea.l   data_load_start, %a0    /* source address - PC relative */
-        movea.l data_start, %a1         /* dest address */
+        lea.l   data_load_start, %a0    /* source address */
+        lea.l   data_start, %a1         /* dest address */
         /* there must be a better way for the assembler/linker to compute how many longwords to copy! */
         move.l  #(data_size+3), %d0     /* last byte to copy (round up to next longword) */
         sub.l   %a1, %d0                /* subtract start address */

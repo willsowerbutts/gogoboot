@@ -1,45 +1,60 @@
-#ifndef __KISS_ECB_DOT_H__
-#define __KISS_ECB_DOT_H__
+#ifndef __ECB_ECB_DOT_H__
+#define __ECB_ECB_DOT_H__
 
 #include <types.h>
 
 #define KISS68030_ROM_BASE              0xFFF00000 /* 512KB */
-#define KISS68030_ECBMEM_BASE           0xFFF80000 /* 256KB */
+#define KISS68030_MEM_BASE              0xFFF80000 /* 256KB */
 #define KISS68030_SRAM_BASE             0xFFFE0000 /* 64KB (32KB chip is mapped twice) */
 #define KISS68030_IO_BASE               0xFFFF0000 /* 64KB */
 #define KISS68030_ROM_SIZE              (512*1024)
 
+#define MINI68K_ROM_BASE                0x380000 /* 448KB */
+#define MINI68K_ECBMEM_BASE             0x300000 /* 256KB */
+#define MINI68K_IO_BASE                 0x3F0000 /* 64KB */
+#define MINI68K_ROM_SIZE                (448*1024)
+
+#ifdef TARGET_KISS
+#define ECB_ROM_BASE KISS68030_ROM_BASE
+#define ECB_ROM_SIZE KISS68030_ROM_SIZE
+#define ECB_MEM_BASE KISS68030_ECBMEM_BASE
+#define ECB_IO_BASE  KISS68030_IO_BASE
+#endif
+
+#ifdef TARGET_MINI
+#define ECB_ROM_BASE MINI68K_ROM_BASE
+#define ECB_ROM_SIZE MINI68K_ROM_SIZE
+#define ECB_MEM_BASE MINI68K_ECBMEM_BASE
+#define ECB_IO_BASE  MINI68K_IO_BASE
+#endif
+
 /* interrupts */
-/* the KISS68030_*_IRQ defines are for the NS32202 IRQ pin numbers
- * add VEC_USER to get the corresponding 68K vector number
- * add IRQ_USER to get the corresponding linux IRQ number */
-#define KISS68030_I8042_IRQ             1       /* Fixed IRQ but requires a jumper on card to enable */
-#define KISS68030_IDE_IRQ               9       /* NOTE! this requires MF/PIC board modification! */
-#define KISS68030_TIMERH_IRQ            13      /* configurable 0...15 */
-#define KISS68030_TIMERL_IRQ            14      /* configurable 0...15 */
-#define KISS68030_UART_IRQ              12      /* assumes MFPIC OPT16/8 bit = 1 */
-#define KISS68030_UART_CLK              1843200 /* Hz */
+#define MFPIC_I8042_IRQ             1       /* Fixed IRQ but requires a jumper on card to enable */
+#define MFPIC_IDE_IRQ               9       /* NOTE! this requires MF/PIC board modification! */
+#define MFPIC_TIMERH_IRQ            13      /* configurable 0...15 */
+#define MFPIC_TIMERL_IRQ            14      /* configurable 0...15 */
+#define MFPIC_UART_IRQ              12      /* assumes MFPIC OPT16/8 bit = 1 */
+#define MFPIC_UART_CLK              1843200 /* Hz */
 
 /* MF/PIC card */
-#define KISS68030_MFPIC_ADDR            0x40
-#define KISS68030_MFPIC_NS32202_OFFSET  0
-#define KISS68030_MFPIC_CFGREG_OFFSET   2
-#define KISS68030_MFPIC_RTC_OFFSET      3
-#define KISS68030_MFPIC_8255_OFFSET     4
-#define KISS68030_MFPIC_UART_OFFSET     8
+#define MFPIC_ADDR            0x40
+#define MFPIC_NS32202_OFFSET  0
+#define MFPIC_CFGREG_OFFSET   2
+#define MFPIC_RTC_OFFSET      3
+#define MFPIC_8255_OFFSET     4
+#define MFPIC_UART_OFFSET     8
 
-#define KISS68030_MFPIC_BASE            (KISS68030_MFPIC_ADDR)
-#define KISS68030_MFPIC_NS32202         (KISS68030_MFPIC_BASE + KISS68030_MFPIC_NS32202_OFFSET)
-#define KISS68030_MFPIC_CFGREG          (KISS68030_MFPIC_BASE + KISS68030_MFPIC_CFGREG_OFFSET)
-#define KISS68030_MFPIC_RTC             (KISS68030_MFPIC_BASE + KISS68030_MFPIC_RTC_OFFSET)
-#define KISS68030_MFPIC_8255            (KISS68030_MFPIC_BASE + KISS68030_MFPIC_8255_OFFSET)
-#define KISS68030_MFPIC_UART            (KISS68030_MFPIC_BASE + KISS68030_MFPIC_UART_OFFSET)
+#define MFPIC_NS32202         (MFPIC_ADDR + MFPIC_NS32202_OFFSET)
+#define MFPIC_CFGREG          (MFPIC_ADDR + MFPIC_CFGREG_OFFSET)
+#define MFPIC_RTC             (MFPIC_ADDR + MFPIC_RTC_OFFSET)
+#define MFPIC_8255            (MFPIC_ADDR + MFPIC_8255_OFFSET)
+#define MFPIC_UART            (MFPIC_ADDR + MFPIC_UART_OFFSET)
 
 /* bits in KISS68030_MFPIC_RTC register */
-#define KISS68030_DS1302_DATA_BIT       1
-#define KISS68030_DS1302_WREN_BIT       2 /* Controls data direction of DATA pin */
-#define KISS68030_DS1302_CLK_BIT        4
-#define KISS68030_DS1302_RESET_BIT      8 /* Chip enable -- active high */
+#define MFPIC_DS1302_DATA_BIT       1
+#define MFPIC_DS1302_WREN_BIT       2 /* Controls data direction of DATA pin */
+#define MFPIC_DS1302_CLK_BIT        4
+#define MFPIC_DS1302_RESET_BIT      8 /* Chip enable -- active high */
 
 /* MF/PIC IDE via 8255 */
 #define PPIDE_LSB                       0 /* 8255 port A */
@@ -71,10 +86,10 @@
 #define NS32202_HCCV                    30 /* 16-bit word size */
 #define NS32202_SVCTI                   32 /* 8-bit byte size */
 #define NS32202_EOI                     32 /* 8-bit byte size */
-#define NS32202_CLK_INPUT  KISS68030_UART_CLK   /* shares the UART crystal */
+#define NS32202_CLK_INPUT MFPIC_UART_CLK   /* shares the UART crystal */
 
-static volatile uint8_t * const ECB_DEVICE_IO = (volatile uint8_t *)KISS68030_IO_BASE;
-static volatile uint8_t * const ECB_PAUSE = (volatile uint8_t *)KISS68030_ROM_BASE;
+static volatile uint8_t * const ECB_DEVICE_IO = (volatile uint8_t *)ECB_IO_BASE;
+static volatile uint8_t * const ECB_PAUSE = (volatile uint8_t *)ECB_ROM_BASE;
 
 static inline uint8_t ecb_read_byte(uint16_t addr)
 {

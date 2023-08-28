@@ -1,9 +1,9 @@
 /* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
 
-#include <kiss/ecb.h>
+#include <ecb/ecb.h>
 #include <uart.h>
 
-#define UART_ADDRESS    (KISS68030_MFPIC_UART)
+#define UART_ADDRESS    (MFPIC_UART)
 #define BAUD_RATE       115200
 #define UART_DIVISOR    (115200/BAUD_RATE)
 
