@@ -35,9 +35,10 @@ SRC_kiss = kiss/startup.s kiss/vectors.s kiss/uart.c kiss/timer.c kiss/cli.c \
 # shares a lot with kiss!
 AOPT_mini = -m68000
 COPT_mini = -march=68000 -mcpu=68000 -mtune=68000 -DTARGET_MINI
-LDOPT_mini = -L/usr/lib/gcc-cross/m68k-linux-gnu/12 -lgcc --require-defined=vector_table
+LDOPT_mini = --require-defined=vector_table
 SRC_mini = mini/startup.s mini/vectors.s kiss/uart.c kiss/timer.c mini/cli.c \
-	   mini/hw.c kiss/ppide.c kiss/ffrtc.c kiss/idexfer.s 
+	   mini/hw.c kiss/ppide.c kiss/ffrtc.c kiss/idexfer.s \
+	   libgcc/divmod.c libgcc/udivmod.c libgcc/udivmodsi4.c libgcc/mulsi3.s
 
 .SUFFIXES:   .c .s .o .out .hex .bin
 

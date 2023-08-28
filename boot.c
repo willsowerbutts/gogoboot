@@ -97,7 +97,7 @@ void report_linker_layout(void)
     }
 }
 
-#define MAXHEAP (2 << 20) /* 4MB */
+#define MAXHEAP (2 << 20) /* 2MB */
 
 static uint32_t heap_init(void)
 {
