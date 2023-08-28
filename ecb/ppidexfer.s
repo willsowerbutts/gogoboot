@@ -1,5 +1,3 @@
-        .chip 68030
-
         .globl  ide_sector_xfer_input
         .globl  ide_sector_xfer_output
 

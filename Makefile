@@ -10,7 +10,7 @@ OBJCOPY = m68k-linux-gnu-objcopy
 # List targets here
 TARGETS   = q40 kiss mini
 
-AOPT_all  = -alhmsg 
+AOPT_all  = -alhmsg
 COPT_all  = -O1 -std=c18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
 	    -fdata-sections -ffunction-sections -Iinclude
 SRC_all  = arp.c cli.c dhcp.c except.c fatfs/ff.c fatfs/ffunicode.c ffglue.c \
@@ -19,21 +19,22 @@ SRC_all  = arp.c cli.c dhcp.c except.c fatfs/ff.c fatfs/ffunicode.c ffglue.c \
 	   icmp.c ide.c timer.c uart.c boot.c
 
 # q40 target (Q40.de)
-AOPT_q40  = -m68040
-COPT_q40  = -march=68040 -mcpu=68040 -mtune=68040 -DTARGET_Q40 
+AOPT_q40  = -mcpu=68040 --defsym TARGET_Q40=1
+COPT_q40  = -mcpu=68040 -DTARGET_Q40
 SRC_q40  = q40/startup.s q40/vectors.s q40/cli.c q40/hw.c q40/ide.c \
 	   q40/ffrtc.c q40/qdos.s q40/softrom.s
 
+#
 # kiss target (Retrobrew Computers KISS-68030)
-AOPT_kiss = -m68030
-COPT_kiss = -march=68030 -mcpu=68030 -mtune=68030 -DTARGET_KISS
+AOPT_kiss = -mcpu=68030 --defsym TARGET_KISS=1
+COPT_kiss = -mcpu=68030 -DTARGET_KISS
 SRC_kiss = kiss/startup.s kiss/vectors.s ecb/timer.c kiss/cli.c \
 	   kiss/hw.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s kiss/double.s \
 	   kiss/softrom.s
 
 # mini target (Retrobrew Computers Mini68K)
-AOPT_mini = -m68000
-COPT_mini = -march=68000 -mcpu=68000 -mtune=68000 -DTARGET_MINI
+AOPT_mini = -mcpu=68000 --defsym TARGET_MINI=1
+COPT_mini = -mcpu=68000 -DTARGET_MINI
 LDOPT_mini = --require-defined=vector_table
 SRC_mini = mini/startup.s mini/vectors.s ecb/timer.c mini/cli.c \
 	   mini/hw.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s \
