@@ -115,14 +115,36 @@ static uint32_t heap_init(void)
         heap = MAXHEAP;
 
     base = (void*)ram_size - heap;
-    ta_init(base, (void*)ram_size-1, 2048, 16, 8);
+    ta_init(base, (void*)ram_size-1, heap > (256*1024) ? 2048 : 256, 16, 4);
 
     return (uint32_t)base;
 }
 
-void gogoboot(void)
+void mem_init(void)
 {
     uint32_t heap_base;
+    int shift;
+    char unit;
+
+    if(ram_size >= 4*1024*1024){
+        shift = 20;
+        unit = 'M';
+    }else{
+        shift = 10;
+        unit = 'K';
+    }
+
+    printf("RAM installed: ");
+    measure_ram_size();
+    heap_base = heap_init();
+    printf("%ld %cB, %ld %cB heap at 0x%08lx\n", 
+            ram_size>>shift, unit, 
+            (ram_size-heap_base)>>shift, unit, 
+            heap_base);
+}
+
+void gogoboot(void)
+{
 
     early_init();
 
@@ -132,10 +154,7 @@ void gogoboot(void)
     report_linker_layout();
     printf("Version %s\n", software_version_string);
 
-    printf("RAM installed: ");
-    measure_ram_size();
-    heap_base = heap_init();
-    printf("%ld MB, %ld MB heap at 0x%08lx\n", ram_size>>20, (ram_size-heap_base)>>20, heap_base);
+    mem_init();
 
     printf("Setup interrupts: ");
     setup_interrupts(); /* do this early to get timers ticking */
