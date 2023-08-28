@@ -134,7 +134,7 @@ static void disk_init_disk(disk_controller_t *ctrl, int disk)
     char prod[1+ATA_ID_PROD_LEN];
     uint32_t sectors;
 
-    printf("Probe disk %d: ", disk);
+    printf("  Probe disk %d: ", disk);
 
     switch(disk){
         case 0: sel = 0xE0; break;

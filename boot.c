@@ -126,6 +126,10 @@ void mem_init(void)
     int shift;
     char unit;
 
+    printf("RAM installed: ");
+    measure_ram_size();
+    heap_base = heap_init();
+
     if(ram_size >= 4*1024*1024){
         shift = 20;
         unit = 'M';
@@ -134,9 +138,6 @@ void mem_init(void)
         unit = 'K';
     }
 
-    printf("RAM installed: ");
-    measure_ram_size();
-    heap_base = heap_init();
     printf("%ld %cB, %ld %cB heap at 0x%08lx\n", 
             ram_size>>shift, unit, 
             (ram_size-heap_base)>>shift, unit, 

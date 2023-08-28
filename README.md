@@ -132,3 +132,106 @@ understood why this is, but it doesn't bother me too much because I can boot
 SMSQ/E 2.97 from GogoBoot and then LRESPR SMSQ/E 3.38 from inside 2.97, which
 works fine.
 
+Sample session
+--------------
+
+```
+GOGOBOOT/Q40: Copyright (c) 2023 William R. Sowerbutts <will@sowerbutts.com>
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+  .text    0x00000000 length 0x0000A748
+  .rodata  0x0000A748 length 0x00001EF4
+  .data    0x00028000 length 0x00000004 (load from 0x0000C63C)
+  .bss     0x00028004 length 0x00000E18
+
+Version git 023bcbd build 2023-08-28 badhorse/40
+RAM installed: 32 MB, 2 MB heap at 0x01E00000
+Setup interrupts: done
+Initialise RTC: Mon 2023-08-28 22:31:58
+IDE controller at 0x1F0:
+  Probe disk 0: InnoDisk Corp. - iCF4000 2GB (4095504 sectors, 1999 MB)
+  Probe disk 1: SDCFHS-016G (31293360 sectors, 15279 MB)
+IDE controller at 0x170:
+  Probe disk 0: no disk found.
+  Probe disk 1: no disk found.
+Initialise video: done
+Initialise ethernet: NE2000 at 0x300, MAC 00:00:E8:CF:2E:39
+Booting from "boot" (hit Q to cancel)
+DHCP lease acquired (192.168.100.191/24, 5h 59m)
+boot: 179 bytes, script
+boot: softrom gogoboot-q40.rom
+softrom: loaded 50752 bytes from "gogoboot-q40.rom"
+softrom: matches running ROM
+boot: loadimage images/vaporwave.img
+boot: set tftp_server "192.168.100.80"
+boot: set linux_parameters "console=ttyS0,115200n8 root=/dev/sda3 netdev=5,0x300,eth0"
+1:/> linux
+linux: 88 bytes, script
+linux: tftp vmlinux
+tftp: get 192.168.100.80:vmlinux to file "vmlinux"
+Transfer started: Press Q to abort
+tftp: server using port 38519
+tftp: options ack: tsize=6479788 blksize=1024 rollover=0 windowsize=8
+tftp: received 256/6327 KB
+tftp: received 512/6327 KB
+tftp: received 768/6327 KB
+tftp: received 1024/6327 KB
+tftp: received 1280/6327 KB
+tftp: received 1536/6327 KB
+tftp: received 1792/6327 KB
+tftp: received 2048/6327 KB
+tftp: received 2304/6327 KB
+tftp: received 2560/6327 KB
+tftp: received 2816/6327 KB
+tftp: received 3072/6327 KB
+tftp: received 3328/6327 KB
+tftp: received 3584/6327 KB
+tftp: received 3840/6327 KB
+tftp: received 4096/6327 KB
+tftp: received 4352/6327 KB
+tftp: received 4608/6327 KB
+tftp: received 4864/6327 KB
+tftp: received 5120/6327 KB
+tftp: received 5376/6327 KB
+tftp: received 5632/6327 KB
+tftp: received 5888/6327 KB
+tftp: received 6144/6327 KB
+tftp: received 6327/6327 KB
+Transfer success.
+Transferred 6479788 bytes in 6.7s (7.73 Mbit/sec)
+linux: vmlinux console=ttyS0,115200n8 root=/dev/sda3 netdev=5,0x300,eth0
+vmlinux: 6479788 bytes, ELF.
+Loading 4637888 bytes from file offset 0x1000 to memory at 0x41000
+Loading 119676 bytes from file offset 0x46E000 to memory at 0x4CE000
+Linux kernel detected: creating bootinfo at 0x4EC000
+Entry at 0x42000 in supervisor mode
+[    0.000000] Linux version 6.4.10-wrs (btg@carbon) (m68k-linux-gnu-gcc (Debian 12.2.0-13) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 Sat Aug 26 11:47:15 BST 2023
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000000040000-0x0000001fffffffff]
+[    0.000000]   Normal   empty
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000040000-0x0000000001ffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000040000-0x0000000001ffffff]
+[    0.000000] Kernel command line: console=ttyS0,115200n8 root=/dev/sda3 netdev=5,0x300,eth0
+[    0.000000] Dentry cache hash table entries: 4096 (order: 2, 16384 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 2048 (order: 1, 8192 bytes, linear)
+[    0.000000] Sorting __ex_table...
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 8056
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] Memory: 27340K/32512K available (3219K kernel code, 443K rwdata, 988K rodata, 120K init, 128K bss, 5172K reserved, 0K cma-reserved)
+[    0.000000] NR_IRQS: 43
+[    0.010000] Console: colour dummy device 80x25
+[    0.010000] printk: console [ttyS0] enabled
+[    0.090000] Calibrating delay loop... 26.16 BogoMIPS (lpj=130816)
+[    0.200000] pid_max: default: 32768 minimum: 301
+[    0.210000] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.220000] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.260000] cblist_init_generic: Setting adjustable number of callback queues.
+[    0.260000] cblist_init_generic: Setting shift to 0 and lim to 1.
+[    0.280000] devtmpfs: initialized
+```
