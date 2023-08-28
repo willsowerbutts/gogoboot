@@ -17,17 +17,13 @@ extern const char text_start, text_size;
 extern const char rodata_start, rodata_size;
 extern const char data_start, data_load_start, data_size;
 extern const char bss_start, bss_size;
-#ifdef TARGET_KISS
 extern const char stack_start, stack_size;
-#endif
 
 void report_linker_layout(void)
 {
     printf("  .text    0x%08x length 0x%08x\n", (int)&text_start, (int)&text_size); 
     printf("  .rodata  0x%08x length 0x%08x\n", (int)&rodata_start, (int)&rodata_size); 
-#ifdef TARGET_KISS
     printf("  .stack   0x%08x length 0x%08x\n", (int)&stack_start, (int)&stack_size); 
-#endif
     printf("  .data    0x%08x length 0x%08x (load from 0x%08x)\n", (int)&data_start, (int)&data_size, (int)&data_load_start);
     printf("  .bss     0x%08x length 0x%08x\n\n", (int)&bss_start, (int)&bss_size);
 

@@ -23,6 +23,13 @@ copyright_msg:
         .ascii  "Foundation, either version 3 of the License, or (at your option) any later\n"
         .ascii  "version.\n\n\0"
 
+        /* define some space in DRAM for the stack to live */
+        .section .stack
+        .align 4
+stack_bottom:
+        .space  (8*1024) /* adjust memory map in linker.ld if you change this */
+stack_top:
+
         .text
         .even
 _start:
