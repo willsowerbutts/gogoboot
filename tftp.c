@@ -363,7 +363,10 @@ bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char
             if((tftp->bytes_received - reported_received) >= (256*1024) || 
                (tftp->total_size && tftp->bytes_received == tftp->total_size)){
                 reported_received = tftp->bytes_received;
-                printf("tftp: received %d/%d KB", reported_received >> 10, tftp->total_size >> 10);
+                if(tftp->total_size)
+                    printf("tftp: received %d/%d KB", reported_received >> 10, tftp->total_size >> 10);
+                else
+                    printf("tftp: received %d KB", reported_received >> 10);
                 if(tftp->timeouts)
                     printf(" (%d timeouts)", tftp->timeouts);
                 printf("\n");
