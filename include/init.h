@@ -1,7 +1,9 @@
 #ifndef __INIT_DOT_H__
 #define __INIT_DOT_H__
 
-extern uint32_t ram_size;     /* use only after measure_ram_size() called */
+#define STACK_SIZE 8192
+
+extern uint32_t ram_size, stack_base, heap_base;
 
 void early_init(void);
 void target_hardware_init(void);

@@ -46,11 +46,4 @@ SECTIONS
         bss_end = .;
     } >ram
     bss_size = SIZEOF(.bss);
-
-    .stack : {
-        stack_start = .;
-        *(.stack SORT(.stack.*))
-        stack_end = .;
-    } >ram
-    stack_size = SIZEOF(.stack);
 }

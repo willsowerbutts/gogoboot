@@ -23,7 +23,7 @@ void report_linker_layout(void)
 {
     printf("  .text    0x%08x length 0x%08x\n", (int)&text_start, (int)&text_size); 
     printf("  .rodata  0x%08x length 0x%08x\n", (int)&rodata_start, (int)&rodata_size); 
-    printf("  .stack   0x%08x length 0x%08x\n", (int)&stack_start, (int)&stack_size); 
+    printf("  .stack   0x%08x length 0x%08x\n", (int)stack_base, STACK_SIZE);
     printf("  .data    0x%08x length 0x%08x (load from 0x%08x)\n", (int)&data_start, (int)&data_size, (int)&data_load_start);
     printf("  .bss     0x%08x length 0x%08x\n\n", (int)&bss_start, (int)&bss_size);
 
@@ -34,10 +34,9 @@ void report_linker_layout(void)
 
 #define MAXHEAP (2 << 20) /* 2MB */
 
-static uint32_t heap_init(void)
+static void heap_init(void)
 {
-    int heap;
-    void *base;
+    int heap_size;
 
     // this is an attempt to leave enough space
     // above .data for us to load a sizeable
@@ -45,38 +44,35 @@ static uint32_t heap_init(void)
     // shame that talloc cannot allocate from
     // the top downwards.
 
-    heap = ram_size / 4;  /* not more than 25% of RAM */
-    if(heap > MAXHEAP)    /* and not too much */
-        heap = MAXHEAP;
+    heap_size = ram_size / 4;  /* not more than 25% of RAM */
+    if(heap_size > MAXHEAP)    /* and not too much */
+        heap_size = MAXHEAP;
 
-    base = (void*)ram_size - heap;
-    ta_init(base, (void*)ram_size-1, heap > (256*1024) ? 2048 : 256, 16, 4);
-
-    return (uint32_t)base;
+    heap_base = ram_size - heap_size;
+    ta_init((void*)heap_base, (void*)ram_size - STACK_SIZE - 1, heap_size > (200*1024) ? 2048 : 256, 16, 4);
 }
 
 void mem_init(void)
 {
-    uint32_t heap_base;
     int shift;
+    int heap_size;
     char unit;
 
-    printf("RAM installed: ");
-    measure_ram_size();
-    heap_base = heap_init();
+    heap_init();
 
     if(ram_size >= 4*1024*1024){
         shift = 20;
         unit = 'M';
+        // don't account for the stack here; we're rounding up
+        heap_size = (ram_size - heap_base) >> shift;
     }else{
         shift = 10;
         unit = 'K';
+        heap_size = (ram_size - heap_base - STACK_SIZE) >> shift;
     }
 
-    printf("%ld %cB, %ld %cB heap at 0x%08lx\n", 
-            ram_size>>shift, unit, 
-            (ram_size-heap_base)>>shift, unit, 
-            heap_base);
+    printf("RAM installed: %ld %cB, %d %cB heap at 0x%08lx\n", 
+            ram_size>>shift, unit, heap_size, unit, heap_base);
 }
 
 void gogoboot(void)

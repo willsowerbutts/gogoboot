@@ -40,14 +40,7 @@ SECTIONS
     data_size = SIZEOF(.data);
     data_load_start = LOADADDR(.data);
 
-    .stack data_end : {
-        stack_start = .;
-        *(.stack SORT(.stack.*))
-        stack_end = .;
-    } >ram
-    stack_size = SIZEOF(.stack);
-
-    .bss stack_end : { 
+    .bss data_end : { 
         bss_start = .;
         *(.dynbss)
         *(.bss SORT(.bss.*) SORT(.gnu.linkonce.b.*))

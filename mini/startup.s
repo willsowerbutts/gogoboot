@@ -8,6 +8,8 @@
         .globl  cpu_cache_invalidate
         .globl  cpu_interrupts_on
         .globl  cpu_interrupts_off
+        .globl  measure_ram_size
+        .globl  ram_size
         .globl  halt
 
         .section .rom_header
@@ -27,13 +29,6 @@ copyright_msg:
         .ascii  "the terms of the GNU General Public License as published by the Free Software\n"
         .ascii  "Foundation, either version 3 of the License, or (at your option) any later\n"
         .ascii  "version.\n\0"
-
-        /* define some space in DRAM for the stack to live */
-        .section .stack
-        .align 4
-stack_bottom:
-        .space  (8*1024)
-stack_top:
 
         /* startup code */
         .section .text
@@ -55,9 +50,6 @@ copy_data_loop:
 copy_data:
         dbra    %d0,copy_data_loop
 
-        /* set stack pointer */
-        lea stack_top, %sp
-
         /* clear the .bss section -- note limited to 256KB */
         lea.l   bss_start, %a1
         move.l  #(bss_size+3), %d0      /* num bytes to zap; round up  */
@@ -68,7 +60,10 @@ zap_bss_loop:
 zap_bss:
         dbra    %d0, zap_bss_loop
 
-        jsr gogoboot                    /* off to C land */
+        lea bss_end+256, %sp            /* use temporary stack (after .bss) */
+        jsr measure_ram_size            /* call C helper */
+        movea.l ram_size, %sp           /* move stack to top of RAM */
+        jsr gogoboot                    /* call C boot code */
 
         /* halt */
 halt:

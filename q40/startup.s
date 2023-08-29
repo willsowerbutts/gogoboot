@@ -21,13 +21,6 @@ copyright_msg:
         .ascii  "Foundation, either version 3 of the License, or (at your option) any later\n"
         .ascii  "version.\n\0"
 
-        /* define some space in DRAM for the stack to live */
-        .section .stack
-        .align 4
-stack_bottom:
-        .space  (8*1024) /* adjust memory map in linker.ld if you change this */
-stack_top:
-
         .section .text
         .even
 _start:
@@ -106,7 +99,10 @@ zap_loop:
 zap_bss:
         dbra    %d0, zap_loop
 
-        jsr gogoboot                    /* off to C land */
+        lea bss_end+256, %sp            /* use temporary stack (after .bss) */
+        jsr measure_ram_size            /* call C helper */
+        movea.l ram_size, %sp           /* move stack to top of RAM */
+        jsr gogoboot                    /* call C boot code */
 
         /* halt */
 halted: stop #0x2700                    /* all done */

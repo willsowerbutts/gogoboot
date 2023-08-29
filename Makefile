@@ -43,7 +43,7 @@ LDOPT_mini = --require-defined=vector_table
 SRC_mini = mini/startup.s mini/vectors.s $(SRC_68000) mini/cli.c mini/hw.c \
 	   ecb/timer.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s
 
-.SUFFIXES:   .c .s .o .out .hex .bin
+.SUFFIXES:   .c .s .o .out .hex .bin .rom .elf
 
 TARGET_ROMS = $(foreach target,$(TARGETS),gogoboot-$(target).rom)
 all:	$(TARGET_ROMS)

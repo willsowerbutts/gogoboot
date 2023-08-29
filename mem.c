@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <init.h>
 
-uint32_t ram_size;
+uint32_t ram_size, stack_base, heap_base;
 
 void measure_ram_size(void)
 {
@@ -14,6 +14,8 @@ void measure_ram_size(void)
        order, to determine how much RAM is actually fitted. 
 
        Take care to ensure you don't stomp on your code/data.
+
+       This is called with a relatively small (256-byte) stack
     */
 
     uint32_t max_ram = mem_get_max_possible();
@@ -32,4 +34,6 @@ void measure_ram_size(void)
             ram_size = (unit * unit_size);
         else
             break;
+
+    stack_base = ram_size - STACK_SIZE;
 }
