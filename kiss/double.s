@@ -1,4 +1,3 @@
-        .chip 68030
         .include "kiss/kisshw.s"
 
         .globl  kiss_check_double_jumper

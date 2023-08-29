@@ -1,4 +1,3 @@
-        .chip 68030
         .include "kiss/kisshw.s"
 
         .globl  vector_table

@@ -1,5 +1,3 @@
-        .chip 68040
-
         .globl  vector_table
         .globl  timer_ticks
         .globl  uart_write_str

@@ -1,4 +1,3 @@
-        .chip 68000
         .include "mini/minihw.s"
 
         .globl  vector_table

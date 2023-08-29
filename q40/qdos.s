@@ -1,5 +1,3 @@
-        .chip 68040
-
         .globl  q40_boot_qdos
 
         .section .text

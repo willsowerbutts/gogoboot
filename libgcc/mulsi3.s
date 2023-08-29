@@ -1,5 +1,4 @@
         /* WRS: extracted from gcc-12.3.0/libgcc/config/m68k/lb1sf68.S */
-        .chip 68000
 
         .globl  __mulsi3
 

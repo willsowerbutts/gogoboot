@@ -1,5 +1,3 @@
-        .chip 68040
-
         .globl  _start
         .globl  gogoboot
         .globl  copyright_msg
