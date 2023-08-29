@@ -6,8 +6,19 @@
 #include <q40/hw.h>
 #include <cpu.h>
 
-uint32_t ram_size = 0;
 volatile uint32_t timer_ticks;
+
+uint32_t mem_get_max_possible(void)
+{
+    /* code will need adjusting to support 128MB option boards */
+    /* I do not have one of these to test with :( */
+    return MAX_RAM_SIZE << 20;
+}
+
+uint32_t mem_get_granularity(void)
+{
+    return 1024*1024;
+}
 
 const char * const weekday[8] = { "???", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
 
@@ -165,33 +176,4 @@ void q40_graphics_init(int mode)
     // the CPU caches video memory so we need to force it to write the updates out
     // otherwise we get weird artefacts on the screen that hang around forever!
     cpu_cache_flush();
-}
-
-void measure_ram_size(void)
-{
-    /* we write a longword at the end of each MB of RAM, from
-       the highest possible address downwards. Then we read
-       these back, in the reverse order, to confirm how much
-       RAM is actually fitted. Because the lowest address we
-       write to is just below 1MB we avoid stomping on any of
-       our code, data or stack which is all far below 1MB. 
-
-       WARNING: this routine needs modification for boards 
-       that support >32MB RAM, where some amounts of memory 
-       can result in a discontiguous address space.
-    */
-
-    #define UNIT_ADDRESS(unit) ((uint32_t*)(unit * RAM_UNIT_SIZE - sizeof(uint32_t)))
-    #define UNIT_TEST_VALUE(unit) ((uint32_t)(unit | ((~unit) << 16)))
-
-    ram_size = 0;
-
-    for(int unit=MAX_RAM_SIZE; unit > 0; unit--)
-        *UNIT_ADDRESS(unit) = UNIT_TEST_VALUE(unit);
-
-    for(int unit=1; unit<=MAX_RAM_SIZE; unit++)
-        if(*UNIT_ADDRESS(unit) == UNIT_TEST_VALUE(unit))
-            ram_size = (unit * RAM_UNIT_SIZE);
-        else
-            break;
 }

@@ -21,15 +21,15 @@ kiss_check_double_jumper:
         movec.l %a0, %vbr               /* (only vector 2 will be used) */
         lea 64*1024*1024, %a0           /* load test address */
         move.b (%a0), %d0               /* test it; if DOUBLE=0, the exception takes us to doublefault */
-        move.l #256, %d0                /* if we survive to here, DOUBLE=1 */
+        move.l #1, %d0                  /* if we survive to here, DOUBLE=1 */
         bra.s doubledone
 doublefault:
-        move.l #64, %d0                 /* if we get here, DOUBLE=0 */
+        move.l #0, %d0                  /* if we get here, DOUBLE=0 */
 doubledone:
         move.l %a1, %sp                 /* restore SP (discards any exception frame) */
         movec.l %d1, %vbr               /* restore VBR */
         move.w (%sp)+, %sr              /* restore SR including interrupt level */
-        rts                             /* return with either 64 or 256 in %d0 */
+        rts                             /* return with either 0 or 1 in %d0 */
 
         /* we use temp_vector-8 as the VBR allowing us to skip the unused first 2 vectors */
         .align 4                        /* vector 0 initial ISP (unused, any junk will do) */
