@@ -31,11 +31,11 @@ Supported Targets
 
 GogoBoot currently supports three target machines:
  - Retrobrew Computers KISS-68030
-   - 68030 CPU at 32MHz, 256MB DRAM (max), ECB expansion
+   - 68030 CPU at 32MHz, 256MB DRAM (max), ECB expansion with MF/PIC card at 0x40
  - Retrobrew Computers Mini-68K
-   - 68008 CPU at 8MHz, 2B SRAM (max), ECB expansion
+   - 68008 CPU at 8MHz, 2B SRAM (max), ECB expansion with MF/PIC card at 0x40
  - Peter Graf's Q40 Sinclair QL successor
-   - 68040 CPU at 40MHz, 32MB DRAM (max), ISA expansion
+   - 68040 CPU at 40MHz, 32MB DRAM (max), ISA expansion with Super-IO card
 
 It should be easy to port GogoBoot to a new target. The Mini-68K target was
 written in just a few hours.
