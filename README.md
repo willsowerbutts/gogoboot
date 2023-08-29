@@ -164,12 +164,13 @@ the terms of the GNU General Public License as published by the Free Software
 Foundation, either version 3 of the License, or (at your option) any later
 version.
 
-  .text    0x00000000 length 0x0000A748
-  .rodata  0x0000A748 length 0x00001EF4
-  .data    0x00028000 length 0x00000004 (load from 0x0000C63C)
-  .bss     0x00028004 length 0x00000E18
+  .text    0x00000000 length 0x0000A758
+  .rodata  0x0000A758 length 0x00001F14
+  .stack   0x0001E000 length 0x00002000
+  .data    0x00018000 length 0x00000004 (load from 0x0000C66C)
+  .bss     0x00018004 length 0x00000E18
 
-Version git 023bcbd build 2023-08-28 badhorse/40
+Version git 1d7ad9b build 2023-08-29 carbon/817
 RAM installed: 32 MB, 2 MB heap at 0x01E00000
 Setup interrupts: done
 Initialise RTC: Mon 2023-08-28 22:31:58
@@ -189,7 +190,26 @@ softrom: loaded 50752 bytes from "gogoboot-q40.rom"
 softrom: matches running ROM
 boot: loadimage images/vaporwave.img
 boot: set tftp_server "192.168.100.80"
-boot: set linux_parameters "console=ttyS0,115200n8 root=/dev/sda3 netdev=5,0x300,eth0"
+1:/> 
+1:/> ls
+       179 2023-08-27 22:05 boot
+     50800 2023-08-29 10:44 gogoboot-q40.rom
+           2023-08-12 21:10 images/
+        88 2023-08-18 23:31 linux
+   6013952 2023-07-25 17:58 linux.513
+   6502484 2023-07-25 17:57 linux.621
+        56 2023-08-27 22:04 rom
+    262144 2023-08-18 23:14 smsqe-297.rom
+    282050 2023-07-26 11:19 smsqe-338
+   6479788 2023-08-28 22:32 vmlinux
+   6023848 2023-08-13 21:55 vmlinux-5.13.19
+   6025404 2023-08-13 21:56 vmlinux-5.13.19+44b1f
+   5979196 2023-08-13 21:56 vmlinux-5.14.21
+   6482976 2023-08-13 22:09 vmlinux-6.4.10+rfc
+   6482976 2023-08-14 11:15 vmlinux-6.4.10+rfc2
+   6509524 2023-08-14 12:04 vmlinux-6.4.10+rfc2+wrs
+   6482816 2023-08-13 22:33 vmlinux-6.4.10+wrs
+953 MB free (243980 clusters of 4096 bytes)
 1:/> linux
 linux: 88 bytes, script
 linux: tftp vmlinux
@@ -255,4 +275,5 @@ Entry at 0x42000 in supervisor mode
 [    0.260000] cblist_init_generic: Setting adjustable number of callback queues.
 [    0.260000] cblist_init_generic: Setting shift to 0 and lim to 1.
 [    0.280000] devtmpfs: initialized
+  (etc)
 ```
