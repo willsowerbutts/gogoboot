@@ -4,8 +4,10 @@ ENTRY(_start)
 
 MEMORY 
 {
-    rom    : ORIGIN = 0x00000000, LENGTH = 96K     /* first 96KB only; full 256KB is at 0xFE000000 */
-    ram    : ORIGIN = 0x00028000, LENGTH = 3936K   /* assume a minimum 4MB RAM system */
+    rom      : ORIGIN = 0x00000000, LENGTH = 96K     /* first 96KB only; full 256KB is at 0xFE000000 */
+    qlram    : ORIGIN = 0x00018000, LENGTH = 24K     /* 32KB - lower portion for .data/.bss */
+    stackram : ORIGIN = 0x0001e000, LENGTH = 8K      /* 32KB - upper portion for 8KB stack */
+    bigram   : ORIGIN = 0x00028000, LENGTH = 3936K   /* assume a minimum 4MB RAM system */
 }
 
 SECTIONS
@@ -37,7 +39,7 @@ SECTIONS
         data_start = .;
         *(.data SORT(.data.*) SORT(.gnu.linkonce.d.*))
         data_end = .;
-    } >ram AT>rom
+    } >qlram AT>rom
     data_size = SIZEOF(.data);
     data_load_start = LOADADDR(.data);
 
@@ -47,6 +49,13 @@ SECTIONS
         *(.bss SORT(.bss.*) SORT(.gnu.linkonce.b.*))
         *(COMMON)
         bss_end = .;
-    } >ram
+    } >qlram
     bss_size = SIZEOF(.bss);
+
+    .stack : {
+        stack_start = .;
+        *(.stack SORT(.stack.*))
+        stack_end = .;
+    } >stackram
+    stack_size = SIZEOF(.stack);
 }

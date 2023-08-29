@@ -1,6 +1,7 @@
 #ifndef __GOGOBOOT_UART_DOT_H__
 #define __GOGOBOOT_UART_DOT_H__
 
+#include <types.h>
 #include <stdbool.h>
 
 void uart_init(void);
@@ -14,7 +15,6 @@ uint8_t uart_read_byte_wait(void); /* waits if not ready */
 void uart_read_string(void *buffer, int count);
 
 /* 16550 UART hardware registers */
-
 #define UART_THR        0       /* transmit holding register */
 #define UART_RBR        0       /* receive buffer register */
 #define UART_IER        1       /* interrupt enable register */

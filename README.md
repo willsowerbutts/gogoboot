@@ -1,25 +1,29 @@
 GogoBoot
 ========
 
-GogoBoot is a boot ROM for 68K machines.  It is mostly written in C with just
-enough assembler to make it work.  C was chosen to make the software easy to
-port and extend.
+GogoBoot is a boot ROM for 68K machines.
 
 GogoBoot provides a command-line interface on a serial port to control the
-machine.  It provides simple scripting, including a script executed
-automatically on boot.
+machine.  It provides simple scripting, including a "boot" script which is
+executed automatically on boot.
 
 It supports FAT16/FAT32 (and optionally exFAT) filesystems, with long file
-names, on IDE disks.
+names. It includes a driver for IDE disks.
 
 It includes a simple IPv4 stack which supports DHCP and can transfer files to
-the hard disk using TFTP over an ethernet network. 
+the hard disk using TFTP over an ethernet network.
+
+It has commands to read and write to system memory from the CLI.
 
 It can load ELF executables, including support for booting the Linux kernel.
 
+It is mostly written in C with just enough assembler to make it work.  C was
+chosen to make the software easy to port and extend.
+
 The main purpose of GogoBoot is to provide an environment to load and run
-software under development, typically operating system kernels. It does not
-provide a system call (BIOS) interface for software to use at run time.
+software under development, typically operating system kernels. It is not a
+operating system and does not provide a system call (BIOS) interface for
+software to use at run time.
 
 
 Supported Targets
@@ -35,6 +39,7 @@ GogoBoot currently supports three target machines:
 
 It should be easy to port GogoBoot to a new target. The Mini-68K target was
 written in just a few hours.
+
 
 Supported Hardware
 ------------------
@@ -61,6 +66,19 @@ to afford easy interchange of disks with other computers.
 
 On Q40 machines, GogoBoot will look for an NE2000 ISA ethernet card at the
 common I/O addresses (I use 0x300).
+
+
+Building GoGoBoot
+-----------------
+
+I use a Debian (12) Linux system with the gcc-m68k-linux-gnu. Some of the
+scripts use `python`.
+
+Just type `make -j` and you will end up with a `.rom` file for each target.
+
+To program EPROMs for the Q40, run `make q40-split` and separate high/low
+`.rom` files will be generated.
+
 
 CLI
 ---

@@ -34,7 +34,7 @@ copyright_msg:
         .section .stack
         .align 4
 stack_bottom:
-        .space  (16*1024)
+        .space  (8*1024)
 stack_top:
 
         /* startup code */
