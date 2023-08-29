@@ -9,6 +9,7 @@
 // #include <linux/module.h>
 // #include <linux/string.h>
 #include <types.h>
+#include <cpu.h>
 
 void *memset(void *s, int c, size_t count)
 {
@@ -35,7 +36,7 @@ void *memset(void *s, int c, size_t count)
 	temp = count >> 2;
 	if (temp) {
 		long *ls = s;
-#if defined(TARGET_MINI)
+#if defined(CPU_68010_OR_EARLIER)
 		for (; temp; temp--)
 			*ls++ = c;
 #else
