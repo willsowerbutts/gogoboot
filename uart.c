@@ -3,15 +3,17 @@
 #include <uart.h>
 
 #if defined(TARGET_Q40)
+/* ISA based targets */
 #include <q40/isa.h>
 #define UART_ADDRESS    0x3f8
-#define uart_inb(a)     isa_read_byte( (a) )
-#define uart_outb(a,v)  isa_write_byte( (a), (v) )
+static inline uint8_t uart_inb(uint16_t port) { return isa_read_byte(port); }
+static inline void uart_outb(uint16_t port, uint8_t val) { isa_write_byte(port, val); }
 #elif defined(TARGET_KISS) || defined(TARGET_MINI)
+/* ECB based targets */
 #include <ecb/ecb.h>
 #define UART_ADDRESS    (MFPIC_UART)
-#define uart_inb(a)     ecb_read_byte( (a) )
-#define uart_outb(a,v)  ecb_write_byte( (a), (v) )
+static inline uint8_t uart_inb(uint16_t port) { return ecb_read_byte(port); }
+static inline void uart_outb(uint16_t port, uint8_t val) { ecb_write_byte(port, val); }
 #else
 #pragma error update uart.c for your target
 #endif
