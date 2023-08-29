@@ -40,7 +40,6 @@ SRC_kiss = kiss/startup.s kiss/vectors.s ecb/timer.c kiss/cli.c \
 AOPT_mini = -mcpu=68000 --defsym TARGET_MINI=1
 COPT_mini = -mcpu=68000 -DTARGET_MINI
 LDOPT_mini = --require-defined=vector_table
-	   
 SRC_mini = mini/startup.s mini/vectors.s $(SRC_68000) mini/cli.c mini/hw.c \
 	   ecb/timer.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s
 
