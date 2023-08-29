@@ -38,7 +38,6 @@ void q40_rtc_write_clock(const q40_rtc_data_t *buffer);
 #define RTC_ADDRESS     0xff020000
 
 #define MAX_RAM_SIZE  32                /* in MB; code needs adjusting to support 128MB option boards */
-#define RAM_UNIT_SIZE (1024*1024)       /* smallest granularity */
 #define Q40_ROMSIZE   (96*1024)         /* size of low ROM alias at base of physical memory */
 
 #define Q40_RTC_NVRAM(offset) ((volatile uint8_t *)(RTC_ADDRESS + (4 * offset)))

@@ -28,7 +28,7 @@ copyright_msg:
         .ascii  "This program is free software: you can redistribute it and/or modify it under\n"
         .ascii  "the terms of the GNU General Public License as published by the Free Software\n"
         .ascii  "Foundation, either version 3 of the License, or (at your option) any later\n"
-        .ascii  "version.\n\n\0"
+        .ascii  "version.\n\0"
 
         /* define some space in DRAM for the stack to live */
         .section .stack
@@ -38,7 +38,7 @@ stack_bottom:
 stack_top:
 
         /* startup code */
-        .text
+        .section .text
         .even
         /* we're either running from ROM, or we've been loaded in RAM ... somewhere */
         /* we must copy ourselves into place using only PC-relative addresses */

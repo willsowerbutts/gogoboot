@@ -86,7 +86,7 @@ void gogoboot(void)
 
     uart_init();
 
-    printf(copyright_msg);
+    puts(copyright_msg);
     report_linker_layout();
     printf("Version %s\n", software_version_string);
 
