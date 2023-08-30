@@ -44,35 +44,12 @@
 #define LINELEN 1024
 char cmd_buffer[LINELEN];
 
-typedef struct environment_variable_t environment_variable_t;
-
-struct environment_variable_t
-{
-    char *name;
-    char *value;
-    environment_variable_t *next;
-};
-
-environment_variable_t *environment_list_head = NULL;
-
-const char *get_environment_variable(const char *name)
-{
-    environment_variable_t *e;
-
-    for(e = environment_list_head; e; e = e->next)
-        if(strcasecmp(e->name, name)==0)
-            return e->value;
-
-    return NULL;
-}
-
 static void execute_cmd(char *linebuffer);
 static void do_dump(char *argv[], int argc);
 static void help(char *argv[], int argc);
 static void do_writemem(char *argv[], int argc);
 static void do_heapinfo(char *argv[], int argc);
 static void do_netinfo(char *argv[], int argc);
-static void do_set(char *argv[], int argc);
 static void do_tftp(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
 
@@ -90,12 +67,14 @@ static const cmd_entry_t builtin_cmd_table[] = {
     {"rename",      2,      2,  &do_mv,       "rename a file" },
     {"rm",          1, MAXARG,  &do_rm,       "delete a file" },
 
+    /* -- cli_env.c -- */
+    {"set",         0,      2,  &do_set,      "show or set environment variables" },
+
     {"dm",          2,      2,  &do_dump,     "synonym for DUMP" },
     {"dump",        2,      2,  &do_dump,     "dump memory <from> <count>" },
     {"heapinfo",    0,      0,  &do_heapinfo, "info on internal malloc state" },
     {"help",        0,      0,  &help,        "list this help info"   },
     {"netinfo",     0,      0,  &do_netinfo,  "network statistics" },
-    {"set",         0,      2,  &do_set,      "show or set environment variables" },
     {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" }, // TODO write down the syntax
     {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
     {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
@@ -230,57 +209,6 @@ static void do_heapinfo(char *argv[], int argc)
     printf("internal heap (tinyalloc):\nfresh: %ld\nfree: %ld\nused: %ld\n",
             ta_num_fresh(), ta_num_free(), ta_num_used());
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
-}
-
-static void do_set(char *argv[], int argc)
-{
-    environment_variable_t *e;
-
-    if(argc == 0){
-        // no args -- print environment
-        int count = 0;
-        for(e = environment_list_head; e; e = e->next){
-            printf("%s=%s\n", e->name, e->value);
-            count++;
-        }
-        printf("%d environment variables\n", count);
-        return;
-    }
-
-    if(argc >= 1){
-        bool found = false;
-        // remove variable (we will set it again in next step if argc == 2)
-        environment_variable_t **ptr;
-        ptr = &environment_list_head;
-        e = environment_list_head;
-        while(e){
-            if(strcasecmp(e->name, argv[0])==0){
-                *ptr = e->next;
-                free(e->name);
-                free(e->value);
-                free(e);
-                found = true;
-                break;
-            }
-            ptr = &e->next;
-            e = e->next;
-        }
-        if(argc == 1 && !found)
-            printf("Cannot find \"%s\" in environment\n", argv[0]);
-    }
-
-    if(argc >= 2){
-        // set variable
-        e = malloc(sizeof(environment_variable_t));
-        e->name = strdup(argv[0]);
-        e->value = strdup(argv[1]);
-        // convert e->name to lower case
-        for(char *p=e->name; *p; p++) 
-            *p = tolower(*p);
-        // add to linked list
-        e->next = environment_list_head;
-        environment_list_head = e;
-    }
 }
 
 static void do_tftp(char *argv[], int argc)

@@ -2,9 +2,16 @@
 #define __CLI_DOT_H__
 
 void command_line_interpreter(void);
+
+// environment variables
+const char *get_environment_variable(const char *name);
+void set_environment_variable(const char *name, const char *val); // val=NULL will delete an entry
+
+// fat_fs extensions
 const char *f_errmsg(int errno);
 void f_perror(int errno);
-const char *get_environment_variable(const char *name);
+
+// execute loaded code (wrapper that ultimately calls machine_execute)
 void execute(void *entry_vector);
 
 typedef struct
@@ -25,5 +32,6 @@ void do_rm(char *argv[], int argc);
 void do_mkdir(char *argv[], int argc);
 void do_mv(char *argv[], int argc);
 void do_cp(char *argv[], int argc);
+void do_set(char *argv[], int argc);
 
 #endif
