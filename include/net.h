@@ -2,7 +2,6 @@
 #define __NET_DOT_H__
 
 #include <types.h>
-#include <stdbool.h>
 #include <timers.h>
 
 typedef struct packet_t packet_t;

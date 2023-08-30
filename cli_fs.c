@@ -5,7 +5,6 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <fatfs/ff.h>
 #include <tinyalloc.h>
 #include <cli.h>

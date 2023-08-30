@@ -1,7 +1,6 @@
 #ifndef __TIMERS_DOT_H__
 #define __TIMERS_DOT_H__
 
-#include <stdbool.h>
 #include <types.h>
 
 #define TIMER_HZ                200     // Q40 supports only 50 or 200

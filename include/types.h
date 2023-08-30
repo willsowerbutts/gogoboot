@@ -1,6 +1,8 @@
 #ifndef __TYPES_DOT_H__
 #define __TYPES_DOT_H__
 
+#include <stdbool.h>
+
 typedef signed char		int8_t;
 typedef signed short int	int16_t;
 typedef signed long int		int32_t;

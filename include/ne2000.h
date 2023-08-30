@@ -72,7 +72,7 @@ are GPL, so this is, of course, GPL.
 
 */
 
-#include <stdbool.h>
+#include <types.h>
 
 typedef struct dp83902a_priv_data {
     uint16_t base;

@@ -2,7 +2,6 @@
 extern "C" {
 #endif
 
-#include <stdbool.h>
 #include <types.h>
 
 bool ta_init(const void *base, const void *limit, const size_t heap_blocks, const size_t split_thresh, const size_t alignment);

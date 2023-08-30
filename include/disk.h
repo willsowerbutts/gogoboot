@@ -1,7 +1,6 @@
 #ifndef __GOGOBOOT_DISK_DOT_H__
 #define __GOGOBOOT_DISK_DOT_H__
 
-#include <stdbool.h>
 #include <types.h>
 #include <fatfs/ff.h>
 #include <fatfs/diskio.h>

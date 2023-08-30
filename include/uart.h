@@ -2,7 +2,6 @@
 #define __GOGOBOOT_UART_DOT_H__
 
 #include <types.h>
-#include <stdbool.h>
 
 void uart_init(void);
 bool uart_write_ready(void);
