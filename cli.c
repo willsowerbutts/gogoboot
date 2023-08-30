@@ -470,7 +470,10 @@ static bool handle_cmd_table(char *arg[], int numarg, const cmd_entry_t *cmd)
 static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
 {
     unsigned int bytes_read;
-    void *load_address = (void*)(256*1024); // TODO choose a better load address
+    // TODO choose a better load address
+    // On Q40 SMSQ/E does not like being loaded at 256KB. 2048KB seems fine. Maybe it copies itself downwards?
+    // 2MB is pretty high up!
+    void *load_address = (void*)(2048*1024); 
     FRESULT fr;
 
     f_lseek(fd, 0);
@@ -728,10 +731,7 @@ static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
             return false;
         }
 #endif
-        void (*entry)(void) = (void(*)(void))header.entry;
-        printf("Entry at 0x%lx in supervisor mode\n", (long)entry);
-        cpu_cache_flush();
-        entry();
+        execute((void*)(header.entry));
     }
 
     return true;

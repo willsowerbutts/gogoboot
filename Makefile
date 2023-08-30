@@ -17,7 +17,7 @@ COPT_all = -O1 -std=c18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
 SRC_all = arp.c cli.c dhcp.c except.c fatfs/ff.c fatfs/ffunicode.c ffglue.c \
            ipcsum.c ipv4.c memcpy.c memmove.c memset.c ne2000.c net.c packet.c \
            printf.c qsort.c stdlib.c strdup.c strtoul.c tftp.c tinyalloc.c \
-	   icmp.c ide.c timer.c mem.c uart.c boot.c
+	   icmp.c ide.c timer.c mem.c uart.c boot.c cli_fs.c
 
 # gcc needs some helpers on 68000, system provided libgcc.a may be
 # built for 68020+
@@ -27,21 +27,21 @@ SRC_68000 = libgcc/divmod.c libgcc/udivmod.c libgcc/udivmodsi4.c libgcc/mulsi3.s
 AOPT_q40 = -mcpu=68040 --defsym TARGET_Q40=1
 COPT_q40 = -mcpu=68040 -DTARGET_Q40
 SRC_q40 = q40/startup.s q40/vectors.s q40/cli.c q40/hw.c q40/ide.c \
-	  q40/ffrtc.c q40/qdos.s q40/softrom.s
+	  q40/ffrtc.c q40/execute.s q40/softrom.s
 
 # kiss target (Retrobrew Computers KISS-68030)
 AOPT_kiss = -mcpu=68030 --defsym TARGET_KISS=1
 COPT_kiss = -mcpu=68030 -DTARGET_KISS
 SRC_kiss = kiss/startup.s kiss/vectors.s ecb/timer.c kiss/cli.c \
 	   kiss/hw.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s kiss/double.s \
-	   kiss/softrom.s
+	   kiss/softrom.s kiss/execute.s
 
 # mini target (Retrobrew Computers Mini68K)
 AOPT_mini = -mcpu=68000 --defsym TARGET_MINI=1
 COPT_mini = -mcpu=68000 -DTARGET_MINI
 LDOPT_mini = --require-defined=vector_table
 SRC_mini = mini/startup.s mini/vectors.s $(SRC_68000) mini/cli.c mini/hw.c \
-	   ecb/timer.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s
+	   ecb/timer.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s mini/execute.s
 
 .SUFFIXES:   .c .s .o .out .hex .bin .rom .elf
 
