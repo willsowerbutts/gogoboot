@@ -45,15 +45,9 @@
 char cmd_buffer[LINELEN];
 
 static void execute_cmd(char *linebuffer);
-static void do_dump(char *argv[], int argc);
-static void help(char *argv[], int argc);
-static void do_writemem(char *argv[], int argc);
-static void do_heapinfo(char *argv[], int argc);
-static void do_netinfo(char *argv[], int argc);
-static void do_tftp(char *argv[], int argc);
 static void handle_any_command(char *argv[], int argc);
 
-static const cmd_entry_t builtin_cmd_table[] = {
+const cmd_entry_t builtin_cmd_table[] = {
     /* name         min     max function */
     /* -- cli_fs.c -- */
     {"cd",          1,      1,  &do_cd,       "change directory <dir>"},
@@ -70,14 +64,20 @@ static const cmd_entry_t builtin_cmd_table[] = {
     /* -- cli_env.c -- */
     {"set",         0,      2,  &do_set,      "show or set environment variables" },
 
+    /* -- cli_mem.c -- */
     {"dm",          2,      2,  &do_dump,     "synonym for DUMP" },
     {"dump",        2,      2,  &do_dump,     "dump memory <from> <count>" },
-    {"heapinfo",    0,      0,  &do_heapinfo, "info on internal malloc state" },
-    {"help",        0,      0,  &help,        "list this help info"   },
-    {"netinfo",     0,      0,  &do_netinfo,  "network statistics" },
-    {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" }, // TODO write down the syntax
     {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
     {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
+
+    /* -- cli_info.c -- */
+    {"heapinfo",    0,      0,  &do_heapinfo, "info on internal malloc state" },
+    {"netinfo",     0,      0,  &do_netinfo,  "network statistics" },
+    {"help",        0,      0,  &help,        "list this help info"   },
+
+    /* -- cli_tftp.c -- */
+    {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" }, // TODO write down the syntax
+
     {0, 0, 0, 0, 0 } /* terminator */
 };
 
@@ -118,221 +118,6 @@ void f_perror(int errno)
         printf("Error: %s\n", fatfs_errmsg[errno]);
     else
         printf("Error: Unknown error %d!\n", errno);
-}
-
-void pretty_dump_memory(void *start, int len)
-{
-    int i, rem;
-    unsigned char *ptr=(unsigned char *)start;
-    char linebuffer[17], *lbptr;
-
-    for(i=0;i<16;i++)
-        linebuffer[i] = ' ';
-    linebuffer[16]=0;
-    lbptr = &linebuffer[0];
-
-    printf("%08x ", (unsigned)ptr&(~15));
-    for(i=0; i<((unsigned)ptr & 15); i++){
-        printf("   ");
-        lbptr++;
-    }
-    while(len){
-        if(*ptr >= 32 && *ptr < 127)
-            *lbptr = *ptr;
-        else
-            *lbptr = '.';
-
-        printf(" %02x", *ptr++);
-        len--;
-        lbptr++;
-
-        if((unsigned)ptr % 16 == 0){
-            printf("  %s", linebuffer);
-            lbptr = &linebuffer[0];
-            if(len)
-                printf("\n%08x ", (int)ptr);
-            else{
-                /* no ragged end to tidy up! */
-                printf("\n");
-                return;
-            }
-        }
-    }
-
-    rem = 16 - ((unsigned)ptr & 15);
-
-    for(i=0; i<rem; i++){
-        printf("   ");
-        *lbptr = ' ';
-        lbptr++;
-    }
-    printf("  %s\n", linebuffer);
-}
-
-static void do_dump(char *argv[], int argc)
-{
-    unsigned long start, count;
-
-    start = strtoul(argv[0], NULL, 16);
-    count = strtoul(argv[1], NULL, 16);
-
-    pretty_dump_memory((void*)start, count);
-}
-
-static void help_cmd_table(const cmd_entry_t *cmd)
-{
-    while (cmd->name) {
-        printf("%12s : %s\n", cmd->name, cmd->helpme);
-        cmd++;
-    }
-}
-
-static void help(char *argv[], int argc)
-{
-    help_cmd_table(builtin_cmd_table);
-    help_cmd_table(target_cmd_table);
-}
-
-static int fromhex(char c)
-{
-    if(c >= '0' && c <= '9')
-        return c - '0';
-    if(c >= 'a' && c <= 'f')
-        return 10 + c - 'a';
-    if(c >= 'A' && c <= 'F')
-        return 10 + c - 'A';
-    return -1;
-}
-
-static void do_heapinfo(char *argv[], int argc)
-{
-    printf("internal heap (tinyalloc):\nfresh: %ld\nfree: %ld\nused: %ld\n",
-            ta_num_fresh(), ta_num_free(), ta_num_used());
-    printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
-}
-
-static void do_tftp(char *argv[], int argc)
-{
-    const char *server=NULL, *src, *dst;
-    uint32_t targetip = 0;
-
-    // this needs some improvements to make it more user friendly
-    // right now it expects the user to know too much
-    
-    switch(argc){
-        case 1:
-            src = dst = argv[0];
-            break;
-        case 2:
-            src = argv[0];
-            dst = argv[1];
-            break;
-        case 3:
-            server = argv[0];
-            src = argv[1];
-            dst = argv[2];
-            break;
-        default:
-            printf("Unexpected number of arguments\n");
-            return;
-    }
-
-    if(!server)
-        server = get_environment_variable("tftp_server");
-
-    if(!server){
-        printf("please specify the server IP address (or 'set tftp_server <ip>')\n");
-        return;
-    }
-
-    if(server){
-        targetip = net_parse_ipv4(server);
-        if(targetip == 0){
-            printf("Cannot parse server IPv4 address \"%s\"\n", server);
-            return;
-        }
-    }
-
-    tftp_receive(targetip, src, dst);
-}
-
-static void do_netinfo(char *argv[], int argc)
-{
-    int prefixlen = 0;
-    uint32_t mask = interface_subnet_mask;
-    while(mask){
-        prefixlen++;
-        mask <<= 1;
-    }
-
-    printf("IPv4 address: %d.%d.%d.%d/%d\n", 
-            (int)(interface_ipv4_address >> 24 & 0xff),
-            (int)(interface_ipv4_address >> 16 & 0xff),
-            (int)(interface_ipv4_address >>  8 & 0xff),
-            (int)(interface_ipv4_address       & 0xff),
-            prefixlen);
-    printf("Gateway: %d.%d.%d.%d\n", 
-            (int)(interface_ipv4_gateway >> 24 & 0xff),
-            (int)(interface_ipv4_gateway >> 16 & 0xff),
-            (int)(interface_ipv4_gateway >>  8 & 0xff),
-            (int)(interface_ipv4_gateway       & 0xff));
-    printf("DNS server: %d.%d.%d.%d\n", 
-            (int)(interface_dns_server >> 24 & 0xff),
-            (int)(interface_dns_server >> 16 & 0xff),
-            (int)(interface_dns_server >>  8 & 0xff),
-            (int)(interface_dns_server       & 0xff));
-
-    printf("packet_rx_count %ld\n", packet_rx_count);
-    printf("packet_tx_count %ld\n", packet_tx_count);
-    printf("packet_alive_count %ld\n", packet_alive_count);
-    printf("packet_discard_count %ld\n", packet_discard_count);
-    printf("packet_bad_cksum_count %ld\n", packet_bad_cksum_count);
-
-    net_dump_packet_sinks();
-}
-
-static void do_writemem(char *argv[], int argc)
-{
-    unsigned long value;
-    unsigned char *ptr;
-    int i, j, l;
-
-    value = strtoul(argv[0], NULL, 16);
-    ptr = (unsigned char*)value;
-
-    /* This can deal with values like: 1, 12, 1234, 123456, 12345678.
-       Values > 2 characters are interpreted as big-endian words ie
-       "12345678" is the same as "12 34 56 78" */
-
-    /* first check we're happy with the arguments */
-    for(i=1; i<argc; i++){
-        l = strlen(argv[i]);
-        if(l != 1 && l % 2){
-            printf("Ambiguous value: \"%s\" (odd length).\n", argv[i]);
-            return; /* abort! */
-        }
-        for(j=0; j<l; j++)
-            if(fromhex(argv[i][j]) < 0){
-                printf("Bad hex character \"%c\" in value \"%s\".\n", argv[i][j], argv[i]);
-                return; /* abort! */
-            }
-    }
-
-    /* then we do the write */
-    for(i=1; i<argc; i++){
-        l = strlen(argv[i]);
-        if(l <= 2) /* one or two characters - a single byte */
-            *(ptr++) = strtoul(argv[i], NULL, 16);
-        else{
-            /* it's a multi-byte value */
-            j=0;
-            while(j<l){
-                value = (fromhex(argv[i][j]) << 4) | fromhex(argv[i][j+1]);
-                *(ptr++) = (unsigned char)value;
-                j += 2;
-            }
-        }
-    }
 }
 
 static void select_working_drive(void)

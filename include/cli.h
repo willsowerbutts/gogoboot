@@ -24,6 +24,7 @@ typedef struct
 } cmd_entry_t;
 
 extern const cmd_entry_t target_cmd_table[];
+extern const cmd_entry_t builtin_cmd_table[];
 
 // cli_fs.c
 void do_cd(char *argv[], int argc);
@@ -32,6 +33,20 @@ void do_rm(char *argv[], int argc);
 void do_mkdir(char *argv[], int argc);
 void do_mv(char *argv[], int argc);
 void do_cp(char *argv[], int argc);
+
+// cli_env.c
 void do_set(char *argv[], int argc);
+
+// cli_mem.c
+void do_dump(char *argv[], int argc);
+void do_writemem(char *argv[], int argc);
+
+// cli_info.c
+void help(char *argv[], int argc);
+void do_heapinfo(char *argv[], int argc);
+void do_netinfo(char *argv[], int argc);
+
+// cli_tftp.c
+void do_tftp(char *argv[], int argc);
 
 #endif
