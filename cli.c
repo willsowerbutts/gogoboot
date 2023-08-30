@@ -6,7 +6,6 @@
 #include <types.h>
 #include <stdlib.h>
 #include <uart.h>
-#include <q40/hw.h>
 #include <fatfs/ff.h>
 #include <elf.h>
 #include <bootinfo.h>
@@ -68,12 +67,6 @@ const char *get_environment_variable(const char *name)
 }
 
 static void execute_cmd(char *linebuffer);
-static void do_cd(char *argv[], int argc);
-static void do_ls(char *argv[], int argc);
-static void do_rm(char *argv[], int argc);
-static void do_mkdir(char *argv[], int argc);
-static void do_mv(char *argv[], int argc);
-static void do_cp(char *argv[], int argc);
 static void do_dump(char *argv[], int argc);
 static void help(char *argv[], int argc);
 static void do_writemem(char *argv[], int argc);
@@ -85,21 +78,23 @@ static void handle_any_command(char *argv[], int argc);
 
 static const cmd_entry_t builtin_cmd_table[] = {
     /* name         min     max function */
+    /* -- cli_fs.c -- */
     {"cd",          1,      1,  &do_cd,       "change directory <dir>"},
     {"del",         1, MAXARG,  &do_rm,       "delete a file" },
     {"dir",         0,      1,  &do_ls,       "list directory [<vol>:]"  },
-    {"dm",          2,      2,  &do_dump,     "synonym for DUMP" },
-    {"dump",        2,      2,  &do_dump,     "dump memory <from> <count>" },
-    {"heapinfo",    0,      0,  &do_heapinfo, "info on internal malloc state" },
-    {"help",        0,      0,  &help,        "list this help info"   },
     {"ls",          0,      1,  &do_ls,       "synonym for DIR"  },
     {"mkdir",       1,      1,  &do_mkdir,    "make a directory" },
     {"mv",          2,      2,  &do_mv,       "rename a file" },
     {"cp",          2,      2,  &do_cp,       "copy a file" },
     {"copy",        2,      2,  &do_cp,       "copy a file" },
-    {"netinfo",     0,      0,  &do_netinfo,  "network statistics" },
     {"rename",      2,      2,  &do_mv,       "rename a file" },
     {"rm",          1, MAXARG,  &do_rm,       "delete a file" },
+
+    {"dm",          2,      2,  &do_dump,     "synonym for DUMP" },
+    {"dump",        2,      2,  &do_dump,     "dump memory <from> <count>" },
+    {"heapinfo",    0,      0,  &do_heapinfo, "info on internal malloc state" },
+    {"help",        0,      0,  &help,        "list this help info"   },
+    {"netinfo",     0,      0,  &do_netinfo,  "network statistics" },
     {"set",         0,      2,  &do_set,      "show or set environment variables" },
     {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" }, // TODO write down the syntax
     {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
@@ -412,15 +407,6 @@ static void do_writemem(char *argv[], int argc)
     }
 }
 
-static void do_cd(char *argv[], int argc)
-{
-    FRESULT r;
-
-    r = f_chdir(argv[0]);
-    if(r != FR_OK)
-        f_perror(r);
-}
-
 static void select_working_drive(void)
 {
     char path[4];
@@ -442,212 +428,6 @@ static void select_working_drive(void)
     }
 
     printf("No FAT filesystem found.\n");
-}
-
-static void do_mkdir(char *argv[], int argc)
-{
-    FRESULT fr = f_mkdir(argv[0]);
-    if(fr != FR_OK){
-        printf("f_mkdir(\"%s\"): ", argv[0]);
-        f_perror(fr);
-    }
-}
-
-#define COPY_BUFFER_SIZE 65536
-static void do_cp(char *argv[], int argc)
-{
-    FRESULT fr;
-    FIL src, dst;
-    char *buffer;
-    bool done = false;
-    UINT bytes_read, bytes_written;
-
-    fr = f_open(&src, argv[0], FA_READ);
-    if(fr != FR_OK){
-        printf("f_open(\"%s\"): ", argv[0]);
-        f_perror(fr);
-        return;
-    }
-
-    fr = f_open(&dst, argv[1], FA_WRITE | FA_CREATE_ALWAYS);
-    if(fr != FR_OK){
-        printf("f_open(\"%s\"): ", argv[1]);
-        f_perror(fr);
-        f_close(&src);
-        return;
-    }
-
-    buffer = malloc(COPY_BUFFER_SIZE);
-    if(!buffer){
-        printf("Out of memory\n");
-    }else{
-        while(!done){
-            fr = f_read(&src, buffer, COPY_BUFFER_SIZE, &bytes_read);
-            if(fr != FR_OK){
-                printf("f_read(\"%s\"): ", argv[0]);
-                f_perror(fr);
-                done = true;
-            }else{
-                if(bytes_read > 0){
-                    fr = f_write(&dst, buffer, bytes_read, &bytes_written);
-                    if(fr != FR_OK || bytes_read != bytes_written){
-                        printf("f_write(\"%s\"): ", argv[1]);
-                        f_perror(fr);
-                        done = true;
-                    }
-                }
-                if(bytes_read < COPY_BUFFER_SIZE)
-                    done = true;
-            }
-        }
-        free(buffer);
-    }
-
-    fr = f_close(&src);
-    if(fr != FR_OK) f_perror(fr);
-    fr = f_close(&dst);
-    if(fr != FR_OK) f_perror(fr);
-}
-
-static void do_mv(char *argv[], int argc)
-{
-    FRESULT fr = f_rename(argv[0], argv[1]);
-    if(fr != FR_OK){
-        printf("f_rename(\"%s\", \"%s\"): ", argv[0], argv[1]);
-        f_perror(fr);
-    }
-}
-
-static void do_rm(char *argv[], int argc)
-{
-    FRESULT fr;
-    DIR di;
-    FILINFO fi;
-
-    for(int i=0; i<argc; i++){
-        while(true){
-            fr = f_findfirst(&di, &fi, "", argv[i]);
-            f_closedir(&di); // in any event we MUST close the dir before calling f_unlink
-            if(fr == FR_OK && fi.fname[0]){
-                printf("Deleting \"%s\"\n", fi.fname);
-                f_unlink(fi.fname);
-            }else
-                break;
-        }
-    }
-}
-
-static int ls_sort_name(const void *a, const void *b)
-{
-    return strcasecmp((*(FILINFO**)a)->fname, (*(FILINFO**)b)->fname);
-}
-
-static void do_ls(char *argv[], int argc)
-{
-    FRESULT fr;
-    const char *path;
-    DIR fat_dir;
-    FILINFO *fat_file;
-    FILINFO **fat_file_ptr;
-    DWORD free_clusters, csize, free_sectors;
-    FATFS *fatfs;
-    int fat_file_used = 0;
-    int fat_file_length = 2;
-
-    if(argc == 0)
-        path = "";
-    else
-        path = argv[0];
-
-    fr = f_opendir(&fat_dir, path);
-    if(fr != FR_OK){
-        printf("f_opendir(\"%s\"): ", path);
-        f_perror(fr);
-        return;
-    }
-
-    fat_file = malloc(sizeof(FILINFO) * fat_file_length);
-
-    while(true){
-        if(fat_file_used == fat_file_length){
-            fat_file_length *= 2;
-            fat_file = realloc(fat_file, sizeof(FILINFO) * fat_file_length);
-        }
-        fr = f_readdir(&fat_dir, &fat_file[fat_file_used]);
-        if(fr != FR_OK){
-            printf("f_readdir(): ");
-            f_perror(fr);
-            break;
-        }
-        if(fat_file[fat_file_used].fname[0] == 0) /* end of directory? */
-            break;
-        fat_file_used++;
-    }
-    fr = f_closedir(&fat_dir);
-
-    if(fr != FR_OK){
-        printf("f_closedir(): ");
-        f_perror(fr);
-        // report but keep going
-    }
-
-    // sort into name order
-    // it is faster to sort pointers, since it avoids copying around 
-    // the entries themselves, which are quite large with LFN enabled.
-    fat_file_ptr = (FILINFO**)malloc(sizeof(FILINFO*)*fat_file_used);
-    for(int i=0; i<fat_file_used; i++)
-        fat_file_ptr[i] = &fat_file[i];
-
-    qsort(fat_file_ptr, fat_file_used, sizeof(FILINFO*), ls_sort_name);
-    
-    for(int i=0; i<fat_file_used; i++){
-        if(fat_file_ptr[i]->fattrib & AM_DIR){
-            /* directory */
-            printf("           %04d-%02d-%02d %02d:%02d %s/", 
-                    1980 + ((fat_file_ptr[i]->fdate >> 9) & 0x7F),
-                    (fat_file_ptr[i]->fdate >> 5) & 0xF,
-                    fat_file_ptr[i]->fdate & 0x1F,
-                    fat_file_ptr[i]->ftime >> 11,
-                    (fat_file_ptr[i]->ftime >> 5) & 0x3F,
-                    fat_file_ptr[i]->fname);
-        }else{
-            /* regular file */
-            printf("%10lu %04d-%02d-%02d %02d:%02d %s", 
-                    fat_file_ptr[i]->fsize, 
-                    1980 + ((fat_file_ptr[i]->fdate >> 9) & 0x7F),
-                    (fat_file_ptr[i]->fdate >> 5) & 0xF,
-                    fat_file_ptr[i]->fdate & 0x1F,
-                    fat_file_ptr[i]->ftime >> 11,
-                    (fat_file_ptr[i]->ftime >> 5) & 0x3F,
-                    fat_file_ptr[i]->fname);
-        }
-
-        printf("\n");
-    }
-
-    free(fat_file);
-    free(fat_file_ptr);
-
-    fr = f_getfree(path, &free_clusters, &fatfs);
-    if(fr != FR_OK){
-        printf("f_getfree(\"%s\"): ", path);
-        f_perror(fr);
-        return;
-    }
-
-    // calculate cluster size in bytes
-    csize = 
-        #if FF_MAX_SS != FF_MIN_SS
-        fatfs->ssize
-        #else
-        FF_MAX_SS
-        #endif
-        * fatfs->csize;
-
-    // free space measured in units of 512 bytes (max 2TB in 32 bits)
-    free_sectors = (csize >> 9) * free_clusters;
-        
-    printf("%ld MB free (%ld clusters of %ld bytes)\n", free_sectors >> 11, free_clusters, csize);
 }
 
 static bool handle_cmd_drive(char *arg[], int numarg)
@@ -690,7 +470,7 @@ static bool handle_cmd_table(char *arg[], int numarg, const cmd_entry_t *cmd)
 static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
 {
     unsigned int bytes_read;
-    void *load_address = (void*)(4*1024*1024); // is highest or lowest best?! how to choose?
+    void *load_address = (void*)(256*1024); // TODO choose a better load address
     FRESULT fr;
 
     f_lseek(fd, 0);
@@ -702,20 +482,19 @@ static bool load_m68k_executable(char *argv[], int argc, FIL *fd)
         return false;
     }
 
-    printf("Loaded %d bytes. Entry at 0x%lx in supervisor mode\n", bytes_read, (long)load_address);
+    printf("Loaded %d bytes.\n", bytes_read);
+    execute(load_address);
+    return true; /* unlikely we will return ... */
+}
+
+void execute(void *entry_vector)
+{
+    printf("Entry at 0x%lx in supervisor mode\n", (uint32_t)entry_vector);
+    cpu_interrupts_off();
     cpu_cache_flush();
-#ifdef TARGET_Q40
-    // q40softboot.s does a "power on reset" of the machine, in a similar way to SOFTROM
-    // - CPU registers, MMU, caches reset to power-on defaults
-    // - CPLD registers all zeroed to power-on defaults
-    // - LowRAM mode is NOT changed, this differs from power-on, when it is always disabled
-    q40_boot_qdos(load_address); 
-#else
-    void (*entry)(void) = (void(*)(void))load_address;
-    entry();
-#endif
-        
-    return true;
+    machine_execute(entry_vector);
+    /* we're back? */
+    cpu_interrupts_on();
 }
 
 static bool load_elf_executable(char *arg[], int numarg, FIL *fd)
@@ -1147,8 +926,10 @@ static void handle_any_command(char *argv[], int argc)
     if(argc == 0)
         return;
 
-    if(!handle_cmd_drive(argv, argc) && 
-       !handle_cmd_table(argv, argc, target_cmd_table) && 
+    if(handle_cmd_drive(argv, argc))
+        return;
+
+    if(!handle_cmd_table(argv, argc, target_cmd_table) && 
        !handle_cmd_table(argv, argc, builtin_cmd_table) && 
        !handle_cmd_executable(argv, argc)) {
         printf("%s: Unknown command.  Try 'help'.\n", argv[0]);
