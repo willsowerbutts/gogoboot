@@ -60,6 +60,8 @@ const cmd_entry_t builtin_cmd_table[] = {
 
     /* -- terminator ------------------- */
     {0, 0, 0, 0, 0 }
+
+    /* targets also define a target_cmd_table[] of additional commands */
 };
 
 static const char * const fatfs_errmsg[] = 
