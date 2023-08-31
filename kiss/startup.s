@@ -57,6 +57,10 @@ _start:
         /* copy .text+.rodata+.data sections into RAM from ROM -- note limited to 256KB */
         lea.l   %pc@(text_start), %a0   /* source address - PC relative */
         movea.l #text_start, %a1        /* dest address */
+
+        cmpa.l %a0, %a1                 /* compare */
+        beq.s target_address            /* skip copying if we're in place already */
+
         /* there must be a better way for the assembler/linker to compute how many longwords to copy! */
         move.l  #(data_end+3), %d0      /* last byte to copy (round up to next longword) */
         sub.l   %a1, %d0                /* subtract start address */

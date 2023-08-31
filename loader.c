@@ -72,13 +72,51 @@ static void load_prepare(void)
     bounce_below_addr = (((uint32_t)&bss_end) + 3) & ~3;
 }
 
-static FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t size)
+static void bounce_expand(uint32_t paddr, uint32_t bounce_size)
+{
+    if(loader_bounce_buffer_data){
+        int below, above;
+        uint32_t newsize;
+
+        //printf("target=0x%lx, size=0x%lx, data=0x%lx\n",
+        //        loader_bounce_buffer_target,
+        //        loader_bounce_buffer_size,
+        //        (uint32_t)loader_bounce_buffer_data);
+
+        below = loader_bounce_buffer_target - paddr;
+        above = (paddr + bounce_size) - (loader_bounce_buffer_target + loader_bounce_buffer_size);
+        //printf("below=0x%x, above=0x%x\n", below, above);
+        if(below < 0) below = 0;
+        if(above < 0) above = 0;
+        below = (below + 3) & ~3;
+        above = (above + 3) & ~3;
+        if(below || above){
+            newsize = loader_bounce_buffer_size + below + above;
+            //printf("expand below 0x%x above 0x%x\n", below, above);
+            loader_bounce_buffer_data = realloc(loader_bounce_buffer_data, newsize);
+            /* if we grew downwards, move the existing buffer upwards */
+            if(below){
+                memmove(loader_bounce_buffer_data, loader_bounce_buffer_data+below, loader_bounce_buffer_size);
+                loader_bounce_buffer_target -= below;
+            }
+            loader_bounce_buffer_size = newsize;
+        }
+    }else{
+        loader_scratch_space = malloc(128); /* space to hold the copying routine -- typically ~32 bytes */
+        // this gives us a buffer that is word aligned and a whole number of words long
+        loader_bounce_buffer_target = paddr & ~3;
+        loader_bounce_buffer_size = (bounce_size + (paddr & 3) +3) & ~3;
+        loader_bounce_buffer_data = malloc(loader_bounce_buffer_size);
+    }
+}
+
+static FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file_size, uint32_t size)
 {
     unsigned int bytes_read;
+    int bounce_addr;
     uint32_t bounce_size, direct_size;
+    uint32_t load_size, pad_size;
     FRESULT fr;
-    
-    //printf("Loading %lu bytes from file offset 0x%lx to memory at 0x%lx\n", size, offset, paddr);
 
     /* check that this makes sense */
     if(paddr + size > ram_size){
@@ -110,80 +148,81 @@ static FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t size
     //printf("bounce_size=0x%lx, direct_size=0x%lx\n", bounce_size, direct_size);
     
     if(bounce_size){
-        if(loader_bounce_buffer_data){
-            int below, above;
-            uint32_t newsize;
-
-            //printf("target=0x%lx, size=0x%lx, data=0x%lx\n",
-            //        loader_bounce_buffer_target,
-            //        loader_bounce_buffer_size,
-            //        (uint32_t)loader_bounce_buffer_data);
-
-            below = loader_bounce_buffer_target - paddr;
-            above = (paddr + bounce_size) - (loader_bounce_buffer_target + loader_bounce_buffer_size);
-            //printf("below=0x%x, above=0x%x\n", below, above);
-            if(below < 0) below = 0;
-            if(above < 0) above = 0;
-            below = (below + 3) & ~3;
-            above = (above + 3) & ~3;
-            if(below || above){
-                newsize = loader_bounce_buffer_size + below + above;
-                //printf("expand below 0x%x above 0x%x\n", below, above);
-                loader_bounce_buffer_data = realloc(loader_bounce_buffer_data, newsize);
-                /* if we grew downwards, move the existing buffer upwards */
-                if(below){
-                    memmove(loader_bounce_buffer_data, loader_bounce_buffer_data+below, loader_bounce_buffer_size);
-                    loader_bounce_buffer_target -= below;
-                }
-                loader_bounce_buffer_size = newsize;
-            }
-        }else{
-            // this gives us a buffer that is word aligned and a whole number of words long
-            loader_bounce_buffer_target = paddr & ~3;
-            loader_bounce_buffer_size = (bounce_size + (paddr & 3) +3) & ~3;
-            loader_bounce_buffer_data = malloc(loader_bounce_buffer_size);
-            loader_scratch_space = malloc(256); /* space to hold the copying routine */
-        }
+        bounce_expand(paddr, bounce_size);
+        bounce_addr = paddr - loader_bounce_buffer_target;
 
         //printf("target=0x%lx, size=0x%lx, data=0x%lx\n",
         //        loader_bounce_buffer_target,
         //        loader_bounce_buffer_size,
         //        (uint32_t)loader_bounce_buffer_data);
 
-        int bounce_addr = paddr - loader_bounce_buffer_target;
-
         /* load to bounce buffer */
-        printf("Loading 0x%lx bytes from file offset 0x%lx to bounce buffer at 0x%lx (target 0x%lx)\n", bounce_size, offset, (uint32_t)loader_bounce_buffer_data + bounce_addr, paddr);
-
-        fr = f_lseek(fd, offset);
-        if(fr != FR_OK)
-            return fr;
-
-        fr = f_read(fd, (char*)loader_bounce_buffer_data + bounce_addr, bounce_size, &bytes_read);
-        if(fr != FR_OK)
-            return fr;
-        if(bytes_read != bounce_size){
-            printf("short read (wanted %ld got %d)\n", bounce_size, bytes_read);
-            return FR_DISK_ERR;
+        load_size = bounce_size;
+        if(load_size > file_size){
+            pad_size = load_size - file_size;
+            load_size = file_size;
+        }else{
+            pad_size = 0;
         }
+        printf("Loading 0x%lx bytes + 0x%lx padding from file offset 0x%lx to bounce buffer at 0x%lx (target 0x%lx)\n", load_size, pad_size, offset, (uint32_t)loader_bounce_buffer_data + bounce_addr, paddr);
+
+        if(load_size){
+            fr = f_lseek(fd, offset);
+            if(fr != FR_OK)
+                return fr;
+
+            fr = f_read(fd, (char*)loader_bounce_buffer_data + bounce_addr, load_size, &bytes_read);
+            if(fr != FR_OK)
+                return fr;
+
+            if(bytes_read != load_size){
+                printf("short read (wanted %ld got %d)\n", load_size, bytes_read);
+                return FR_DISK_ERR;
+            }
+
+            /* IMPORTANT: reduce remaining file_size here, for direct loading routine */
+            file_size -= load_size;
+        }
+
+        if(pad_size)
+            memset((char*)loader_bounce_buffer_data + bounce_addr + load_size, 0, pad_size);
     }
 
     if(direct_size){
-        /* load direct to target memory */
-        printf("Loading 0x%lx bytes from file offset 0x%lx to memory at 0x%lx\n", direct_size, offset+bounce_size, paddr+bounce_size);
-
-        fr = f_lseek(fd, offset+bounce_size);
-        if(fr != FR_OK)
-            return fr;
-
-        fr = f_read(fd, (char*)paddr+bounce_size, direct_size, &bytes_read);
-        if(fr != FR_OK)
-            return fr;
-        if(bytes_read != direct_size){
-            printf("short read (wanted %ld got %d)\n", direct_size, bytes_read);
-            return FR_DISK_ERR;
+        load_size = direct_size;
+        if(load_size > file_size){ /* file_size may have been reduced during the bounce buffer loading */
+            pad_size = load_size - file_size;
+            load_size = file_size;
+        }else{
+            pad_size = 0;
         }
+
+        /* load direct to target memory */
+        if(load_size){
+            printf("Loading 0x%lx bytes + 0x%lx padding from file offset 0x%lx to memory at 0x%lx\n", load_size, pad_size, offset+bounce_size, paddr+bounce_size);
+
+            fr = f_lseek(fd, offset+bounce_size);
+            if(fr != FR_OK)
+                return fr;
+
+            fr = f_read(fd, (char*)paddr+bounce_size, load_size, &bytes_read);
+            if(fr != FR_OK)
+                return fr;
+            if(bytes_read != load_size){
+                printf("short read (wanted %ld got %d)\n", load_size, bytes_read);
+                return FR_DISK_ERR;
+            }
+
+            /* IMPORTANT: reduce remaining file_size here, for direct loading routine */
+            file_size -= load_size;
+        }
+        if(pad_size)
+            memset((char*)paddr + bounce_size + load_size, 0, pad_size);
     }
+
+    if(file_size)
+        printf("hmmm bytes left?\n");
+
     return FR_OK;
 }
 
@@ -198,7 +237,7 @@ bool load_m68k_executable(char *argv[], int argc, FIL *fd)
 
     load_prepare();
 
-    fr = load_data(fd, load_address, 0, f_size(fd));
+    fr = load_data(fd, load_address, 0, f_size(fd), f_size(fd));
     if(fr != FR_OK){
         printf("%s: Cannot load: ", argv[0]);
         f_perror(fr);
@@ -341,14 +380,10 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         proghead = (elf32_program_header*)(proghead_data + proghead_num * header.phentsize);
         switch(proghead->type){
             case PT_LOAD:
-                if(load_data(fd, load_offset + proghead->paddr, proghead->offset, proghead->filesz) != FR_OK){
+                if(load_data(fd, load_offset + proghead->paddr, proghead->offset, proghead->filesz, proghead->memsz) != FR_OK){
                     printf("Unable to load segment from ELF file.\n");
                     failed = true;
-                }else{
-                    if(proghead->memsz > proghead->filesz)
-                        memset((char*)proghead->paddr + proghead->filesz + load_offset, 0, 
-                                proghead->memsz - proghead->filesz);
-                }
+                }                
                 break;
             default:
                 break;
