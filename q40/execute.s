@@ -33,6 +33,10 @@ nextword:
         nop
         movea.l (loader_scratch_space), %a0             /* a0 = target for our copy/jump routine */
         jmp (%a0)                                       /* continue execution in new location */
+
+        /* code below this point is copied to a scratch buffer */
+        /* WARNING: the scratch buffer is only 128 bytes in size! */
+
 copystart:
         addq #3, %d0                                    /* round up size (although it should be in whole dwords already) */
         lsr.l #2, %d0                                   /* covert to longwords (div 4) */
