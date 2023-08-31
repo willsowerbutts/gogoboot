@@ -3,9 +3,6 @@ GogoBoot
 
 GogoBoot is a boot ROM for 68K machines.
 
-GogoBoot is in active development (as of 2023-08-31) and may be in a broken
-state. 
-
 GogoBoot provides a command-line interface on a serial port to control the
 machine.  It provides simple scripting, including a "boot" script which is
 executed automatically on boot.
@@ -28,6 +25,8 @@ software under development, typically operating system kernels. It is not a
 operating system and does not provide a system call (BIOS) interface for
 software to use at run time.
 
+GogoBoot is in active development (as of September 2023) and may be in a broken
+or incomplete state. 
 
 Supported Targets
 -----------------
