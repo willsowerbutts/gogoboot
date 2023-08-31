@@ -31,7 +31,7 @@ void report_exception(uint16_t *sp)
         vecname = "??? RTFM!";
 
     printf("\nCPU exception!\n");
-    printf("sp=%08x sr=%04x pc=%04x%04x frame type %d vector %d (%s)\nStack contents:\n",
+    printf("sp=0x%08x sr=0x%04x pc=0x%04x%04x frame type 0x%x vector 0x%x (%s)\nStack contents:\n",
             (int)sp, *sp, *(sp+1), *(sp+2), *(sp+3) >> 12, vector, vecname);
     pretty_dump_memory(sp, 256);
 }
