@@ -254,10 +254,11 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
                 if(load_executable_data(fd, load_offset + proghead->paddr, proghead->offset, proghead->filesz) != FR_OK){
                     printf("Unable to load segment from ELF file.\n");
                     failed = true;
+                }else{
+                    if(proghead->memsz > proghead->filesz)
+                        memset((char*)proghead->paddr + proghead->filesz + load_offset, 0, 
+                                proghead->memsz - proghead->filesz);
                 }
-                if(proghead->memsz > proghead->filesz)
-                    memset((char*)proghead->paddr + proghead->filesz + load_offset, 0, 
-                            proghead->memsz - proghead->filesz);
                 break;
             default:
                 break;
@@ -269,8 +270,12 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         return false;
 
 #ifdef MACH_THIS
-    /* check for linux kernel */
+    /* check for linux kernel magic number at lowest load address */
     bootver = (struct bootversion*)min_load_addr;
+    /* newer linkers include the header in the first segment; check after the headers, too */
+    if(bootver->magic != BOOTINFOV_MAGIC && ((struct bootversion*)(min_load_addr + 0x1000))->magic == BOOTINFOV_MAGIC)
+        bootver = (struct bootversion*)(min_load_addr + 0x1000);
+    /* did we find it? */
     if(bootver->magic == BOOTINFOV_MAGIC){
         printf("Linux kernel detected:");
 
@@ -402,8 +407,7 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     }
 #endif
     if(!failed){
-        header.entry += load_offset;
-        execute((void*)(header.entry));
+        execute((void*)(header.entry + load_offset));
     }
 
     return true;
