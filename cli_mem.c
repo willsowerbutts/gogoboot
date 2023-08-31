@@ -1,7 +1,4 @@
-/* this is based in part on main68.c from KISS-BIOS 
- * Portions Copyright (C) 2011-2016 John R. Coffman.
- * Portions Copyright (C) 2015-2023 William R. Sowerbutts
- */
+/* Copyright (C) 2015-2023 William R. Sowerbutts */
 
 #include <types.h>
 #include <stdlib.h>
