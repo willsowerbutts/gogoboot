@@ -12,6 +12,8 @@
 #include <cli.h>
 #include <init.h>
 
+extern const char bss_end;
+
 #ifdef TARGET_MINI
 #define EXECUTABLE_LOAD_ADDRESS (256*1024)
 #endif
@@ -34,26 +36,71 @@
 #define FPU_THIS FPU_68040
 #endif
 
-bool load_m68k_executable(char *argv[], int argc, FIL *fd)
+void execute(void *entry_vector)
+{
+    printf("Entry at 0x%lx in supervisor mode\n", (uint32_t)entry_vector);
+    cpu_interrupts_off();
+    cpu_cache_flush();
+    machine_execute(entry_vector); /* inside here we need to move any bounce buffer into place */
+    /* we're back? */
+    cpu_interrupts_on();
+}
+
+static FRESULT load_executable_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t size)
 {
     unsigned int bytes_read;
+    FRESULT fr;
+    
+    printf("Loading %lu bytes from file offset 0x%lx to memory at 0x%lx\n", size, offset, paddr);
+
+    /* check that this makes sense */
+    if(paddr + size > ram_size){
+        printf("Abort: load would go past end of RAM\n");
+        return FR_DISK_ERR;
+    }
+    if(paddr + size > heap_base){
+        printf("Abort: load would overlap heap memory\n");
+        return FR_DISK_ERR;
+    }
+    if(paddr < (uint32_t)&bss_end){
+        printf("Abort: load would overlap gogoboot memory\n");
+        return FR_DISK_ERR;
+        /* BUT ... WE CAN FIX IT -- with a bounce buffer! */
+    }
+
+    printf("-> Load %lu bytes from file offset 0x%lx to memory at 0x%lx\n", size, offset, paddr);
+
+    fr = f_lseek(fd, offset);
+    if(fr != FR_OK)
+        return fr;
+
+    fr = f_read(fd, (char*)paddr, size, &bytes_read);
+    if(fr != FR_OK)
+        return fr;
+    if(bytes_read != size){
+        printf("short read (wanted %ld got %d)\n", size, bytes_read);
+        return FR_DISK_ERR;
+    }
+    return FR_OK;
+}
+
+bool load_m68k_executable(char *argv[], int argc, FIL *fd)
+{
     // TODO choose a better load address
     // On Q40 SMSQ/E does not like being loaded at 256KB. 2048KB seems fine. Maybe it copies itself downwards?
     // 2MB is pretty high up!
-    void *load_address = (void*)(2048*1024); 
+    // maybe we should require the user to tell us the load address?
+    uint32_t load_address = 2048*1024; 
     FRESULT fr;
 
-    f_lseek(fd, 0);
-    printf("Loading %lu bytes from file offset 0x%x to memory at 0x%x\n", f_size(fd), 0, (int)load_address);
-    fr = f_read(fd, (void*)load_address, f_size(fd), &bytes_read);
+    fr = load_executable_data(fd, load_address, 0, f_size(fd));
     if(fr != FR_OK){
         printf("%s: Cannot load: ", argv[0]);
         f_perror(fr);
         return false;
     }
 
-    printf("Loaded %d bytes.\n", bytes_read);
-    execute(load_address);
+    execute((void*)load_address);
     return true; /* unlikely we will return ... */
 }
 
@@ -121,6 +168,8 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
                 printf("ELF executable is dynamically linked.\n");
                 return false;
             case PT_LOAD:
+#if 0
+                /* WRS - is this necessary in gogoboot? */
                 if(proghead.paddr == 0){
                     /* newer linkers include the header in the first segment. fixup. */
                     proghead.offset += 0x1000;
@@ -128,12 +177,13 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
                     proghead.filesz -= 0x1000;
                     proghead.memsz -= 0x1000;
                 }
+#endif
+#if 0
+                /* WRS - trying to live without a fixed offset */
                 proghead.paddr += EXECUTABLE_LOAD_ADDRESS;
-                printf("Loading %lu bytes from file offset 0x%lx to memory at 0x%lx\n", proghead.filesz, proghead.offset, proghead.paddr);
-                f_lseek(fd, proghead.offset);
-                if(f_read(fd, (char*)proghead.paddr, proghead.filesz, &bytes_read) != FR_OK || 
-                        bytes_read != proghead.filesz){
-                    printf("Unable to read segment from ELF file.\n");
+#endif
+                if(load_executable_data(fd, proghead.paddr, proghead.offset, proghead.filesz) != FR_OK){
+                    printf("Unable to load segment from ELF file.\n");
                     return false;
                 }
                 if(proghead.memsz > proghead.filesz)

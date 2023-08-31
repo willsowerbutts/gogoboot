@@ -163,16 +163,6 @@ static bool handle_cmd_table(char *arg[], int numarg, const cmd_entry_t *cmd)
     return false;
 }
 
-void execute(void *entry_vector)
-{
-    printf("Entry at 0x%lx in supervisor mode\n", (uint32_t)entry_vector);
-    cpu_interrupts_off();
-    cpu_cache_flush();
-    machine_execute(entry_vector);
-    /* we're back? */
-    cpu_interrupts_on();
-}
-
 static void execute_script(char *_name, FIL *fd) /* the buffer name lives in will be re-used shortly */
 {
     int i;
