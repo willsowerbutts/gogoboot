@@ -105,7 +105,8 @@ stopped:
 
 cpu_cache_flush:
 cpu_cache_invalidate:
-        /* disable and clear all data/instruction cache entries */
+        /* clear all data/instruction cache entries */
+        /* does not change if cache enabled/disabled */
         movec.l %cacr, %d0
         or.w #(CACR_CI + CACR_CD), %d0
         movec.l %d0, %cacr

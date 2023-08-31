@@ -14,6 +14,12 @@
 
 extern const char bss_end;
 
+static uint32_t bounce_below_addr;
+void   * loader_scratch_space;
+void   * loader_bounce_buffer_data;
+uint32_t loader_bounce_buffer_size;
+uint32_t loader_bounce_buffer_target;
+
 #ifdef TARGET_MINI
 #define EXECUTABLE_LOAD_ADDRESS 0
 #define ROM_BELOW_ADDR 0
@@ -50,12 +56,29 @@ void execute(void *entry_vector)
     cpu_interrupts_on();
 }
 
-static FRESULT load_executable_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t size)
+static void load_prepare(void)
+{
+    if(loader_scratch_space)
+        free(loader_scratch_space);
+    if(loader_bounce_buffer_data)
+        free(loader_bounce_buffer_data);
+    loader_scratch_space = NULL;
+    loader_bounce_buffer_data = NULL;
+    loader_bounce_buffer_size = 0;
+    loader_bounce_buffer_target = 0;
+
+    /* attempts to load_data() into addresses below bounce_below_addr 
+     * will result in the bounce buffer being employed */
+    bounce_below_addr = (((uint32_t)&bss_end) + 3) & ~3;
+}
+
+static FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t size)
 {
     unsigned int bytes_read;
+    uint32_t bounce_size, direct_size;
     FRESULT fr;
     
-    printf("Loading %lu bytes from file offset 0x%lx to memory at 0x%lx\n", size, offset, paddr);
+    //printf("Loading %lu bytes from file offset 0x%lx to memory at 0x%lx\n", size, offset, paddr);
 
     /* check that this makes sense */
     if(paddr + size > ram_size){
@@ -66,24 +89,100 @@ static FRESULT load_executable_data(FIL *fd, uint32_t paddr, uint32_t offset, ui
         printf("Abort: load would overlap heap memory\n");
         return FR_DISK_ERR;
     }
-    if(paddr < (uint32_t)&bss_end){
-        printf("Abort: load would overlap gogoboot memory\n");
+    if(paddr < ROM_BELOW_ADDR){
+        printf("Abort: load would overlap ROM\n");
         return FR_DISK_ERR;
-        /* BUT ... WE CAN FIX IT -- with a bounce buffer! */
     }
 
-    printf("-> Load %lu bytes from file offset 0x%lx to memory at 0x%lx\n", size, offset, paddr);
+    if(paddr < bounce_below_addr){ /* bounce buffer required? */
+        bounce_size = bounce_below_addr - paddr;
+        if(bounce_size >= size){
+            bounce_size = size;
+            direct_size = 0;
+        }else{
+            direct_size = size - bounce_size;
+        }
+    }else{
+        bounce_size = 0;
+        direct_size = size;
+    }
+    
+    //printf("bounce_size=0x%lx, direct_size=0x%lx\n", bounce_size, direct_size);
+    
+    if(bounce_size){
+        if(loader_bounce_buffer_data){
+            int below, above;
+            uint32_t newsize;
 
-    fr = f_lseek(fd, offset);
-    if(fr != FR_OK)
-        return fr;
+            //printf("target=0x%lx, size=0x%lx, data=0x%lx\n",
+            //        loader_bounce_buffer_target,
+            //        loader_bounce_buffer_size,
+            //        (uint32_t)loader_bounce_buffer_data);
 
-    fr = f_read(fd, (char*)paddr, size, &bytes_read);
-    if(fr != FR_OK)
-        return fr;
-    if(bytes_read != size){
-        printf("short read (wanted %ld got %d)\n", size, bytes_read);
-        return FR_DISK_ERR;
+            below = loader_bounce_buffer_target - paddr;
+            above = (paddr + bounce_size) - (loader_bounce_buffer_target + loader_bounce_buffer_size);
+            //printf("below=0x%x, above=0x%x\n", below, above);
+            if(below < 0) below = 0;
+            if(above < 0) above = 0;
+            below = (below + 3) & ~3;
+            above = (above + 3) & ~3;
+            if(below || above){
+                newsize = loader_bounce_buffer_size + below + above;
+                //printf("expand below 0x%x above 0x%x\n", below, above);
+                loader_bounce_buffer_data = realloc(loader_bounce_buffer_data, newsize);
+                /* if we grew downwards, move the existing buffer upwards */
+                if(below){
+                    memmove(loader_bounce_buffer_data, loader_bounce_buffer_data+below, loader_bounce_buffer_size);
+                    loader_bounce_buffer_target -= below;
+                }
+                loader_bounce_buffer_size = newsize;
+            }
+        }else{
+            // this gives us a buffer that is word aligned and a whole number of words long
+            loader_bounce_buffer_target = paddr & ~3;
+            loader_bounce_buffer_size = (bounce_size + (paddr & 3) +3) & ~3;
+            loader_bounce_buffer_data = malloc(loader_bounce_buffer_size);
+            loader_scratch_space = malloc(256); /* space to hold the copying routine */
+        }
+
+        //printf("target=0x%lx, size=0x%lx, data=0x%lx\n",
+        //        loader_bounce_buffer_target,
+        //        loader_bounce_buffer_size,
+        //        (uint32_t)loader_bounce_buffer_data);
+
+        int bounce_addr = paddr - loader_bounce_buffer_target;
+
+        /* load to bounce buffer */
+        printf("Loading 0x%lx bytes from file offset 0x%lx to bounce buffer at 0x%lx (target 0x%lx)\n", bounce_size, offset, (uint32_t)loader_bounce_buffer_data + bounce_addr, paddr);
+
+        fr = f_lseek(fd, offset);
+        if(fr != FR_OK)
+            return fr;
+
+        fr = f_read(fd, (char*)loader_bounce_buffer_data + bounce_addr, bounce_size, &bytes_read);
+        if(fr != FR_OK)
+            return fr;
+        if(bytes_read != bounce_size){
+            printf("short read (wanted %ld got %d)\n", bounce_size, bytes_read);
+            return FR_DISK_ERR;
+        }
+    }
+
+    if(direct_size){
+        /* load direct to target memory */
+        printf("Loading 0x%lx bytes from file offset 0x%lx to memory at 0x%lx\n", direct_size, offset+bounce_size, paddr+bounce_size);
+
+        fr = f_lseek(fd, offset+bounce_size);
+        if(fr != FR_OK)
+            return fr;
+
+        fr = f_read(fd, (char*)paddr+bounce_size, direct_size, &bytes_read);
+        if(fr != FR_OK)
+            return fr;
+        if(bytes_read != direct_size){
+            printf("short read (wanted %ld got %d)\n", direct_size, bytes_read);
+            return FR_DISK_ERR;
+        }
     }
     return FR_OK;
 }
@@ -97,7 +196,9 @@ bool load_m68k_executable(char *argv[], int argc, FIL *fd)
     uint32_t load_address = 2048*1024; 
     FRESULT fr;
 
-    fr = load_executable_data(fd, load_address, 0, f_size(fd));
+    load_prepare();
+
+    fr = load_data(fd, load_address, 0, f_size(fd));
     if(fr != FR_OK){
         printf("%s: Cannot load: ", argv[0]);
         f_perror(fr);
@@ -124,6 +225,8 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     uint32_t max_load_addr = 0;
     uint32_t min_load_addr = ~0;
     uint32_t load_offset = 0;
+
+    load_prepare();
 
     f_lseek(fd, 0);
     if(f_read(fd, &header, sizeof(header), &bytes_read) != FR_OK || bytes_read != sizeof(header)){
@@ -166,7 +269,7 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         return false;
     }
 
-    // initial scan over header: check for conditions we cannot load,
+    // initial scan over headers: check for conditions we cannot load,
     // figure out the min and max load addresses
     for(proghead_num=0; !failed && proghead_num < header.phnum; proghead_num++){
         proghead = (elf32_program_header*)(proghead_data + proghead_num * header.phentsize);
@@ -204,15 +307,15 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     if(min_load_addr < ROM_BELOW_ADDR){
         /* uh-oh, it will overlap with ROM */
         printf("Load would overlap ROM, offsetting by 0x%x\n", EXECUTABLE_LOAD_ADDRESS);
-        /* BUT ... WE CAN FIX IT -- for linux at least -- by loading at a fixed offset! */
-        /* how to detect when we can safely do this ... could just do it and then check 
-         * for the magic value to confirm was safe before proceeding? */
+        /* BUT WE CAN FIX IT -- for linux at least -- by loading at a fixed offset!
+           how to detect when we can safely do this ... could just do it and then check 
+           for the magic value to confirm was safe before proceeding? */
         load_offset = EXECUTABLE_LOAD_ADDRESS;
         min_load_addr += EXECUTABLE_LOAD_ADDRESS;
         max_load_addr += EXECUTABLE_LOAD_ADDRESS;
+        printf("Load address range 0x%lx -- 0x%lx\n", min_load_addr, max_load_addr);
     }
 
-    /* check that this makes sense */
     if(!failed){
         if(max_load_addr > ram_size){
             printf("Abort: load would go past end of RAM\n");
@@ -220,11 +323,12 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         }else if(max_load_addr > heap_base){
             printf("Abort: load would overlap heap memory\n");
             failed = true;
-        }else if (min_load_addr < (uint32_t)&bss_end){
-            printf("Abort: load would overlap gogoboot memory\n");
-            failed = true;
-            /* BUT ... WE CAN FIX IT -- with a bounce buffer! */
         }
+        // this situation is now resolved by use of bounce buffers:
+        // else if (min_load_addr < (uint32_t)&bss_end){
+        //     printf("Abort: load would overlap gogoboot memory\n");
+        //     failed = true;
+        // }
     }
 
     if(failed){
@@ -237,21 +341,7 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         proghead = (elf32_program_header*)(proghead_data + proghead_num * header.phentsize);
         switch(proghead->type){
             case PT_LOAD:
-#if 0
-                /* WRS - is this necessary in gogoboot? */
-                if(proghead->paddr == 0){
-                    /* newer linkers include the header in the first segment. fixup. */
-                    proghead->offset += 0x1000;
-                    proghead->paddr += 0x1000;
-                    proghead->filesz -= 0x1000;
-                    proghead->memsz -= 0x1000;
-                }
-#endif
-#if 0
-                /* WRS - trying to live without a fixed offset */
-                proghead->paddr += EXECUTABLE_LOAD_ADDRESS;
-#endif
-                if(load_executable_data(fd, load_offset + proghead->paddr, proghead->offset, proghead->filesz) != FR_OK){
+                if(load_data(fd, load_offset + proghead->paddr, proghead->offset, proghead->filesz) != FR_OK){
                     printf("Unable to load segment from ELF file.\n");
                     failed = true;
                 }else{
@@ -271,10 +361,15 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
 
 #ifdef MACH_THIS
     /* check for linux kernel magic number at lowest load address */
-    bootver = (struct bootversion*)min_load_addr;
+    if(min_load_addr < bounce_below_addr)
+        bootver = (struct bootversion*)loader_bounce_buffer_data;
+    else
+        bootver = (struct bootversion*)min_load_addr;
+
     /* newer linkers include the header in the first segment; check after the headers, too */
-    if(bootver->magic != BOOTINFOV_MAGIC && ((struct bootversion*)(min_load_addr + 0x1000))->magic == BOOTINFOV_MAGIC)
-        bootver = (struct bootversion*)(min_load_addr + 0x1000);
+    if(bootver->magic != BOOTINFOV_MAGIC)
+        bootver = (struct bootversion*)(((void*)bootver)+0x1000);
+
     /* did we find it? */
     if(bootver->magic == BOOTINFOV_MAGIC){
         printf("Linux kernel detected:");
@@ -294,6 +389,10 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
                 }
             }
         }
+
+        /* note that the following code assumes that the top of the loaded kernel is outside of the
+         * region covered by the bounce buffer. since the buffer should be small, and the kernel large,
+         * this feels like a reasonable assumption */
 
         /* now we write a linux bootinfo structure at the start of the 4K page following the kernel image */
         bootinfo = (struct bi_record*)((max_load_addr + 0xfff) & ~0xfff);
