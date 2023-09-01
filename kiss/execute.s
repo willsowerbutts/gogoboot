@@ -11,6 +11,7 @@
 machine_execute:
         move.w #0x2700, %sr                             /* force status register: interrupts off */
         movea.l %sp@(4), %a5                            /* a5 = pointer to entry vector */
+        movea.l %sp@(8), %sp                            /* update stack pointer */
         movea.l (loader_scratch_space), %a0             /* a0 = target for our copy/jump routine */
         movea.l (loader_bounce_buffer_data), %a1        /* a1 = bounce buffer source addr */
         movea.l (loader_bounce_buffer_target), %a2      /* a2 = bounce buffer target addr */
@@ -53,6 +54,9 @@ runit:
         movec.l %d1, %cacr
         nop
         jsr %a5@                                        /* ... off we go! */
-        rts                                             /* feels unlikely we're coming back, but ... */
+        /* feels unlikely we're coming back, but ... */
+stopped:
+        stop #0x2700                    /* all done */
+        br.s stopped                    /* loop on NMI */
 copyend:
         .end

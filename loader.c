@@ -1,5 +1,15 @@
 /* Copyright (C) 2015-2023 William R. Sowerbutts */
 
+/*
+ * The loader prefers to load executables direct to their targe location in
+ * RAM. However somtimes the target memory is being used by gogoboot for its
+ * own purposees. When this occurs we instead load that data into a "bounce
+ * buffer". After gogoboot completes loading the executable,  we put a copying
+ * routine into a scratch buffer in memory, then this routine copies the bounce
+ * buffer's contents into place, on top of gogoboot, before jumping to the
+ * entry vector.
+ */
+
 #include <types.h>
 #include <stdlib.h>
 #include <uart.h>
@@ -47,13 +57,12 @@ uint32_t loader_bounce_buffer_target;
 
 void execute(void *entry_vector)
 {
-    printf("Entry at 0x%lx in supervisor mode\n", (uint32_t)entry_vector);
+    printf("Entry at 0x%lx in supervisor mode, SP 0x%lx\n", (uint32_t)entry_vector, ram_size);
     eth_halt();
     cpu_interrupts_off();
     cpu_cache_flush();
-    machine_execute(entry_vector); /* inside here we need to move any bounce buffer into place */
-    /* we're back? */
-    cpu_interrupts_on();
+    machine_execute(entry_vector, (void*)ram_size); /* inside here we need to move any bounce buffer into place */
+    /* no way back */
 }
 
 static void load_prepare(void)
