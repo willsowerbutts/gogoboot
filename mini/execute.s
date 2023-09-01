@@ -13,6 +13,8 @@ machine_execute:
         move.l (loader_bounce_buffer_size), %d0         /* d0 = bounce buffer size */
         cmp.l #0, %d0                                   /* test size == 0? */
         beq.s runit                                     /* not in use? skip copying */
+        addq #3, %d0                                    /* round up size (although it should be in whole dwords already) */
+        lsr.l #2, %d0                                   /* covert to longwords (div 4) */
         /* we're going to overwrite this code (potentially), so copy what we need to a safe scratch space */
         lea.l copystart, %a3                            /* a3 = source pointer */
         /* compute d1 = routine length in dwords, -1 as we don't skip over the first move */
@@ -27,8 +29,6 @@ nextword:
         /* WARNING: the scratch buffer is only 128 bytes in size! */
 
 copystart:
-        addq #3, %d0                                    /* round up size (although it should be in whole dwords already) */
-        lsr.l #2, %d0                                   /* covert to longwords (div 4) */
         br.s bounce_copy
 bounce_loop:
         move.l (%a1)+,(%a2)+
