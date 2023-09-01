@@ -50,7 +50,7 @@ const cmd_entry_t builtin_cmd_table[] = {
 
     /* -- cli_info.c ------------------- */
     /* name         min     max function */
-    {"heapinfo",    0,      0,  &do_heapinfo, "info on internal malloc state" },
+    {"meminfo",    0,      0,   &do_meminfo,  "info on memory state" },
     {"netinfo",     0,      0,  &do_netinfo,  "network statistics" },
     {"help",        0,      0,  &help,        "list this help info"   },
 

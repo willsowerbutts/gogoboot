@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <cli.h>
 #include <net.h>
+#include <init.h>
 #include <tinyalloc.h>
 
 static void help_cmd_table(const cmd_entry_t *cmd)
@@ -20,8 +21,9 @@ void help(char *argv[], int argc)
     help_cmd_table(target_cmd_table);
 }
 
-void do_heapinfo(char *argv[], int argc)
+void do_meminfo(char *argv[], int argc)
 {
+    report_memory_layout();
     printf("internal heap (tinyalloc):\nfresh: %ld\nfree: %ld\nused: %ld\n",
             ta_num_fresh(), ta_num_free(), ta_num_used());
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");

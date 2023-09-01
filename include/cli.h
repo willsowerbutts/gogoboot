@@ -43,7 +43,7 @@ void do_writemem(char *argv[], int argc);
 
 // cli_info.c
 void help(char *argv[], int argc);
-void do_heapinfo(char *argv[], int argc);
+void do_meminfo(char *argv[], int argc);
 void do_netinfo(char *argv[], int argc);
 
 // cli_tftp.c

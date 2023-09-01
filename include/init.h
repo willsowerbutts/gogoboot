@@ -10,6 +10,7 @@ void target_hardware_init(void);
 void setup_interrupts(void);
 void rtc_init(void);
 void measure_ram_size(void);
+void report_memory_layout(void);
 
 /* target provides these, used by measure_ram_size */
 uint32_t mem_get_max_possible(void);

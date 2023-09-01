@@ -15,16 +15,41 @@ extern const char copyright_msg[];
 extern const char text_start, text_size;
 extern const char rodata_start, rodata_size;
 extern const char data_start, data_load_start, data_size;
-extern const char bss_start, bss_size;
+extern const char bss_start, bss_size, bss_end;
+
+static void report_segment(const char *name, int start, int size, int load)
+{
+    char unit;
+    int dec;
+
+    dec = size;
+    if(dec >= 1024*1024){
+        dec >>= 10;
+        unit = 'M';
+    }else{
+        unit = 'K';
+    }
+    dec *= 10;
+    dec += 512; /* round to nearest */
+    dec >>= 10;
+
+    // printf("    text        0     A916   42.3 KB\n");
+    printf("%8s  %8x  %8x  %3d.%d %cB", name, start, size, dec / 10, dec % 10, unit);
+    if(load)
+        printf("  load from %x", load);
+    printf("\n");
+}
 
 void report_memory_layout(void)
 {
-    printf("  text    0x%08x length 0x%08x\n", (int)&text_start, (int)&text_size); 
-    printf("  rodata  0x%08x length 0x%08x\n", (int)&rodata_start, (int)&rodata_size); 
-    printf("  data    0x%08x length 0x%08x (load from 0x%08x)\n", (int)&data_start, (int)&data_size, (int)&data_load_start);
-    printf("  bss     0x%08x length 0x%08x\n", (int)&bss_start, (int)&bss_size);
-    printf("  heap    0x%08x length 0x%08x\n", (int)heap_base, (int)heap_size);
-    printf("  stack   0x%08x length 0x%08x\n\n", (int)stack_base, (int)stack_size);
+    printf(" segment     start    length\n");
+    report_segment("text",   (int)&text_start,   (int)&text_size, 0); 
+    report_segment("rodata", (int)&rodata_start, (int)&rodata_size, 0); 
+    report_segment("data",   (int)&data_start,   (int)&data_size, (int)&data_load_start);
+    report_segment("bss",    (int)&bss_start,    (int)&bss_size, 0);
+    report_segment("(free)", (int)&bss_end,      (int)heap_base - (int)&bss_end, 0);
+    report_segment("heap",   (int)heap_base,     (int)heap_size, 0);
+    report_segment("stack",  (int)stack_base,    (int)stack_size, 0);
 }
 
 #define MAXHEAP (2 << 20) /* 2MB */
@@ -61,9 +86,8 @@ void report_ram_installed(void)
         unit = 'K';
     }
 
-    printf("RAM installed: %ld %cB (%ld %cB heap)\n", 
-            (ram_size + (1 << shift) - 1)>>shift, unit, 
-            (heap_size + (1 << shift) - 1)>>shift, unit);
+    printf("RAM installed: %ld %cB\n", (ram_size + (1 << shift) - 1)>>shift, unit);
+    report_memory_layout();
 }
 
 void gogoboot(void)
@@ -71,9 +95,8 @@ void gogoboot(void)
     early_init();
     uart_init();
     puts(copyright_msg);
-    heap_init();
-    report_memory_layout();
     printf("Version %s\n", software_version_string);
+    heap_init();
     report_ram_installed();
     printf("Setup interrupts: ");
     setup_interrupts(); /* do this early to get timers ticking */
