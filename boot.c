@@ -78,7 +78,7 @@ void report_ram_installed(void)
 
     heap_init();
 
-    if(ram_size >= 4*1024*1024){
+    if(ram_size >= 8*1024*1024){
         shift = 20;
         unit = 'M';
     }else{
