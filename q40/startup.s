@@ -1,5 +1,6 @@
         .globl  _start
         .globl  gogoboot
+        .globl  halt
         .globl  copyright_msg
         .globl  cpu_cache_disable
         .globl  cpu_cache_flush
@@ -105,6 +106,7 @@ zap_bss:
         jsr gogoboot                    /* call C boot code */
 
         /* halt */
+halt:
 halted: stop #0x2700                    /* all done */
         br.s halted                     /* loop on NMI */
 

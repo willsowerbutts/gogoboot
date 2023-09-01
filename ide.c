@@ -192,7 +192,6 @@ static void disk_init_disk(disk_controller_t *ctrl, int drivenr)
         disk_t *disk;
 
         disk = malloc(sizeof(disk_t));
-
         disk_table = realloc(disk_table, sizeof(disk_t*) * (disk_table_size + 1));
         disk_table[disk_table_size] = disk;
 

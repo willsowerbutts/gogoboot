@@ -15,21 +15,6 @@ size_t ta_num_used();
 size_t ta_num_fresh();
 bool ta_check();
 
-static inline void *realloc(void *ptr, size_t size)
-{
-    return ta_realloc(ptr, size);
-}
-
-static inline void *malloc(size_t size)
-{
-    return ta_alloc(size);
-}
-
-static inline void free(void *ptr)
-{
-    ta_free(ptr);
-}
-
 #ifdef __cplusplus
 }
 #endif

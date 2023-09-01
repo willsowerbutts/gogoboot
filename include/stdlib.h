@@ -14,6 +14,45 @@ int puts(const char *s);
 int putch(char ch);
 int putchar(int ch);
 
+/* target specific */
+void halt(void);
+
+/* malloc and friends */
+static inline void *realloc(void *ptr, size_t size)
+{
+    void *r;
+    if(ptr == 0)
+        r = ta_alloc(size);
+    else
+        r = ta_realloc(ptr, size);
+    if(!r){
+        printf("realloc(%ld): out of memory!\n", size);
+        halt();
+    }
+    return r;
+}
+
+static inline void *malloc_unchecked(size_t size)
+{
+    return ta_alloc(size);
+}
+
+static inline void *malloc(size_t size)
+{
+    void *r = ta_alloc(size);
+    if(!r){
+        printf("malloc(%ld): out of memory!\n", size);
+        halt();
+    }
+    return r;
+}
+
+static inline void free(void *ptr)
+{
+    if(ptr)
+        ta_free(ptr);
+}
+
 /* -- stdlib.c -- */
 
 extern int errno;
@@ -119,5 +158,6 @@ void qsort(void *base, size_t nel, size_t width, int (*cmp)(const void *, const 
 #   define ULLONG_MAX	18446744073709551615ULL
 
 #  endif /* ISO C99 */
+
 
 #endif
