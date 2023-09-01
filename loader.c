@@ -1,13 +1,16 @@
 /* Copyright (C) 2015-2023 William R. Sowerbutts */
 
 /*
- * The loader prefers to load executables direct to their targe location in
+ * The loader prefers to load executables direct to their target location in
  * RAM. However somtimes the target memory is being used by gogoboot for its
  * own purposees. When this occurs we instead load that data into a "bounce
- * buffer". After gogoboot completes loading the executable,  we put a copying
- * routine into a scratch buffer in memory, then this routine copies the bounce
- * buffer's contents into place, on top of gogoboot, before jumping to the
- * entry vector.
+ * buffer", allocated on the heap. After gogoboot completes loading the
+ * executable, we put a copying routine into a scratch buffer (also on the
+ * heap), then this routine copies the bounce buffer's contents into place, on
+ * top of gogoboot, before jumping to the entry vector.
+ *
+ * This strategy means that gogoboot can load executables to any location in
+ * RAM, except at the top, where it keeps the heap and stack.
  */
 
 #include <types.h>
