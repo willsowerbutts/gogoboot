@@ -73,10 +73,11 @@ common I/O addresses (I use 0x300).
 Building GoGoBoot
 -----------------
 
-I use a Debian (12) Linux system with the gcc-m68k-linux-gnu. Some of the
-scripts use `python`.
+I use a Debian (12) Linux system with the gcc-m68k-linux-gnu cross-compiler
+package. Some of the scripts use `python`.
 
-Just type `make -j` and you will end up with a `.rom` file for each target.
+Just type `make -j` and you should end up with a `.rom` and `.elf` file for
+each target.
 
 To program EPROMs for the Q40, run `make q40-split` and separate high/low
 `.rom` files will be generated.
