@@ -264,7 +264,7 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     int proghead_num;
     unsigned int bytes_read;
     elf32_header header;
-    void *proghead_data;
+    void *proghead_data = NULL;
     elf32_program_header *proghead = NULL;
 #ifdef MACH_THIS
     struct bootversion *bootver;
@@ -402,6 +402,7 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     }
 
     free(proghead_data);
+    proghead_data = NULL;
     if(failed)
         return false;
 
@@ -444,6 +445,11 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         bootinfo = (struct bi_record*)((max_load_addr + 0xfff) & ~0xfff);
 
         printf(" creating bootinfo at 0x%x\n", (int)bootinfo);
+
+        if((uint32_t)bootinfo < bounce_below_addr){
+            printf("Cannot proceed: bootinfo too low\n");
+            return false;
+        }
 
         /* machine type */
         bootinfo->tag = BI_MACHTYPE;
