@@ -10,10 +10,10 @@
 
 #define MAX_IDE_DISKS FF_VOLUMES
 
-// debugging options:
+// debugging option:
 #undef ATA_DUMP_IDENTIFY_RESULT
 
-static disk_t *disk_table = 0;
+static disk_t **disk_table = 0;
 static int disk_table_size = 0;
 
 static bool ide_wait_status(disk_controller_t *ctrl, uint8_t bits)
@@ -53,7 +53,7 @@ static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sec
         return false;
     }
 
-    disk = &disk_table[disknr];
+    disk = disk_table[disknr];
     ctrl = disk->ctrl;
 
     //printf("disk %d op=%s sector=%ld count=%d sectors\n",
@@ -128,19 +128,19 @@ static void disk_data_read_name(const uint8_t *id, char *buffer, int offset, int
     *s = 0;
 }
 
-static void disk_init_disk(disk_controller_t *ctrl, int disk)
+static void disk_init_disk(disk_controller_t *ctrl, int drivenr)
 {
     uint8_t sel, buffer[512];
     char prod[1+ATA_ID_PROD_LEN];
     uint32_t sectors;
 
-    printf("  Probe disk %d: ", disk);
+    printf("  Probe disk %d: ", drivenr);
 
-    switch(disk){
+    switch(drivenr){
         case 0: sel = 0xE0; break;
         case 1: sel = 0xF0; break;
         default: 
-            printf("bad disk %d?\n", disk);
+            printf("bad disk %d?\n", drivenr);
             return;
     }
 
@@ -189,16 +189,24 @@ static void disk_init_disk(disk_controller_t *ctrl, int disk)
         printf("Max disks reached\n");
     }else{
         char path[4];
-        disk_table[disk_table_size].ctrl = ctrl;
-        disk_table[disk_table_size].disk = disk;
-        disk_table[disk_table_size].sectors = sectors;
-        disk_table[disk_table_size].fat_fs_status = STA_NOINIT;
+        disk_t *disk;
+
+        disk = malloc(sizeof(disk_t));
+
+        disk_table = realloc(disk_table, sizeof(disk_t*) * (disk_table_size + 1));
+        disk_table[disk_table_size] = disk;
+
+        disk->ctrl = ctrl;
+        disk->disk = drivenr;
+        disk->sectors = sectors;
+        disk->fat_fs_status = STA_NOINIT;
 
         /* prepare FatFs to talk to the volume */
         path[0] = '0' + disk_table_size;
         path[1] = ':';
         path[2] = 0;
-        f_mount(&disk_table[disk_table_size].fat_fs_workarea, path, 0); /* lazy mount */
+
+        f_mount(&disk->fat_fs_workarea, path, 0); /* lazy mount */
 
         disk_table_size++;
     }
@@ -229,7 +237,7 @@ disk_t *disk_get_info(int nr)
 {
     if(nr < 0 || nr >= disk_get_count())
         return NULL;
-    return &disk_table[nr];
+    return disk_table[nr];
 }
 
 bool disk_data_read(int disknr, void *buff, uint32_t sector, int sector_count)
