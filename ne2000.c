@@ -362,9 +362,7 @@ static void dp83902a_RxEvent(void)
 /*
    This function is called as a result of the "eth_drv_recv()" call above.
    It's job is to actually fetch data for a packet from the hardware once
-   memory buffers have been allocated for the packet.  Note that the buffers
-   may come in pieces, using a scatter-gather list.  This allows for more
-   efficient processing in the upper layers of the stack.
+   memory buffers have been allocated for the packet.
    */
 static void dp83902a_recv(uint8_t *data, int len)
 {
@@ -372,7 +370,7 @@ static void dp83902a_recv(uint8_t *data, int len)
     write_port_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_START);
     write_port_byte_pause(nic.base + DP_RBCL, len & 0xFF);
     write_port_byte_pause(nic.base + DP_RBCH, len >> 8);
-    write_port_byte_pause(nic.base + DP_RSAL, 4);               /* Past header */
+    write_port_byte_pause(nic.base + DP_RSAL, 4);         /* Past header */
     write_port_byte_pause(nic.base + DP_RSAH, nic.rx_next);
     write_port_byte_pause(nic.base + DP_ISR, DP_ISR_RDC); /* Clear end of DMA */
     io_slow_down();
@@ -422,7 +420,6 @@ static void dp83902a_TxEvent(void)
     } else {
         nic.tx_int = 0;
     }
-    /* Could tell higher level we sent this packet ... but it doesn't care */
 }
 
 /* Read the tally counters to clear them.  Called in response to a CNT */
@@ -632,6 +629,15 @@ bool eth_init(void)
     nic.base = nic.data = 0;
 
     return false;
+}
+
+int eth_rxbuffer_size(void)
+{
+    int r;
+    if(!nic.base)
+        return 0;
+    r = (nic.rx_buf_end - nic.rx_buf_start) << 8; // 256 byte pages
+    return r;
 }
 
 void eth_halt(void)

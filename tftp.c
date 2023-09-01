@@ -83,6 +83,18 @@ static packet_t *tftp_create_rrq(packet_sink_t *sink)
     tftp_transfer_t *tftp = sink->sink_private;
     char options[MAXOPT];
     int offset = 0;
+    int windowsize;
+    char wsize[2];
+
+    /* try to avoid overflowing ethernet device receive buffer */
+    /* 5 * 256 = 1280 bytes. 1024 byte payload + up to 210 headers etc */
+    windowsize = eth_rxbuffer_size() / (256 * 5); 
+    if(windowsize > 8) /* 8 works really well */
+        windowsize = 8;
+    if(windowsize < 1)
+        windowsize = 1;
+    wsize[0] = '0' + windowsize;
+    wsize[1] = 0;
 
     offset = options_append(options, offset, tftp->tftp_filename);
     offset = options_append(options, offset, "octet");
@@ -97,7 +109,7 @@ static packet_t *tftp_create_rrq(packet_sink_t *sink)
     offset = options_append(options, offset, "1024");
 
     offset = options_append(options, offset, "windowsize");
-    offset = options_append(options, offset, "8");
+    offset = options_append(options, offset, wsize);
 
     packet_t *packet = packet_create_for_sink(sink, offset + 2);
     packet->udp->destination_port = htons(69); // RRQ always goes to port 69

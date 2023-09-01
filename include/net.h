@@ -158,6 +158,7 @@ bool eth_init(void); // returns true if card found
 void eth_halt(void);
 void eth_pump(void); // called from net_pump
 bool eth_attempt_tx(packet_t *packet); // returns true if transmission started; caller must free packet.
+int eth_rxbuffer_size(void); // in bytes
 
 /* net.c -- interface with ne2000.c */
 void net_eth_push(packet_t *packet);
