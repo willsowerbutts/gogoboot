@@ -15,7 +15,6 @@ int putchar(int ch);
 
 /* -- stdlib.c -- */
 
-typedef unsigned long size_t;
 extern int errno;
 // extern volatile int32 timer_ticks;
 // extern volatile int32 julian_day;

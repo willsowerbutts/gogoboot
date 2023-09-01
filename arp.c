@@ -17,14 +17,14 @@ static packet_sink_t *sink;
 
 typedef struct arp_cache_entry_t arp_cache_entry_t;
 
-typedef struct arp_cache_entry_t {
+struct arp_cache_entry_t {
     arp_cache_entry_t *next;
     uint32_t ipv4_address;
     macaddr_t mac_address;
     bool valid;
     int resolve_attempts;
     timer_t next_event;
-} arp_cache_entry_t;
+};
 
 static arp_cache_entry_t *cache_list_head;
 

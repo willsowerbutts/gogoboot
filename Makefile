@@ -1,11 +1,12 @@
 # Makefile for GOGOBOOT ROM
 # Will Sowerbutts 2023-07-23
 
-CC = m68k-linux-gnu-gcc
-AS = m68k-linux-gnu-as
-LD = m68k-linux-gnu-ld
-LIB = m68k-linux-gnu-ar
-OBJCOPY = m68k-linux-gnu-objcopy
+CROSS=m68k-linux-gnu-
+CC = $(CROSS)gcc
+AS = $(CROSS)as
+LD = $(CROSS)ld
+LIB = $(CROSS)ar
+OBJCOPY = $(CROSS)objcopy
 
 # List targets here
 TARGETS = q40 kiss mini
