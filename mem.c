@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <init.h>
 
-uint32_t ram_size, stack_base, heap_base;
+uint32_t ram_size, stack_base, stack_size, heap_base, heap_size;
 
 void measure_ram_size(void)
 {
@@ -35,5 +35,6 @@ void measure_ram_size(void)
         else
             break;
 
-    stack_base = ram_size - STACK_SIZE;
+    stack_size = DEFAULT_STACK_SIZE;
+    stack_base = ram_size - stack_size;
 }

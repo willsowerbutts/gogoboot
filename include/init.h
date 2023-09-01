@@ -1,9 +1,9 @@
 #ifndef __INIT_DOT_H__
 #define __INIT_DOT_H__
 
-#define STACK_SIZE 8192
+#define DEFAULT_STACK_SIZE 8192
 
-extern uint32_t ram_size, stack_base, heap_base;
+extern uint32_t ram_size, stack_base, stack_size, heap_base, heap_size;
 
 void early_init(void);
 void target_hardware_init(void);

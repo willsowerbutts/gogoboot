@@ -13,8 +13,8 @@
 // debugging options:
 #undef ATA_DUMP_IDENTIFY_RESULT
 
-static disk_t disk_table[MAX_IDE_DISKS];
-static int disk_table_used = 0;
+static disk_t *disk_table = 0;
+static int disk_table_size = 0;
 
 static bool ide_wait_status(disk_controller_t *ctrl, uint8_t bits)
 {
@@ -48,7 +48,7 @@ static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sec
     disk_controller_t *ctrl;
     int nsect;
 
-    if(disknr < 0 || disknr >= disk_table_used){
+    if(disknr < 0 || disknr >= disk_table_size){
         printf("bad disk %d\n", disknr);
         return false;
     }
@@ -185,22 +185,22 @@ static void disk_init_disk(disk_controller_t *ctrl, int disk)
     }
 #endif
 
-    if(disk_table_used >= MAX_IDE_DISKS){
+    if(disk_table_size >= MAX_IDE_DISKS){
         printf("Max disks reached\n");
     }else{
         char path[4];
-        disk_table[disk_table_used].ctrl = ctrl;
-        disk_table[disk_table_used].disk = disk;
-        disk_table[disk_table_used].sectors = sectors;
-        disk_table[disk_table_used].fat_fs_status = STA_NOINIT;
+        disk_table[disk_table_size].ctrl = ctrl;
+        disk_table[disk_table_size].disk = disk;
+        disk_table[disk_table_size].sectors = sectors;
+        disk_table[disk_table_size].fat_fs_status = STA_NOINIT;
 
         /* prepare FatFs to talk to the volume */
-        path[0] = '0' + disk_table_used;
+        path[0] = '0' + disk_table_size;
         path[1] = ':';
         path[2] = 0;
-        f_mount(&disk_table[disk_table_used].fat_fs_workarea, path, 0); /* lazy mount */
+        f_mount(&disk_table[disk_table_size].fat_fs_workarea, path, 0); /* lazy mount */
 
-        disk_table_used++;
+        disk_table_size++;
     }
 
     return;
@@ -222,7 +222,7 @@ void disk_controller_startup(disk_controller_t *ctrl)
 
 int disk_get_count(void)
 {
-    return disk_table_used;
+    return disk_table_size;
 }
 
 disk_t *disk_get_info(int nr)

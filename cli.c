@@ -11,14 +11,15 @@
 #include <cpu.h>
 #include <net.h>
 #include <uart.h>
+#include <tinyalloc.h>
 #include <loader.h>
 
 #define AUTOBOOT_FILENAME "boot"
 #define AUTOBOOT_TIMEOUT_MS 500 /* this is actually enough as you can pre-stuff the UART receiver */
 
 #define MAXARG 40
-#define LINELEN 1024
-char cmd_buffer[LINELEN];
+#define LINELEN 2048
+char *cmd_buffer;
 
 static void execute_cmd(char *linebuffer);
 static void handle_any_command(char *argv[], int argc);
@@ -389,6 +390,8 @@ static void run_autoexec(const char *filename)
 
 void command_line_interpreter(void)
 {
+    cmd_buffer = malloc(LINELEN);
+
     /* select the first drive that is actually present */
     select_working_drive();
 
@@ -401,4 +404,7 @@ void command_line_interpreter(void)
         getline(cmd_buffer, LINELEN); /* periodically calls network_pump() */
         execute_cmd(cmd_buffer);
     }
+
+    free(cmd_buffer);
+    cmd_buffer = 0;
 }
