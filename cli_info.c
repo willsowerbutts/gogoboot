@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <cli.h>
 #include <net.h>
+#include <tinyalloc.h>
 
 static void help_cmd_table(const cmd_entry_t *cmd)
 {

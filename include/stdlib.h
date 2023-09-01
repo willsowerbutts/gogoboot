@@ -2,7 +2,6 @@
 #define __STDLIB_DOT_H__SENTRY__
 
 #include <types.h>
-#include <tinyalloc.h>
 
 /* cli.c */
 void pretty_dump_memory(void *start, int len);
@@ -18,40 +17,10 @@ int putchar(int ch);
 void halt(void);
 
 /* malloc and friends */
-static inline void *realloc(void *ptr, size_t size)
-{
-    void *r;
-    if(ptr == 0)
-        r = ta_alloc(size);
-    else
-        r = ta_realloc(ptr, size);
-    if(!r){
-        printf("realloc(%ld): out of memory!\n", size);
-        halt();
-    }
-    return r;
-}
-
-static inline void *malloc_unchecked(size_t size)
-{
-    return ta_alloc(size);
-}
-
-static inline void *malloc(size_t size)
-{
-    void *r = ta_alloc(size);
-    if(!r){
-        printf("malloc(%ld): out of memory!\n", size);
-        halt();
-    }
-    return r;
-}
-
-static inline void free(void *ptr)
-{
-    if(ptr)
-        ta_free(ptr);
-}
+void *malloc(size_t size); /* halts machine on out of memory */
+void *malloc_unchecked(size_t size);
+void free(void *ptr);
+void *realloc(void *ptr, size_t size); /* halts machine on out of memory */
 
 /* -- stdlib.c -- */
 

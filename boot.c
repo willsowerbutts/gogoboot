@@ -9,6 +9,7 @@
 #include <cli.h>
 #include <init.h>
 #include <version.h>
+#include <tinyalloc.h>
 
 extern const char copyright_msg[];
 extern const char text_start, text_size;

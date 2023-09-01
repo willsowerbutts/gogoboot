@@ -1,6 +1,7 @@
-/* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
+/* Portions (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
 
 #include <stdlib.h>
+#include <tinyalloc.h>
 
 /*
  * A minimal implementation of selected standard C library functions
@@ -253,7 +254,42 @@ size_t strlen(const char *t)
         return ct;
 }
 
-#if 0 /* simple memcpy/memmove/memset */
+void *realloc(void *ptr, size_t size)
+{
+    void *r;
+    if(ptr == 0)
+        r = ta_alloc(size);
+    else
+        r = ta_realloc(ptr, size);
+    if(!r){
+        printf("realloc(%ld): out of memory!\n", size);
+        halt();
+    }
+    return r;
+}
+
+void *malloc_unchecked(size_t size)
+{
+    return ta_alloc(size);
+}
+
+void *malloc(size_t size)
+{
+    void *r = ta_alloc(size);
+    if(!r){
+        printf("malloc(%ld): out of memory!\n", size);
+        halt();
+    }
+    return r;
+}
+
+void free(void *ptr)
+{
+    if(ptr)
+        ta_free(ptr);
+}
+
+#if 0 /* simple/small/slow memcpy/memmove/memset */
 #ifdef __GNUC__
 __attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns"))) 
 #endif
