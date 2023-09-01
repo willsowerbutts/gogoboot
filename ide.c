@@ -19,12 +19,10 @@ static int disk_table_size = 0;
 static bool ide_wait_status(disk_controller_t *ctrl, uint8_t bits)
 {
     uint8_t status;
-    timer_t timeout;
+    timer_t timeout = 0;
 
     /* read alt status once to ensure we meet timing for reading status */
     status = ide_get_register(ctrl, ATA_REG_ALTSTATUS);
-
-    timeout = set_timer_sec(3); 
 
     do{
         status = ide_get_register(ctrl, ATA_REG_STATUS);
@@ -36,6 +34,9 @@ static bool ide_wait_status(disk_controller_t *ctrl, uint8_t bits)
             (status == 0x00) || (status == 0xFF)){ /* error */
             return false;
         }
+
+        if(!timeout)
+            timeout = set_timer_sec(3); 
     }while(!timer_expired(timeout));
 
     printf("IDE timeout, status=%x\n", status);
