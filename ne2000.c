@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <types.h>
 #include <ne2000.h>
-#include <tinyalloc.h>
 #include <q40/hw.h>
 #include <net.h>
 #include <cli.h>

@@ -3,7 +3,6 @@
 #include <uart.h>
 #include <timers.h>
 #include <fatfs/ff.h>
-#include <tinyalloc.h>
 #include <cli.h>
 #include <net.h>
 

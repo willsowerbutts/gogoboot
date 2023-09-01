@@ -2,6 +2,7 @@
 #define __STDLIB_DOT_H__SENTRY__
 
 #include <types.h>
+#include <tinyalloc.h>
 
 /* cli.c */
 void pretty_dump_memory(void *start, int len);
@@ -16,10 +17,7 @@ int putchar(int ch);
 /* -- stdlib.c -- */
 
 extern int errno;
-// extern volatile int32 timer_ticks;
-// extern volatile int32 julian_day;
 
-// void *malloc(size_t size); WRS: use tinyalloc.h
 char *strdup(const char *s);
 char *strcat(char *d, const char *s);
 int strcasecmp(const char *s, const char *d);

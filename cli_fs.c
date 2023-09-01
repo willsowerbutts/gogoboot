@@ -6,7 +6,6 @@
 #include <types.h>
 #include <stdlib.h>
 #include <fatfs/ff.h>
-#include <tinyalloc.h>
 #include <cli.h>
 
 void do_cd(char *argv[], int argc)

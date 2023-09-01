@@ -2,7 +2,6 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include <tinyalloc.h>
 #include <cli.h>
 #include <net.h>
 

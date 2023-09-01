@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 #include <types.h>
-#include <tinyalloc.h>
 #include <fatfs/ff.h>
 #include <fatfs/diskio.h>
 #include <disk.h>

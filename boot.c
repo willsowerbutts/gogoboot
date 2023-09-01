@@ -1,7 +1,6 @@
 /* (c) 2023 William R Sowerbutts <will@sowerbutts.com> */
 
 #include <stdlib.h>
-#include <tinyalloc.h>
 #include <q40/hw.h>
 #include <disk.h>
 #include <q40/isa.h>

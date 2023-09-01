@@ -11,7 +11,6 @@
 #include <cpu.h>
 #include <net.h>
 #include <uart.h>
-#include <tinyalloc.h>
 #include <loader.h>
 
 #define AUTOBOOT_FILENAME "boot"

@@ -2,7 +2,6 @@
 
 #include <types.h>
 #include <stdlib.h>
-#include <tinyalloc.h>
 #include <cli.h>
 
 void pretty_dump_memory(void *start, int len)

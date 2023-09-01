@@ -3,7 +3,6 @@
 #include <uart.h>
 #include <q40/hw.h>
 #include <fatfs/ff.h>
-#include <tinyalloc.h>
 #include <cpu.h>
 #include <cli.h>
 

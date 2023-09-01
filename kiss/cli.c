@@ -4,7 +4,6 @@
 #include <fatfs/ff.h>
 #include <ecb/ecb.h>
 #include <kiss/hw.h>
-#include <tinyalloc.h>
 #include <cpu.h>
 #include <cli.h>
 

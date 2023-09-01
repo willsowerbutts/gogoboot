@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <uart.h>
 #include <fatfs/ff.h>
-#include <tinyalloc.h>
 #include <cpu.h>
 #include <cli.h>
 

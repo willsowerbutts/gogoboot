@@ -19,7 +19,6 @@
 #include <fatfs/ff.h>
 #include <elf.h>
 #include <bootinfo.h>
-#include <tinyalloc.h>
 #include <net.h>
 #include <cpu.h>
 #include <cli.h>
