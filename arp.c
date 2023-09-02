@@ -12,6 +12,9 @@
 #define MAX_RESOLVE_ATTEMPTS 10
 #define QUERY_INTERVAL 500
 
+#define HARDWARE_TYPE_ETHERNET 1
+#define PROTOCOL_TYPE_IPV4 0x800
+
 static packet_sink_t *sink;
 
 typedef struct arp_cache_entry_t arp_cache_entry_t;
@@ -37,10 +40,10 @@ static packet_t *packet_create_arp(void)
 
     // set up arp header
     p->arp = (arp_header_t*)p->eth->payload;
-    p->arp->hardware_type = htons(1);
-    p->arp->protocol_type = htons(0x800);
-    p->arp->hardware_length = 6;
-    p->arp->protocol_length = 4;
+    p->arp->hardware_type = htons(HARDWARE_TYPE_ETHERNET);
+    p->arp->protocol_type = htons(PROTOCOL_TYPE_IPV4);
+    p->arp->hardware_length = sizeof(macaddr_t);
+    p->arp->protocol_length = sizeof(uint32_t);
     memcpy(&p->arp->sender_mac, interface_macaddr, sizeof(macaddr_t));
     p->arp->sender_ip = htonl(interface_ipv4_address);
 
@@ -86,10 +89,10 @@ static void arp_process_packet(packet_sink_t *sink, packet_t *packet)
 {
     bool add_entry = false;
 
-    if(packet->arp->hardware_type   == htons(1) && 
-            packet->arp->protocol_type   == htons(0x800) &&
-            packet->arp->hardware_length == htons(6) && 
-            packet->arp->protocol_length == htons(4)){
+    if(packet->arp->hardware_type   == htons(HARDWARE_TYPE_ETHERNET) && 
+       packet->arp->protocol_type   == htons(PROTOCOL_TYPE_IPV4) &&
+       packet->arp->hardware_length == htons(sizeof(macaddr_t)) && 
+       packet->arp->protocol_length == htons(sizeof(uint32_t))){
         switch(ntohs(packet->arp->operation)){
             case arp_op_request: // who has <ip>?
 #ifdef ARP_DEBUG
@@ -107,7 +110,7 @@ static void arp_process_packet(packet_sink_t *sink, packet_t *packet)
                     memcpy(reply->arp->target_mac, packet->arp->sender_mac, sizeof(macaddr_t));
                     packet_set_destination_mac(reply, &reply->arp->target_mac);
                     net_tx(reply);
-                    // additionally, add the sender is in our ARP cache if not already present
+                    // additionally, add the sender to our ARP cache if not already present
                     add_entry = true;
                 }
                 // intended fall-through
@@ -149,7 +152,7 @@ static void arp_cache_flush(packet_sink_t *sink)
                     entry->valid ? "":"in", entry->ipv4_address);
 #endif
             expired++;
-            next = entry->next; // stash this now, in case we free this entry
+            next = entry->next; // stash this now, before we free this entry
             *entry_ptr = entry->next;
             free(entry);
             entry = next;
@@ -188,7 +191,9 @@ arp_result_t net_arp_resolve(packet_t *packet)
     arp_cache_entry_t *entry = cache_list_head;
 
     // no ARP required for broadcast
-    if(packet->ipv4 && packet->ipv4->destination_ip == htonl(ipv4_broadcast)){
+    if(packet->ipv4 && (
+       packet->ipv4->destination_ip == htonl(ipv4_broadcast) ||
+       packet->ipv4->destination_ip == htonl(interface_ipv4_address | (~interface_subnet_mask)))){
         packet_set_destination_mac(packet, &broadcast_macaddr);
         return arp_okay;
     }
