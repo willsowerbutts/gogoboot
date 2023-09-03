@@ -24,13 +24,11 @@
 #include <cli.h>
 #include <init.h>
 
-extern const char bss_end;
-
-static uint32_t bounce_below_addr;
-void   * loader_scratch_space;
-void   * loader_bounce_buffer_data;
-uint32_t loader_bounce_buffer_size;
-uint32_t loader_bounce_buffer_target;
+/* bounce buffer */
+void   * loader_scratch_space = NULL;
+void   * loader_bounce_buffer_data = NULL;
+uint32_t loader_bounce_buffer_size = 0;
+uint32_t loader_bounce_buffer_target = 0;
 
 #ifdef TARGET_MINI
 #define EXECUTABLE_LOAD_ADDRESS 0
@@ -65,22 +63,6 @@ void execute(void *entry_vector)
     cpu_cache_flush();
     machine_execute(entry_vector, (void*)ram_size); /* inside here we need to move any bounce buffer into place */
     /* no way back */
-}
-
-static void load_prepare(void)
-{
-    if(loader_scratch_space)
-        free(loader_scratch_space);
-    if(loader_bounce_buffer_data)
-        free(loader_bounce_buffer_data);
-    loader_scratch_space = NULL;
-    loader_bounce_buffer_data = NULL;
-    loader_bounce_buffer_size = 0;
-    loader_bounce_buffer_target = 0;
-
-    /* attempts to load_data() into addresses below bounce_below_addr 
-     * will result in the bounce buffer being employed */
-    bounce_below_addr = (((uint32_t)&bss_end) + 3) & ~3;
 }
 
 static void bounce_expand(uint32_t paddr, uint32_t bounce_size)
@@ -121,13 +103,16 @@ static void bounce_expand(uint32_t paddr, uint32_t bounce_size)
     }
 }
 
-static FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file_size, uint32_t size)
+FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file_size, uint32_t size)
 {
     unsigned int bytes_read;
     int bounce_addr;
     uint32_t bounce_size, direct_size;
     uint32_t load_size, pad_size;
     FRESULT fr;
+
+    printf("load_data: paddr=0x%lx, offset=0x%lx, file_size=0x%lx, size=0x%lx\n",
+            paddr, offset, file_size, size);
 
     /* check that this makes sense */
     if(paddr + size > ram_size){
@@ -224,7 +209,6 @@ static FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file
                 return FR_DISK_ERR;
             }
 
-            /* IMPORTANT: reduce remaining file_size here, for direct loading routine */
             file_size -= load_size;
         }
         if(pad_size)
@@ -245,8 +229,6 @@ bool load_m68k_executable(char *argv[], int argc, FIL *fd)
     // maybe we should require the user to tell us the load address?
     uint32_t load_address = 2048*1024; 
     FRESULT fr;
-
-    load_prepare();
 
     fr = load_data(fd, load_address, 0, f_size(fd), f_size(fd));
     if(fr != FR_OK){
@@ -275,8 +257,6 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     uint32_t max_load_addr = 0;
     uint32_t min_load_addr = ~0;
     uint32_t load_offset = 0;
-
-    load_prepare();
 
     f_lseek(fd, 0);
     if(f_read(fd, &header, sizeof(header), &bytes_read) != FR_OK || bytes_read != sizeof(header)){

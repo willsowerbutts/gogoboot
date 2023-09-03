@@ -1,6 +1,8 @@
 #ifndef __CLI_DOT_H__
 #define __CLI_DOT_H__
 
+#include <fatfs/ff.h>
+
 void command_line_interpreter(void);
 
 // environment variables
@@ -13,6 +15,7 @@ void f_perror(int errno);
 
 // execute loaded code (wrapper that ultimately calls machine_execute)
 void execute(void *entry_vector);
+FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file_size, uint32_t size);
 
 typedef struct
 {
@@ -48,5 +51,9 @@ void do_netinfo(char *argv[], int argc);
 
 // cli_tftp.c
 void do_tftp(char *argv[], int argc);
+
+// cli_load.c
+void do_execute(char *argv[], int argc);
+void do_load(char *argv[], int argc);
 
 #endif

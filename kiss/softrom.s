@@ -11,8 +11,7 @@ kiss_boot_softrom:
         movea.l %sp@(4), %a0            /* a0 = pointer to new softrom image  */
 
         /* disable and clear all data/instruction cache entries */
-        movec.l %cacr, %d0
-        or.w #(CACR_CI + CACR_CD), %d0
+        move.l #(CACR_CI + CACR_CD), %d0
         movec.l %d0, %cacr
 
         nop

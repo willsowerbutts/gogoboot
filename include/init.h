@@ -3,7 +3,10 @@
 
 #define DEFAULT_STACK_SIZE 8192
 
-extern uint32_t ram_size, stack_base, stack_size, heap_base, heap_size;
+extern uint32_t ram_size;
+extern uint32_t stack_base, stack_size;
+extern uint32_t heap_base, heap_size;
+extern uint32_t bounce_below_addr;
 
 void early_init(void);
 void target_hardware_init(void);

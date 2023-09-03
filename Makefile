@@ -18,8 +18,8 @@ COPT_all = -O1 -std=c18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
 SRC_all = arp.c dhcp.c except.c fatfs/ff.c fatfs/ffunicode.c ffglue.c boot.c \
           ipcsum.c ipv4.c memcpy.c memmove.c memset.c ne2000.c net.c packet.c \
           printf.c qsort.c stdlib.c strdup.c strtoul.c tftp.c tinyalloc.c \
-	  cli.c cli_fs.c cli_env.c cli_mem.c cli_info.c cli_tftp.c loader.c \
-	  icmp.c ide.c timer.c mem.c uart.c
+	  cli.c cli_fs.c cli_env.c cli_mem.c cli_info.c cli_tftp.c cli_load.c \
+	  loader.c icmp.c ide.c timer.c mem.c uart.c
 
 # gcc needs some helpers on 68000, system provided libgcc.a may be
 # built for 68020+

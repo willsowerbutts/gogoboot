@@ -58,6 +58,11 @@ const cmd_entry_t builtin_cmd_table[] = {
     /* name         min     max function */
     {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" },
 
+    /* -- cli_load.c ------------------- */
+    /* name         min     max function */
+    {"load",        2,      4,  &do_load,     "load filename address [start] [length]: load file to memory" },
+    {"execute",     1,      1,  &do_execute,  "execute address: jump and execute code at address" },
+
     /* -- terminator ------------------- */
     {0, 0, 0, 0, 0 }
 
