@@ -4,6 +4,7 @@
 #include <types.h>
 
 void uart_init(void);
+void uart_flush(void);
 bool uart_write_ready(void);
 void uart_write_byte(char b);
 int uart_write_str(const char *str);
@@ -27,5 +28,6 @@ void uart_read_string(void *buffer, int count);
 
 #define UART_LSR_DR     0x01    /* LSR: data ready bit */
 #define UART_LSR_THRE   0x20    /* LSR: transmit holding register empty */
+#define UART_LSR_TEMT   0x40    /* LSR: transmitter empty */
 
 #endif

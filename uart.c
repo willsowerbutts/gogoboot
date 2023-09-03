@@ -44,6 +44,11 @@ bool uart_write_ready(void)
     return uart_inb(UART_ADDRESS+UART_LSR) & UART_LSR_THRE ? true : false;
 }
 
+void uart_flush(void)
+{
+    while((uart_inb(UART_ADDRESS+UART_LSR) & (UART_LSR_THRE|UART_LSR_TEMT)) != (UART_LSR_THRE|UART_LSR_TEMT));
+}
+
 void uart_write_byte(char b)
 {
     while(!(uart_inb(UART_ADDRESS+UART_LSR) & UART_LSR_THRE));

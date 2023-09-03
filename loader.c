@@ -58,6 +58,7 @@ uint32_t loader_bounce_buffer_target = 0;
 void execute(void *entry_vector)
 {
     printf("Entry at 0x%lx in supervisor mode, SP 0x%lx\n", (uint32_t)entry_vector, ram_size);
+    uart_flush();
     eth_halt();
     cpu_interrupts_off();
     cpu_cache_flush();
