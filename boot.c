@@ -35,7 +35,7 @@ static void report_segment(const char *name, int start, int size, int load)
 
     // printf("    text        0     A916   42.3 KB\n");
     printf("%8s  %8x  %8x  %3d.%d %cB", name, start, size, dec / 10, dec % 10, unit);
-    if(load)
+    if(load && load != start)
         printf("  load from %x", load);
     printf("\n");
 }

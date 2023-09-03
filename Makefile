@@ -36,7 +36,7 @@ AOPT_kiss = -mcpu=68030 --defsym TARGET_KISS=1
 COPT_kiss = -mcpu=68030 -DTARGET_KISS
 SRC_kiss = kiss/startup.s kiss/vectors.s ecb/timer.c kiss/cli.c \
 	   kiss/hw.c ecb/ppide.c ecb/ffrtc.c ecb/ppidexfer.s kiss/double.s \
-	   kiss/softrom.s kiss/execute.s
+	   kiss/execute.s
 
 # mini target (Retrobrew Computers Mini68K)
 AOPT_mini = -mcpu=68000 --defsym TARGET_MINI=1
