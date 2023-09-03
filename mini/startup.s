@@ -19,7 +19,7 @@ rom_start:
         bra     _start                          
         /* initial PC - jump to ROM address of _start */
         /* this is used at machine power on */
-        dc.l    _start - rom_start + MINI68K_ROM_BASE  
+        dc.l    hwreset - rom_start + MINI68K_ROM_BASE
 
         /* get this copyright message up near the head of the ROM */
         .align 16
@@ -33,9 +33,11 @@ copyright_msg:
         /* startup code */
         .section .text
         .even
+hwreset:
+        /* ROM reset vector */
+        reset
 _start:
         move.w #0x2700, %sr             /* setup status register, interrupts off */
-        reset
 
         /* copy .data section into RAM from ROM -- note limited to 256KB */
         lea.l   data_load_start, %a0    /* source address */

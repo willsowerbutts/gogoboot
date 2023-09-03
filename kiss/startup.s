@@ -17,10 +17,10 @@
 rom_start:
         /* initial SP: actually contain a relative jump to _start, we load SP manually later */
         /* this is instead used when we "softrom" the ROM image */
-        bra     _start                          
+        bra     _start
         /* initial PC - jump to ROM address of _start */
         /* this is used at machine power on */
-        dc.l    _start - rom_start + KISS68030_ROM_BASE  
+        dc.l    hwreset - rom_start + KISS68030_ROM_BASE
 
         /* get this copyright message up near the head of the ROM */
         .align 16
@@ -34,11 +34,16 @@ copyright_msg:
         /* startup code */
         .section .text
         .even
-        /* we're either running from ROM, or we've been loaded in RAM ... somewhere */
-        /* we must copy ourselves into place using only PC-relative addresses */
+hwreset:
+        /* ROM reset vector: it is safe to pulse RESET when running from ROM. when
+           running from RAM we avoid doing this, because U304 causes the next few 
+           memory accesses to come from ROM even if we're actually running from RAM */
+        reset
 _start:
         move.w #0x2700, %sr             /* setup status register, interrupts off */
-        reset
+
+        /* we're either running from ROM, or we've been loaded in RAM ... somewhere */
+        /* we must copy ourselves into place using only PC-relative addresses */
 
         /* disable, clear all data/instruction cache entries */
         move.l #(CACR_CI + CACR_CD), %d0
