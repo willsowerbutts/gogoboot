@@ -57,8 +57,8 @@ void do_dump(char *argv[], int argc)
 {
     unsigned long start, count;
 
-    start = strtoul(argv[0], NULL, 16);
-    count = strtoul(argv[1], NULL, 16);
+    start = strtoul(argv[0], NULL, 0);
+    count = strtoul(argv[1], NULL, 0);
 
     pretty_dump_memory((void*)start, count);
 }
@@ -80,12 +80,14 @@ void do_writemem(char *argv[], int argc)
     unsigned char *ptr;
     int i, j, l;
 
-    value = strtoul(argv[0], NULL, 16);
+    value = strtoul(argv[0], NULL, 0);
     ptr = (unsigned char*)value;
 
     /* This can deal with values like: 1, 12, 1234, 123456, 12345678.
        Values > 2 characters are interpreted as big-endian words ie
        "12345678" is the same as "12 34 56 78" */
+
+    /* NOTE that data input is ALWAYS in hex */
 
     /* first check we're happy with the arguments */
     for(i=1; i<argc; i++){
