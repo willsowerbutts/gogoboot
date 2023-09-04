@@ -39,6 +39,7 @@ SRC_kiss = kiss/startup.s kiss/vectors.s ecb/timer.c kiss/cli.c \
 	   kiss/execute.s
 
 # mini target (Retrobrew Computers Mini68K)
+TARGET_FILES += gogoboot-mini-ram.elf
 AOPT_mini = -mcpu=68000 --defsym TARGET_MINI=1
 COPT_mini = -mcpu=68000 -DTARGET_MINI
 LDOPT_mini = --require-defined=vector_table
@@ -47,8 +48,8 @@ SRC_mini = mini/startup.s mini/vectors.s $(SRC_68000) mini/cli.c mini/hw.c \
 
 .SUFFIXES:   .c .s .o .out .hex .bin .rom .elf
 
-TARGET_ROMS = $(foreach target,$(TARGETS),gogoboot-$(target).rom)
-all:	$(TARGET_ROMS)
+TARGET_FILES += $(foreach target,$(TARGETS),gogoboot-$(target).rom gogoboot-$(target).elf)
+all:	$(TARGET_FILES)
 
 # these rules are expanded once for each target, with $(1) = target name
 define make_target =
@@ -66,6 +67,9 @@ gogoboot-$(1).elf:	version.$(1).o $$(ROMOBJ_$(1)) $(1)/linker.ld
 gogoboot-$(1).rom:	gogoboot-$(1).elf
 	$(OBJCOPY) -O binary gogoboot-$(1).elf gogoboot-$(1).rom
 
+gogoboot-$(1)-ram.elf:	version.$(1).o $$(ROMOBJ_$(1)) $(1)/linker-ram.ld
+	$$(LD) --gc-sections --script=$(1)/linker-ram.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-$(1)-ram.map -o gogoboot-$(1)-ram.elf $$(ROMOBJ_$(1)) version.$(1).o $$(LDOPT_$(1))
+
 endef
 
 $(eval $(foreach target,$(TARGETS),$(call make_target,$(target))))
@@ -77,8 +81,8 @@ clean:
 version.c:	$(SRC_all) $(foreach target,$(TARGETS),$(SRC_$(target)))
 	./makeversion
 
-tftp:	$(TARGET_ROMS)
-	scp -C $(TARGET_ROMS) beastie:/storage/tftp/
+tftp:	$(TARGET_FILES)
+	scp -C $(TARGET_FILES) beastie:/storage/tftp/
 
 q40-serial:	gogoboot-q40.rom
 	./q40/sendrom /dev/ttyUSB0 115200 gogoboot-q40.rom
