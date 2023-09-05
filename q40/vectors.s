@@ -1,6 +1,6 @@
         .globl  vector_table
         .globl  timer_ticks
-        .globl  uart_write_str
+        .globl  uart_write_string
         .globl  uart_write_byte
         .globl  report_exception
         .globl  rom_pointer
@@ -105,7 +105,7 @@ interrupt_level_7:
 /* for bad interrupts we just report the interupt number and halt */
 bad_interrupt:
         pea bad_interrupt_message
-        jsr uart_write_str
+        jsr uart_write_string
         move.l (%sp)+, %d0
         jsr uart_write_byte
         bra halt

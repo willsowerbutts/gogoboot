@@ -55,7 +55,7 @@ void uart_write_byte(char b)
     uart_outb(UART_ADDRESS+UART_THR, b);
 }
 
-int uart_write_str(const char *str)
+int uart_write_string(const char *str)
 {
     int r = 0;
 

@@ -1,7 +1,7 @@
         .include "kiss/kisshw.s"
 
         .globl  vector_table
-        .globl  uart_write_str
+        .globl  uart_write_string
         .globl  uart_write_byte
         .globl  report_exception
         .globl  timer_ticks
@@ -196,14 +196,14 @@ ns202_irq_f:
 /* for bad interrupts we just report the interupt number and halt */
 bad_interrupt:
         pea bad_interrupt_message
-        jsr uart_write_str
+        jsr uart_write_string
         move.l (%sp)+, %d0
         jsr uart_write_byte
         bra halt
 
 bad_ns202_irq:
         pea bad_ns202_irq_message
-        jsr uart_write_str
+        jsr uart_write_string
         move.l (%sp)+, %d0
         jsr uart_write_byte
         bra halt

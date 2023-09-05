@@ -41,7 +41,7 @@ int putchar(int ch)
 int puts(const char *s)
 {
     int r;
-    r = uart_write_str(s);
+    r = uart_write_string(s);
     putch('\n');
     return r + 1;
 }

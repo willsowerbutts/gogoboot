@@ -7,7 +7,7 @@ void uart_init(void);
 void uart_flush(void);
 bool uart_write_ready(void);
 void uart_write_byte(char b);
-int uart_write_str(const char *str);
+int uart_write_string(const char *str);
 
 bool uart_read_ready(void);
 int uart_read_byte(void); /* -1 if not ready */
