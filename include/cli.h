@@ -7,7 +7,10 @@ void command_line_interpreter(void);
 
 // environment variables
 const char *get_environment_variable(const char *name);
+int get_environment_variable_int(const char *name, int default_value);
 void set_environment_variable(const char *name, const char *val); // val=NULL will delete an entry
+uint32_t parse_uint32(const char *cptr, const char **endptr);
+int get_base(void);
 
 // fat_fs extensions
 const char *f_errmsg(int errno);

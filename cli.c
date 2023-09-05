@@ -399,6 +399,9 @@ void command_line_interpreter(void)
     /* select the first drive that is actually present */
     select_working_drive();
 
+    /* setup default environment */
+    set_environment_variable("base", "16");
+
     /* check for autoexec file */
     run_autoexec(AUTOBOOT_FILENAME);
 

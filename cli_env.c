@@ -26,6 +26,18 @@ const char *get_environment_variable(const char *name)
     return NULL;
 }
 
+int get_environment_variable_int(const char *name, int default_value)
+{
+    const char *value;
+
+    value = get_environment_variable(name);
+
+    if(value == NULL)
+        return default_value;
+
+    return strtol(value, NULL, 0);
+}
+
 void set_environment_variable(const char *name, const char *val) // val=NULL will delete an entry
 {
     // remove variable (we will set it again in next step if val != NULL)
@@ -76,8 +88,29 @@ void do_set(char *argv[], int argc)
     }else{
         const char *name, *val = NULL;
         name = argv[0]; /* we know already argc > 0 */
-        if(argc >= 1)
-            val = argv[1];
-        set_environment_variable(name, val);
+        if(strchr(name, '='))
+            printf("set: please use \"set a b\", not \"set a=b\"\n");
+        else{
+            if(argc == 2)
+                val = argv[1];
+            set_environment_variable(name, val);
+        }
     }
+}
+
+int get_base(void)
+{
+    return get_environment_variable_int("base", 0);
+}
+
+uint32_t parse_uint32(const char *cptr, const char **endptr)
+{
+    int base = get_base();
+
+    /* regardless of configured base value we always recognise 0x for hex */
+    if(cptr[0]=='0' && (cptr[1] & 0xDF) == 'X'){
+        base = 0; /* strtoul will switch to hex */
+    }
+
+    return strtoul(cptr, endptr, base);
 }

@@ -9,7 +9,7 @@
 void do_execute(char *argv[], int argc)
 {
     uint32_t address;
-    address = strtoul(argv[0], NULL, 0);
+    address = parse_uint32(argv[0], NULL);
     execute((void*)address);
 }
 
@@ -27,18 +27,18 @@ void do_load(char *argv[], int argc)
     }
 
     /* arg 2 - load address */
-    address = strtoul(argv[1], NULL, 0);
+    address = parse_uint32(argv[1], NULL);
 
     msize = fsize = f_size(&fd);
 
     /* arg 3 - file offset */
     if(argc >= 3){
-        offset = strtoul(argv[2], NULL, 0);
+        offset = parse_uint32(argv[2], NULL);
     }
 
     /* arg 4 - load length */
     if(argc >= 4){
-        msize = strtoul(argv[3], NULL, 0);
+        msize = parse_uint32(argv[3], NULL);
     }
 
     if(offset > fsize){

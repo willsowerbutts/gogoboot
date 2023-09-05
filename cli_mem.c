@@ -15,7 +15,7 @@ void pretty_dump_memory(void *start, int len)
     linebuffer[16]=0;
     lbptr = &linebuffer[0];
 
-    printf("%08x ", (unsigned)ptr&(~15));
+    printf("0x%08x ", (unsigned)ptr&(~15));
     for(i=0; i<((unsigned)ptr & 15); i++){
         printf("   ");
         lbptr++;
@@ -34,7 +34,7 @@ void pretty_dump_memory(void *start, int len)
             printf("  %s", linebuffer);
             lbptr = &linebuffer[0];
             if(len)
-                printf("\n%08x ", (int)ptr);
+                printf("\n0x%08x ", (int)ptr);
             else{
                 /* no ragged end to tidy up! */
                 printf("\n");
@@ -57,8 +57,8 @@ void do_dump(char *argv[], int argc)
 {
     unsigned long start, count;
 
-    start = strtoul(argv[0], NULL, 0);
-    count = strtoul(argv[1], NULL, 0);
+    start = parse_uint32(argv[0], NULL);
+    count = parse_uint32(argv[1], NULL);
 
     pretty_dump_memory((void*)start, count);
 }
@@ -80,7 +80,7 @@ void do_writemem(char *argv[], int argc)
     unsigned char *ptr;
     int i, j, l;
 
-    value = strtoul(argv[0], NULL, 0);
+    value = parse_uint32(argv[0], NULL);
     ptr = (unsigned char*)value;
 
     /* This can deal with values like: 1, 12, 1234, 123456, 12345678.
@@ -107,7 +107,7 @@ void do_writemem(char *argv[], int argc)
     for(i=1; i<argc; i++){
         l = strlen(argv[i]);
         if(l <= 2) /* one or two characters - a single byte */
-            *(ptr++) = strtoul(argv[i], NULL, 16);
+            *(ptr++) = strtoul(argv[i], NULL, 16); /* ALWAYS in hex */
         else{
             /* it's a multi-byte value */
             j=0;
