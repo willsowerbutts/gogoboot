@@ -26,7 +26,7 @@ static inline void uart_outb(uint16_t port, uint8_t val) { ecb_write_byte(port, 
 #define UART_CLK        115200 /* UART CLK input */
 #endif
 
-#define UART_DIVISOR    (BAUD_RATE/UART_CLK)
+#define UART_DIVISOR    (UART_CLK/BAUD_RATE)
 
 void uart_init(void)
 {
