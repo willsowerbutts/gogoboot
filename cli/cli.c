@@ -61,6 +61,7 @@ const cmd_entry_t builtin_cmd_table[] = {
     /* -- cli_load.c ------------------- */
     /* name         min     max function */
     {"load",        2,      4,  &do_load,     "load filename address [start] [length]: load file to memory" },
+    {"save",        3,      3,  &do_save,     "save filename address length: save memory to file" },
     {"execute",     1,      1,  &do_execute,  "execute address: jump and execute code at address" },
 
     /* -- terminator ------------------- */

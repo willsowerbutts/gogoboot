@@ -52,3 +52,32 @@ void do_load(char *argv[], int argc)
 
     f_close(&fd);
 }
+
+void do_save(char *argv[], int argc)
+{
+    FIL fd;
+    FRESULT fr;
+    uint32_t address, msize;
+
+    /* arg 1 - filename */
+    fr = f_open(&fd, argv[0], FA_WRITE | FA_CREATE_ALWAYS);
+    if(fr != FR_OK){
+        printf("save: failed to open \"%s\": %s (aborted)\n", argv[0], f_errmsg(fr));
+        return;
+    }
+
+    /* arg 2 - load address */
+    address = parse_uint32(argv[1], NULL);
+
+    /* arg 3 - save length */
+    msize = parse_uint32(argv[2], NULL);
+
+    printf("save: writing 0x%lx bytes from 0x%lx to \"%s\"\n", msize, address, argv[0]);
+
+    fr = f_write(&fd, (void*)address, msize, NULL);
+    if(fr != FR_OK){
+        printf("save: failed to write to \"%s\": %s\n", argv[0], f_errmsg(fr));
+    }
+
+    f_close(&fd);
+}

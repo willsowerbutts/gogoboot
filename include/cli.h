@@ -53,10 +53,12 @@ void do_meminfo(char *argv[], int argc);
 void do_netinfo(char *argv[], int argc);
 
 // cli_tftp.c
-void do_tftp(char *argv[], int argc);
+void do_tftp_get(char *argv[], int argc);
+void do_tftp_put(char *argv[], int argc);
 
 // cli_load.c
 void do_execute(char *argv[], int argc);
 void do_load(char *argv[], int argc);
+void do_save(char *argv[], int argc);
 
 #endif
