@@ -14,23 +14,9 @@ void q40_boot_qdos(void *qdos_image);
 /* RTC */
 #define Q40_RTC_NVRAM_SIZE (2040) /* bytes */
 #define Q40_RTC_CLOCK_SIZE (8)    /* bytes */
-typedef struct {
-    /* see datasheet -- these are BCD encoded, with some other bits stuffed in there */
-    uint8_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t weekday;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-} q40_rtc_data_t;
 
 uint8_t q40_rtc_read_nvram(int offset);
 void    q40_rtc_write_nvram(int offset, uint8_t value);
-uint8_t q40_rtc_read_control(void);
-void q40_rtc_write_control(uint8_t value);
-void q40_rtc_read_clock(q40_rtc_data_t *buffer);
-void q40_rtc_write_clock(const q40_rtc_data_t *buffer);
 
 /* hardware details */
 #define VIDEO_RAM_BASE  0xfe800000

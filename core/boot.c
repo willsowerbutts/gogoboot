@@ -8,6 +8,7 @@
 #include <net.h>
 #include <cli.h>
 #include <init.h>
+#include <rtc.h>
 #include <version.h>
 #include <tinyalloc.h>
 
@@ -90,6 +91,15 @@ void report_ram_installed(void)
     report_memory_layout();
 }
 
+void report_current_time(void)
+{
+    rtc_time_t now;
+    rtc_read_clock(&now);
+    printf("%04d-%02d-%02d %02d:%02d:%02d",
+            now.year, now.month, now.day, now.hour, now.minute, now.second);
+
+}
+
 void gogoboot(void)
 {
     early_init();
@@ -104,6 +114,8 @@ void gogoboot(void)
 
     printf("Initialise RTC: ");
     rtc_init();
+    report_current_time();
+    putchar('\n');
 
     disk_init();
 

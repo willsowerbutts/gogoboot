@@ -22,8 +22,3 @@ void target_hardware_init(void)
 {
     // not required
 }
-
-void rtc_init(void)
-{
-    printf("no driver yet!\n");
-}

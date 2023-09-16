@@ -11,7 +11,6 @@ extern uint32_t bounce_below_addr;
 void early_init(void);
 void target_hardware_init(void);
 void setup_interrupts(void);
-void rtc_init(void);
 void measure_ram_size(void);
 void report_memory_layout(void);
 

@@ -6,9 +6,7 @@
 #include <fatfs/ff.h>
 #include <fatfs/diskio.h>
 #include <disk.h>
-#ifdef TARGET_Q40
-#include <q40/hw.h>
-#endif
+#include <rtc.h>
 
 /* glue for FatFs library */
 
@@ -101,4 +99,26 @@ void* ff_memalloc (UINT msize)
 void ff_memfree (void* mblock)
 {
     free(mblock);
+}
+
+DWORD get_fattime (void)
+{
+    uint32_t result;
+    /*
+        bit31:25 Year origin from the 1980 (0..127, e.g. 37 for 2017)
+        bit24:21 Month (1..12)
+        bit20:16 Day of the month (1..31)
+        bit15:11 Hour (0..23)
+        bit10:5  Minute (0..59)
+        bit4:0   Second / 2 (0..29, e.g. 25 for 50)
+    */
+    rtc_time_t now;
+    rtc_read_clock(&now);
+    result  = (now.year   - 1980) << 25;
+    result |= (now.month  & 0x1F) << 21;
+    result |= (now.day    & 0x3F) << 16;
+    result |= (now.hour   & 0x3F) << 11;  
+    result |= (now.minute & 0x7F) <<  5;
+    result |= (now.second & 0x7F) >>  1;
+    return result;
 }

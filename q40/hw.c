@@ -20,8 +20,6 @@ uint32_t mem_get_granularity(void)
     return 1024*1024;
 }
 
-const char * const weekday[8] = { "???", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
-
 void early_init(void)
 {
     q40_isa_reset();
@@ -34,87 +32,6 @@ void target_hardware_init(void)
     printf("done\n");
 
     q40_led(true);
-}
-
-void rtc_init(void)
-{
-    q40_rtc_data_t data_prev, data;
-    q40_rtc_read_clock(&data_prev);
-    memcpy(&data, &data_prev, sizeof(data));
-    /* clear must-be-zero bits in timekeeper registers */
-    data.month   &= 0x1F;
-    data.day     &= 0x3F;
-    data.weekday &= 0x07;
-    data.hour    &= 0x3F;
-    data.minute  &= 0x7F;
-    data.second  &= 0x7F; /* clears the STOP bit, oscillator runs */
-
-    printf("%s 20%d%d-%d%d-%d%d %d%d:%d%d:%d%d",
-            weekday[data.weekday],
-            data.year   >> 4 & 0x0F, data.year   & 0x0F,
-            data.month  >> 4 & 0x0F, data.month  & 0x0F,
-            data.day    >> 4 & 0x0F, data.day    & 0x0F,
-            data.hour   >> 4 & 0x0F, data.hour   & 0x0F,
-            data.minute >> 4 & 0x0F, data.minute & 0x0F,
-            data.second >> 4 & 0x0F, data.second & 0x0F);
-
-    /* write back only if we changed anything */
-    if(memcmp(&data, &data_prev, sizeof(data))){
-        printf(" (started RTC oscillator)");
-        q40_rtc_write_clock(&data);
-    }
-    printf("\n");
-}
-
-uint8_t q40_rtc_read_nvram(int offset)
-{
-    if(offset >= 0 && offset < Q40_RTC_NVRAM_SIZE)
-        return *Q40_RTC_NVRAM(offset);
-    return 0xff;
-}
-
-void q40_rtc_write_nvram(int offset, uint8_t value)
-{
-    if(offset >= 0 && offset < Q40_RTC_NVRAM_SIZE)
-        *Q40_RTC_NVRAM(offset) = value;
-}
-
-uint8_t q40_rtc_read_control(void)
-{
-    return *Q40_RTC_REGISTER(0);
-}
-
-void q40_rtc_write_control(uint8_t value)
-{
-    *Q40_RTC_REGISTER(0) = value;
-}
-
-void q40_rtc_read_clock(q40_rtc_data_t *buffer)
-{
-    uint8_t ctrl = q40_rtc_read_control();
-    q40_rtc_write_control(ctrl | 0x40); /* set READ bit */
-    buffer->second  = *Q40_RTC_REGISTER(1);
-    buffer->minute  = *Q40_RTC_REGISTER(2);
-    buffer->hour    = *Q40_RTC_REGISTER(3);
-    buffer->weekday = *Q40_RTC_REGISTER(4);
-    buffer->day     = *Q40_RTC_REGISTER(5);
-    buffer->month   = *Q40_RTC_REGISTER(6);
-    buffer->year    = *Q40_RTC_REGISTER(7);
-    q40_rtc_write_control(ctrl & ~0xC0); /* unset READ, WRITE bits */
-}
-
-void q40_rtc_write_clock(const q40_rtc_data_t *buffer)
-{
-    uint8_t ctrl = q40_rtc_read_control();
-    q40_rtc_write_control(ctrl | 0x80); /* set WRITE bit */
-    *Q40_RTC_REGISTER(1) = buffer->second;
-    *Q40_RTC_REGISTER(2) = buffer->minute;
-    *Q40_RTC_REGISTER(3) = buffer->hour;
-    *Q40_RTC_REGISTER(4) = buffer->weekday;
-    *Q40_RTC_REGISTER(5) = buffer->day;
-    *Q40_RTC_REGISTER(6) = buffer->month;
-    *Q40_RTC_REGISTER(7) = buffer->year;
-    q40_rtc_write_control(ctrl & ~0xC0); /* unset READ, WRITE bits */
 }
 
 timer_t gogoboot_read_timer(void)
