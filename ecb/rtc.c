@@ -1,4 +1,6 @@
-/* 2023-08-20 William R Sowerbutts */
+/* 2023-09-16 William R Sowerbutts */
+
+/* Driver for bit-banged DS1302 RTC on MF/PIC card */
 
 #include <stdlib.h>
 #include <types.h>
