@@ -1,5 +1,8 @@
-/* 2023-07-25 William R Sowerbutts
- * Includes some code from my "devide" FUZIX IDE driver.  */
+/* 
+ * 2023-07-25 William R Sowerbutts
+ * Interface IDE driver to FatFs by ChaN
+ *   http://elm-chan.org/fsw/ff/00index_e.html 
+ */
 
 #include <stdlib.h>
 #include <types.h>
@@ -7,8 +10,6 @@
 #include <fatfs/diskio.h>
 #include <disk.h>
 #include <rtc.h>
-
-/* glue for FatFs library */
 
 DSTATUS disk_status(BYTE pdrv)
 {
@@ -115,10 +116,10 @@ DWORD get_fattime (void)
     rtc_time_t now;
     rtc_read_clock(&now);
     result  = (now.year   - 1980) << 25;
-    result |= (now.month  & 0x1F) << 21;
-    result |= (now.day    & 0x3F) << 16;
-    result |= (now.hour   & 0x3F) << 11;  
-    result |= (now.minute & 0x7F) <<  5;
-    result |= (now.second & 0x7F) >>  1;
+    result |= (now.month        ) << 21;
+    result |= (now.day          ) << 16;
+    result |= (now.hour         ) << 11;  
+    result |= (now.minute       ) <<  5;
+    result |= (now.second       ) >>  1;
     return result;
 }
