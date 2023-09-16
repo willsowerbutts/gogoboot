@@ -90,7 +90,7 @@ void net_compute_udp_checksum(packet_t *packet)
 
 bool net_verify_tcp_checksum(packet_t *packet)
 {
-    printf("write net_verify_tcp_checksum!\n");
+    // printf("write net_verify_tcp_checksum!\n");
     return true;
 }
 

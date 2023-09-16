@@ -2,10 +2,11 @@
 
 #include <types.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <cli.h>
 #include <net.h>
 
-void do_tftp(char *argv[], int argc)
+void do_tftp_cli(char *argv[], int argc, bool is_put)
 {
     const char *server=NULL, *src, *dst;
     uint32_t targetip = 0;
@@ -39,13 +40,26 @@ void do_tftp(char *argv[], int argc)
         return;
     }
 
-    if(server){
-        targetip = net_parse_ipv4(server);
-        if(targetip == 0){
-            printf("Cannot parse server IPv4 address \"%s\"\n", server);
-            return;
-        }
+    targetip = net_parse_ipv4(server);
+    if(targetip == 0){
+        printf("Cannot parse server IPv4 address \"%s\"\n", server);
+        return;
     }
 
-    tftp_receive(targetip, src, dst);
+    /* NOTE: src and dst argument order differs between put and get */
+    if(is_put)
+        tftp_transfer(targetip, dst, src, true);
+    else
+        tftp_transfer(targetip, src, dst, false);
+}
+
+
+void do_tftp_get(char *argv[], int argc)
+{
+    do_tftp_cli(argv, argc, false);
+}
+
+void do_tftp_put(char *argv[], int argc)
+{
+    do_tftp_cli(argv, argc, true);
 }

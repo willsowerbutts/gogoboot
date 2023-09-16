@@ -71,6 +71,43 @@ packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint1
     return p;
 }
 
+bool packet_data_resize(packet_t *packet, int new_data_length)
+{
+    int header_length;
+    uint16_t len;
+
+    if(!packet->ipv4)
+        return false;
+
+    switch(packet->ipv4->protocol){
+        case ip_proto_udp:
+            header_length = sizeof(ethernet_header_t) +
+                sizeof(ipv4_header_t) + sizeof(udp_header_t);
+
+            /* check it will fit */
+            if(header_length + new_data_length > packet->buffer_length_alloc)
+                return false;
+
+            /* update UDP specific lengths */
+            len = new_data_length;
+            packet->data_length = len;
+            len += sizeof(udp_header_t);
+            packet->udp->length = htons(len);
+            break;
+        default:
+            /* patches welcome! :) */
+            return false;
+    }
+
+    /* update IPv4 lengths */
+    len += sizeof(ipv4_header_t);
+    packet->ipv4->length = htons(len);
+    len += sizeof(ethernet_header_t);
+    packet->buffer_length = len;
+
+    return true;
+}
+
 packet_t *packet_create_for_sink(packet_sink_t *sink, int data_size)
 {
     switch(sink->match_ipv4_protocol) {

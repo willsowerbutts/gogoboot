@@ -172,15 +172,16 @@ void net_pump(void);
 void net_tx(packet_t *packet);
 void net_dump_packet_sinks(void);
 
-/* packet.c */
+/* packet.c, ipv4.c */
 packet_t *packet_alloc(int buffer_size);
 packet_t *packet_create_tcp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size);
 packet_t *packet_create_udp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size);
 packet_t *packet_create_icmp(uint32_t dest_ipv4, int data_size);
 packet_t *packet_create_for_sink(packet_sink_t *sink, int data_size);
-void packet_set_destination_mac(packet_t *packet, const macaddr_t *mac);
+bool packet_data_resize(packet_t *packet, int new_data_length);
 void packet_free(packet_t *packet);
 uint32_t net_parse_ipv4(const char *str);
+void packet_set_destination_mac(packet_t *packet, const macaddr_t *mac);
 
 // for dynamically allocated queues
 packet_queue_t *packet_queue_alloc(void); // calls packet_queue_init
@@ -218,6 +219,6 @@ void net_arp_init(void);
 arp_result_t net_arp_resolve(packet_t *packet);
 
 /* tftp.c */
-bool tftp_receive(uint32_t tftp_server_ip, const char *tftp_filename, const char *disk_filename);
+bool tftp_transfer(uint32_t tftp_server_ip, const char *tftp_filename, const char *disk_filename, bool is_put);
 
 #endif

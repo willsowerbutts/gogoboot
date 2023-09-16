@@ -20,6 +20,7 @@ void packet_sink_free(packet_sink_t *s)
     free(s);
 }
 
+
 void packet_queue_init(packet_queue_t *q)
 {
     q->head = q->tail = NULL;
@@ -104,6 +105,7 @@ packet_t *packet_queue_pophead(packet_queue_t *q)
     p->next = 0;
     return p;
 }
+
 
 packet_t *packet_alloc(int data_size)
 {

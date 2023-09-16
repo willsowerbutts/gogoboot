@@ -56,7 +56,9 @@ const cmd_entry_t builtin_cmd_table[] = {
 
     /* -- cli_tftp.c ------------------- */
     /* name         min     max function */
-    {"tftp",        1,      3,  &do_tftp,     "retrieve file with TFTP" },
+    {"tftp",        1,      3,  &do_tftp_get, "retrieve file with TFTP" },
+    {"tftpget",     1,      3,  &do_tftp_get, "retrieve file with TFTP" },
+    {"tftpput",     1,      3,  &do_tftp_put, "send file with TFTP" },
 
     /* -- cli_load.c ------------------- */
     /* name         min     max function */
