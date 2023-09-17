@@ -240,7 +240,7 @@ static void tftp_process_ack(packet_sink_t *sink, packet_t *packet)
     tftp->last_block = block;
     tftp->bytes_transferred += ((int)tftp->block_size * (int)blocks_transferred);
 
-    if(tftp->bytes_transferred > tftp->total_size){ /* > not >= is correct here */
+    if(tftp->bytes_transferred > tftp->total_size){ /* note > is correct here */
         // we're done!
         tftp->completed = true;
         tftp->success = true;
@@ -512,11 +512,13 @@ bool tftp_transfer(uint32_t tftp_server_ip, const char *tftp_filename,
                 break;
             }
             if((tftp->bytes_transferred - reported_transferred) >= (256*1024) || 
-               (tftp->total_size && tftp->bytes_transferred == tftp->total_size)){
+               (tftp->total_size && tftp->bytes_transferred >= tftp->total_size)){
                 reported_transferred = tftp->bytes_transferred;
-                if(tftp->total_size)
+                if(tftp->total_size){
+                    if(reported_transferred > tftp->total_size)
+                        reported_transferred = tftp->total_size;
                     printf("tftp: %d/%d KB", reported_transferred >> 10, tftp->total_size >> 10);
-                else
+                }else
                     printf("tftp: %d KB", reported_transferred >> 10);
                 if(tftp->timeouts)
                     printf(" (%d timeouts)", tftp->timeouts);
