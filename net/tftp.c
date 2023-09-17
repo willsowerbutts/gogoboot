@@ -70,10 +70,12 @@ static uint16_t expected_block_number(tftp_transfer_t *tftp, int count)
     int expected_block;
 
     expected_block = (int)tftp->last_block + count;
-    if(expected_block > 0xffff)
+    if(expected_block > 0xffff){
         expected_block -= 0x10000;
-    if(expected_block == 0)
-        expected_block = tftp->rollover_value;
+        /* deal with rollover_value == 1 */
+        if(expected_block <= count && tftp->rollover_value == 1)
+            expected_block++;
+    }
     
     return expected_block;
 }
@@ -286,7 +288,7 @@ static void tftp_process_options_ack(packet_sink_t *sink, tftp_header_t *message
         ptr++;
         // process option + value
         val_int = atoi(val);
-        if(!strcmp(opt, "rollover")){
+        if(!strcmp(opt, "rollover") && (val_int == 0 || val_int == 1)){
             tftp->rollover_value = val_int;
         }else if(!strcmp(opt, "tsize")){
             if(!tftp->is_put)
