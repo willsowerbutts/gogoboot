@@ -585,6 +585,10 @@ static bool get_prom(void)
     if(all_zero || all_ones)
         return false;
 
+    /* check for RTL8019 */
+    nic.rtl8019 = (read_port_byte(nic.base + EN0_RCNTLO) == 0x50 &&
+                   read_port_byte(nic.base + EN0_RCNTHI) == 0x70);
+
     return true;
 }
 
@@ -611,11 +615,19 @@ bool eth_init(void)
             continue;
 
         nic.tx_buf1 = 0x40; /* 2KB */
-        nic.tx_buf2 = 0x48; /* 2KB */
-        nic.rx_buf_start = 0x50; /* 12KB */
-        nic.rx_buf_end = 0x80;
+        nic.tx_buf2 = 0x46; /* 2KB */
+        nic.rx_buf_start = 0x4C;
+#ifndef NE2000_16BIT_PIO
+        /* 8 bit IO */
+        if(nic.rtl8019){
+            /* RTL8019 in 8-bit mode requires that we not exceed page 0x60 */
+            nic.rx_buf_end = 0x60; /* 5KB */
+        }else
+#endif
+            nic.rx_buf_end = 0x80; /* 13KB */
 
-        printf("NE2000 at 0x%x, MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+        printf("%s at 0x%x, MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+                nic.rtl8019 ? "RTL8019" : "NE2000",
                 nic.base,
                 interface_macaddr[0], interface_macaddr[1], interface_macaddr[2],
                 interface_macaddr[3], interface_macaddr[4], interface_macaddr[5]);

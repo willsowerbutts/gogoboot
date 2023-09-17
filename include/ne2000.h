@@ -77,6 +77,7 @@ are GPL, so this is, of course, GPL.
 typedef struct dp83902a_priv_data {
     uint16_t base;
     uint16_t data;
+    bool rtl8019;
     int tx_next;           /* First free Tx page */
     int tx_int;            /* Expecting interrupt from this buffer */
     int rx_next;           /* First free Rx page */
