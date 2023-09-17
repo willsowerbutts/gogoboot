@@ -614,17 +614,17 @@ bool eth_init(void)
         if(!get_prom())
             continue;
 
-        nic.tx_buf1 = 0x40; /* 2KB */
-        nic.tx_buf2 = 0x46; /* 2KB */
+        nic.tx_buf1 = 0x40; /* 6x256=1.5KB */
+        nic.tx_buf2 = 0x46; /* 6x256=1.5KB */
         nic.rx_buf_start = 0x4C;
 #ifndef NE2000_16BIT_PIO
         /* 8 bit IO */
         if(nic.rtl8019){
             /* RTL8019 in 8-bit mode requires that we not exceed page 0x60 */
-            nic.rx_buf_end = 0x60; /* 5KB */
+            nic.rx_buf_end = 0x60; /* 20x256=5KB */
         }else
 #endif
-            nic.rx_buf_end = 0x80; /* 13KB */
+            nic.rx_buf_end = 0x80; /* 52x256=13KB */
 
         printf("%s at 0x%x, MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
                 nic.rtl8019 ? "RTL8019" : "NE2000",
