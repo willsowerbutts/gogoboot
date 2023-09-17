@@ -83,7 +83,7 @@ void do_set(char *argv[], int argc)
             printf("%s=%s\n", e->name, e->value);
             count++;
         }
-        printf("%d environment variables\n", count);
+        printf("(%d environment variables)\n", count);
         return;
     }else{
         const char *name, *val = NULL;
