@@ -11,7 +11,7 @@ It supports FAT16/FAT32 (and optionally exFAT) filesystems, with long file
 names. It includes a driver for IDE disks.
 
 It includes a simple IPv4 stack which supports DHCP and can transfer files to
-the hard disk using TFTP over an ethernet network.
+and from the hard disk using TFTP over an ethernet network.
 
 It has commands to read and write to system memory from the CLI.
 
@@ -86,53 +86,53 @@ To program EPROMs for the Q40, run `make q40-split` and separate high/low
 CLI
 ---
 
-The "help" command lists the various commands available. There is little or
+The `help` command lists the various commands available. There is little or
 no documentation beyond this at the moment...
 
-The "hardrom" command will reboot the machine using whatever is in the
+The `hardrom` command will reboot the machine using whatever is in the
 hardware ROMs.
 
-The "softrom" command is very similar to the SMSQ/E command of the same name,
+The `softrom` command is very similar to the SMSQ/E command of the same name,
 it reprograms the "LowRAM" in the Q40 using a ROM image and then boots from
-it. You can run "softrom <filename>" to load a ROM image from the FAT
+it. You can run `softrom <filename>` to load a ROM image from the FAT
 partition, or if you run it without a filename it will try to load an image
-over the UART. The format on the wire is identical to the SMSQ/E "softrom"
-command except that it runs at 115,200 bps.  The "q40/sendrom" file in the
+over the UART. The format on the wire is identical to the SMSQ/E `softrom`
+command except that it runs at 115,200 bps.  The `q40/sendrom` file in the
 source is a python script that will send a ROM image in the required format.
 
 Before executing the ROM, softrom compares it to what is already running. If
 it matches, softrom does NOT reboot the machine.
 
-The "tftp" command will retrieve a file from a TFTP server. The syntax is:
+The `tftp` command will retrieve a file from a TFTP server. The syntax is:
 
     tftp 1.2.3.4 sourcefile destfile
 
-Where "1.2.3.4" is the TFTP server IP address, "sourcefile" is the filename
-on the TFTP server, and "destfile" is the target filename on the local disk.
+Where `1.2.3.4` is the TFTP server IP address, `sourcefile` is the filename
+on the TFTP server, and `destfile` is the target filename on the local disk.
 
-You can also run "set tftp_server 1.2.3.4" to set the tftp_server environment
+You can also run `set tftp_server 1.2.3.4` to set the tftp_server environment
 variable, then you can omit this, and optionally also the destination
-filename, from the command line (ie "tftp somefile" will work, using the same
+filename, from the command line (ie `tftp somefile` will work, using the same
 filename for the source and destination).
 
-If you put a text file on the FAT partition starting with "#!script" then
+If you put a text file on the FAT partition starting with `#!script` then
 this is treated as a batch file. If you have a file in the root of the
-partition named "boot" it will be executed automatically. 
+partition named `boot` it will be executed automatically. 
 
-My own boot script looks like this:
+My own `boot` script looks like this:
 
     #!script
     softrom gogoboot-q40.rom
     loadimage images/boys.img
     set tftp_server "192.168.100.80"
 
-When the version in ROM boots, it runs the "softrom" line which loads the
+When the version in ROM boots, it runs the `softrom` line which loads the
 latest version from disk and boots into that instead. This saves me from
 needing to reprogram the EPROMs regularly. When it reboots using the new
 version, this line runs again but this time the image matches what is running
 so we do not reboot and instead just continue to the next command.
 
-The "loadimage" command, on the Q40 target, loads video memory with a raw 1MB
+The `loadimage` command, on the Q40 target, loads video memory with a raw 1MB
 file from disk. The file is raw 1024x512x16 bit colour. I have discovered my
 wife questions why I spend hours and hours working on these things, but if I
 show her this feature loading a picture of our kids she suddenly seems
