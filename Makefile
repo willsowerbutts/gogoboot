@@ -71,12 +71,12 @@ gogoboot-$(1).elf:	version.$(1).o $$(ROMOBJ_$(1)) $(1)/linker.ld
 gogoboot-$(1).rom:	gogoboot-$(1).elf
 	$(OBJCOPY) -O binary gogoboot-$(1).elf gogoboot-$(1).rom
 
-gogoboot-$(1)-ram.elf:	version.$(1).o $$(ROMOBJ_$(1)) $(1)/linker-ram.ld
-	$$(LD) --gc-sections --script=$(1)/linker-ram.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-$(1)-ram.map -o gogoboot-$(1)-ram.elf $$(ROMOBJ_$(1)) version.$(1).o $$(LDOPT_$(1))
-
 endef
 
 $(eval $(foreach target,$(TARGETS),$(call make_target,$(target))))
+
+gogoboot-mini-ram.elf:	version.mini.o $(ROMOBJ_mini) mini/linker-ram.ld
+	$(LD) --gc-sections --script=mini/linker-ram.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-mini-ram.map -o gogoboot-mini-ram.elf $(ROMOBJ_mini) version.mini.o $(LDOPT_mini)
 
 clean:
 	rm -f *.rom *.map *.o *.lst *.elf *.bin version.c $(foreach target,$(TARGETS),$(target)/*.lst $(ROMOBJ_$(target)))
