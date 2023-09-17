@@ -136,6 +136,7 @@ static packet_t *tftp_create_request(packet_sink_t *sink)
         } while(n);
         offset = options_append(options, offset, t);
     }else{
+        /* get request: 0 = please tell me total file size */
         offset = options_append(options, offset, "0");
     }
 
@@ -146,7 +147,7 @@ static packet_t *tftp_create_request(packet_sink_t *sink)
     offset = options_append(options, offset, wsize);
 
     packet_t *packet = packet_create_for_sink(sink, offset + 2);
-    packet->udp->destination_port = htons(69); // RRQ/WRQ always goes to port 69
+    packet->udp->destination_port = htons(69); // RRQ/WRQ always goes to server port 69
     tftp_header_t *message = (tftp_header_t*)packet->data;
     message->opcode = htons(tftp->is_put ? tftp_op_wrq : tftp_op_rrq);
     memcpy(message->payload.raw, options, offset);
@@ -217,7 +218,7 @@ static void tftp_put_send_data(packet_sink_t *sink, int count)
     sink->timer = set_timer_ms(DATA_TIMEOUT);
 }
 
-static void tftp_process_ack(packet_sink_t *sink, packet_t *packet)
+static void tftp_put_process_ack(packet_sink_t *sink, packet_t *packet)
 {
     tftp_transfer_t *tftp = sink->sink_private;
     tftp_header_t *message = (tftp_header_t*)packet->data;
@@ -312,7 +313,7 @@ static void tftp_process_options_ack(packet_sink_t *sink, tftp_header_t *message
     }
 }
 
-static void tftp_flush_data_and_ack(packet_sink_t *sink)
+static void tftp_get_flush_data_and_ack(packet_sink_t *sink)
 {
     tftp_transfer_t *tftp = sink->sink_private;
     packet_t *packet;
@@ -341,7 +342,7 @@ static void tftp_flush_data_and_ack(packet_sink_t *sink)
     }
 }
 
-static bool tftp_process_data(packet_sink_t *sink, packet_t *packet)
+static bool tftp_get_process_data(packet_sink_t *sink, packet_t *packet)
 {
     tftp_transfer_t *tftp = sink->sink_private;
     tftp_header_t *message = (tftp_header_t*)packet->data;
@@ -363,12 +364,12 @@ static bool tftp_process_data(packet_sink_t *sink, packet_t *packet)
             // a short data block indicates success
             tftp->completed = true;
             tftp->success = true;
-            tftp_flush_data_and_ack(sink);
+            tftp_get_flush_data_and_ack(sink);
         }
     }
 
     if(tftp->last_block == ((tftp->last_ack + tftp->window_size) & 0xffff))
-        tftp_flush_data_and_ack(sink);
+        tftp_get_flush_data_and_ack(sink);
 
     return free_packet;
 }
@@ -394,7 +395,7 @@ static void tftp_client_packet_received(packet_sink_t *sink, packet_t *packet)
             break;
         case tftp_op_ack:
             if(tftp->is_put)
-                tftp_process_ack(sink, packet);
+                tftp_put_process_ack(sink, packet);
             else
                 printf("tftp: unexpected ACK packet during get?\n");
             break;
@@ -402,7 +403,7 @@ static void tftp_client_packet_received(packet_sink_t *sink, packet_t *packet)
             if(tftp->is_put)
                 printf("tftp: unexpected DATA packet during put?\n");
             else
-                free_packet = tftp_process_data(sink, packet);
+                free_packet = tftp_get_process_data(sink, packet);
             break;
         case tftp_op_err:
             printf("tftp: server error code 0x%0x: %s\n",
@@ -443,7 +444,7 @@ static void tftp_client_timer_expired(packet_sink_t *sink)
         if(tftp->is_put)
             tftp_put_send_data(sink, 1);
         else
-            tftp_flush_data_and_ack(sink);
+            tftp_get_flush_data_and_ack(sink);
     }
 
     tftp->timeouts++;
