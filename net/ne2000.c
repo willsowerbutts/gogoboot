@@ -103,7 +103,9 @@ static void dp83902a_start(macaddr_t enaddr)
 
     write_port_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_STOP); /* Brutal */
 #ifdef NE2000_16BIT_PIO
-    // DP_DCR_BOS does not seem to affect the actual byte order the card uses ... ?
+    // WRS: DP_DCR_BOS does not seem to affect the actual byte order the card uses ...
+    // RTL8019AS datasheet confirms Byte Order Select as Not Implemented - presumably
+    // many clones do the same -- http://realtek.info/pdf/rtl8019as.pdf page 13
     write_port_byte_pause(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4 | DP_DCR_WTS);
 #else
     write_port_byte_pause(nic.base + DP_DCR, DP_DCR_LS | DP_DCR_FIFO_4);
