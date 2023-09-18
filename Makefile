@@ -83,16 +83,16 @@ clean:
 
 # update our version number whenever any source file changes
 version.c:	$(SRC_all) $(foreach target,$(TARGETS),$(SRC_$(target)))
-	./makeversion
+	./tools/makeversion
 
 tftp:	$(TARGET_FILES)
 	scp -C $(TARGET_FILES) beastie:/storage/tftp/
 
 q40-serial:	gogoboot-q40.rom
-	./q40/sendrom /dev/ttyUSB0 115200 gogoboot-q40.rom
+	./tools/sendrom /dev/ttyUSB0 115200 gogoboot-q40.rom
 
 kiss-serial:	gogoboot-kiss.rom
-	./q40/sendrom /dev/ttyUSB0 115200 gogoboot-kiss.rom
+	./tools/sendrom /dev/ttyUSB0 115200 gogoboot-kiss.rom
 
 q40-split:	gogoboot-q40.rom
-	./q40/makesplitrom gogoboot-q40.rom gogoboot-q40-hi.rom gogoboot-q40-lo.rom
+	./tools/q40-splitrom gogoboot-q40.rom gogoboot-q40-hi.rom gogoboot-q40-lo.rom
