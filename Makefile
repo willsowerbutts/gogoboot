@@ -24,7 +24,6 @@ SRC_all = core/except.c fatfs/ff.c fatfs/ffunicode.c fatfs/ffglue.c core/boot.c 
 	  net/icmp.c net/arp.c net/dhcp.c \
 	  core/loader.c core/ide.c core/timer.c core/mem.c core/uart.c
 
-
 # gcc needs some helpers on 68000, system provided libgcc.a may be
 # built for 68020+
 SRC_68000 = libgcc/divmod.c libgcc/udivmod.c libgcc/udivmodsi4.c libgcc/mulsi3.s
@@ -63,10 +62,10 @@ define make_target =
 %.$(1).o:	%.c
 	$$(CC) -c $$(COPT_all) $$(COPT_$(1)) $$< -o $$@
 
-ROMOBJ_$(1) = $(patsubst %.s,%.$(1).o,$(patsubst %.c,%.$(1).o,$(SRC_all) $(SRC_$(1))))
+ROMOBJ_$(1) = $(patsubst %.s,%.$(1).o,$(patsubst %.c,%.$(1).o,$(SRC_all) $(SRC_$(1)) core/version.c))
 
-gogoboot-$(1).elf:	version.$(1).o $$(ROMOBJ_$(1)) $(1)/linker.ld
-	$$(LD) --gc-sections --script=$(1)/linker.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-$(1).map -o gogoboot-$(1).elf $$(ROMOBJ_$(1)) version.$(1).o $$(LDOPT_$(1))
+gogoboot-$(1).elf:	$$(ROMOBJ_$(1)) $(1)/linker.ld
+	$$(LD) --gc-sections --script=$(1)/linker.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-$(1).map -o gogoboot-$(1).elf $$(ROMOBJ_$(1)) $$(LDOPT_$(1))
 
 gogoboot-$(1).rom:	gogoboot-$(1).elf
 	$(OBJCOPY) -O binary gogoboot-$(1).elf gogoboot-$(1).rom
@@ -75,15 +74,15 @@ endef
 
 $(eval $(foreach target,$(TARGETS),$(call make_target,$(target))))
 
-gogoboot-mini-ram.elf:	version.mini.o $(ROMOBJ_mini) mini/linker-ram.ld
-	$(LD) --gc-sections --script=mini/linker-ram.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-mini-ram.map -o gogoboot-mini-ram.elf $(ROMOBJ_mini) version.mini.o $(LDOPT_mini)
+gogoboot-mini-ram.elf:	$(ROMOBJ_mini) mini/linker-ram.ld
+	$(LD) --gc-sections --script=mini/linker-ram.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-mini-ram.map -o gogoboot-mini-ram.elf $(ROMOBJ_mini) $(LDOPT_mini)
 
 clean:
-	rm -f *.rom *.map *.o *.lst *.elf *.bin version.c $(foreach target,$(TARGETS),$(target)/*.lst $(ROMOBJ_$(target)))
+	rm -f *.rom *.map *.o *.lst *.elf *.bin core/version.c $(foreach target,$(TARGETS),$(target)/*.lst $(ROMOBJ_$(target)))
 
 # update our version number whenever any source file changes
-version.c:	$(SRC_all) $(foreach target,$(TARGETS),$(SRC_$(target)))
-	./tools/makeversion
+core/version.c:	$(SRC_all) $(foreach target,$(TARGETS),$(SRC_$(target)))
+	./tools/makeversion core/version.c
 
 tftp:	$(TARGET_FILES)
 	scp -C $(TARGET_FILES) beastie:/storage/tftp/

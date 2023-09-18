@@ -3,6 +3,7 @@
 import subprocess
 import socket
 import datetime
+import sys
 
 def run_cmd(cmd):
     return subprocess.check_output(cmd, encoding='utf-8')
@@ -28,7 +29,12 @@ except Exception:
 
 version_string = 'git %s build %s %s/%d' % (hash, date_str, hostname, buildnum)
 
-fd = open("version.c", 'w')
+if len(sys.argv) >= 2:
+    filename = sys.argv[1]
+else:
+    filename = 'version.c'
+
+fd = open(filename, 'w')
 fd.write('#include <version.h>\n')
 fd.write('\n')
 fd.write('const char software_version_string[] = "%s";\n' % version_string)
