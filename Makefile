@@ -15,14 +15,15 @@ TARGETS = q40 kiss mini
 AOPT_all = -alhmsg
 COPT_all = -O1 -std=c18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
 	   -fdata-sections -ffunction-sections -Iinclude
-SRC_all = core/except.c fatfs/ff.c fatfs/ffunicode.c fatfs/ffglue.c core/boot.c \
+SRC_all = core/except.c core/boot.c core/mem.c \
+	  core/loader.c core/ide.c core/timer.c core/uart.c \
 	  lib/memcpy.c lib/memmove.c lib/memset.c lib/printf.c lib/qsort.c \
 	  lib/stdlib.c lib/strdup.c lib/strtoul.c lib/tinyalloc.c \
+	  fatfs/ff.c fatfs/ffunicode.c fatfs/ffglue.c \
 	  cli/cli.c cli/cli_fs.c cli/cli_env.c cli/cli_mem.c \
 	  cli/cli_info.c cli/cli_tftp.c cli/cli_load.c \
-	  net/net.c net/packet.c net/tftp.c net/ipcsum.c net/ipv4.c net/ne2000.c \
-	  net/icmp.c net/arp.c net/dhcp.c \
-	  core/loader.c core/ide.c core/timer.c core/mem.c core/uart.c
+	  net/net.c net/packet.c net/tftp.c net/ipcsum.c net/ipv4.c \
+	  net/icmp.c net/arp.c net/dhcp.c net/ne2000.c
 
 # gcc needs some helpers on 68000, system provided libgcc.a may be
 # built for 68020+
