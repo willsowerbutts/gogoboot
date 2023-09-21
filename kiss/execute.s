@@ -1,3 +1,4 @@
+        .include "core/cpu-68030-bits.s"
         .include "kiss/kisshw.s"
 
         .globl  machine_execute

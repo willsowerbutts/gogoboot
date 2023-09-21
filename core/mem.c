@@ -4,7 +4,7 @@
 #include <init.h>
 
 uint32_t ram_size;
-uint32_t stack_base, stack_size;
+uint32_t stack_base, stack_size, stack_top;
 uint32_t heap_base, heap_size;
 uint32_t bounce_below_addr;
 extern const char bss_end; /* linker provides this symbol */
@@ -39,8 +39,9 @@ void measure_ram_size(void)
         else
             break;
 
+    stack_base = ram_size - DEFAULT_STACK_SIZE;
     stack_size = DEFAULT_STACK_SIZE;
-    stack_base = ram_size - stack_size;
+    stack_top = stack_base + stack_size;
 
     /* attempts to load_data() into addresses below bounce_below_addr 
      * will result in the bounce buffer being employed */

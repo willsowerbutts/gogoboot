@@ -1,16 +1,12 @@
+        .include "core/cpu-68030-bits.s"
         .include "kiss/kisshw.s"
 
         .globl  _start
         .globl  gogoboot
         .globl  copyright_msg
-        .globl  cpu_cache_disable
-        .globl  cpu_cache_flush
-        .globl  cpu_cache_invalidate
-        .globl  cpu_interrupts_on
-        .globl  cpu_interrupts_off
         .globl  vector_table
         .globl  measure_ram_size
-        .globl  ram_size
+        .globl  stack_top
         .globl  halt
 
         .section .rom_header
@@ -103,7 +99,7 @@ zap_bss:
 
         lea bss_end+256, %sp            /* use temporary stack (after .bss) */
         jsr measure_ram_size            /* call C helper */
-        movea.l ram_size, %sp           /* move stack to top of RAM */
+        movea.l stack_top, %sp           /* move stack to top of RAM */
         jsr gogoboot                    /* call C boot code */
 
         /* halt */
@@ -111,34 +107,5 @@ halt:
 stopped:
         stop #0x2700                    /* all done */
         br.s stopped                    /* loop on NMI */
-
-cpu_cache_flush:
-cpu_cache_invalidate:
-        /* clear all data/instruction cache entries */
-        /* does not change if cache enabled/disabled */
-        movec.l %cacr, %d0
-        or.w #(CACR_CI + CACR_CD), %d0
-        movec.l %d0, %cacr
-        nop
-        pflusha
-        nop
-        rts
-
-cpu_cache_disable:
-        /* disable and clear all data/instruction cache entries */
-        move.l #(CACR_CI + CACR_CD), %d0
-        movec.l %d0, %cacr
-        nop
-        pflusha
-        nop
-        rts
-
-cpu_interrupts_on:
-        and.w #0xf8ff, %sr
-        rts
-
-cpu_interrupts_off:
-        or.w #0x0700, %sr
-        rts
 
         .end

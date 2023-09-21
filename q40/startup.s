@@ -1,13 +1,11 @@
+        .include "core/cpu-68040-bits.s"
         .globl  _start
         .globl  gogoboot
         .globl  halt
         .globl  copyright_msg
-        .globl  cpu_cache_disable
-        .globl  cpu_cache_flush
-        .globl  cpu_cache_invalidate
-        .globl  cpu_interrupts_on
-        .globl  cpu_interrupts_off
         .globl  vector_table
+        .globl  measure_ram_size
+        .globl  stack_top
 
         .section .rom_header
         dc.l    0x20000                 /* initial SP: 32KB of RAM between low ROM and "screen 0" video RAM */
@@ -75,7 +73,7 @@ nextregister:
         pflusha
         nop
 
-        move.l #0x80008000, %d0 /* enable data, instruction caches */
+        move.l #(CACR_EI+CACR_ED), %d0 /* enable data, instruction caches */
         movec %d0, %cacr
         nop
 
@@ -102,40 +100,12 @@ zap_bss:
 
         lea bss_end+256, %sp            /* use temporary stack (after .bss) */
         jsr measure_ram_size            /* call C helper */
-        movea.l ram_size, %sp           /* move stack to top of RAM */
+        movea.l stack_top, %sp          /* move stack to top of RAM */
         jsr gogoboot                    /* call C boot code */
 
         /* halt */
 halt:
 halted: stop #0x2700                    /* all done */
         br.s halted                     /* loop on NMI */
-
-cpu_cache_flush:
-        cpusha %dc              /* write back data cache entries */
-        nop
-        rts
-
-cpu_cache_invalidate:
-        cpusha %bc              /* write back and invalidate all data/instruction cache entries */
-        nop
-        rts
-
-cpu_cache_disable:
-        cpusha %bc              /* write back and invalidate all data/instruction cache entries */
-        nop
-        pflusha
-        nop
-        move.l #0x00000000, %d0 /* disable data, instruction caches */
-        movec %d0, %cacr
-        nop
-        rts
-
-cpu_interrupts_on:
-        and.w #0xf8ff, %sr
-        rts
-
-cpu_interrupts_off:
-        or.w #0x0700, %sr
-        rts
 
         .end
