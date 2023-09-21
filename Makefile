@@ -64,6 +64,7 @@ define make_target =
 	$$(CC) -c $$(COPT_all) $$(COPT_$(1)) $$< -o $$@
 
 ROMOBJ_$(1) = $(patsubst %.s,%.$(1).o,$(patsubst %.c,%.$(1).o,$(SRC_all) $(SRC_$(1)) core/version.c))
+LSTFILES_$(1) = $(patsubst %.s,%.lst,$(patsubst %.c,,$(SRC_all) $(SRC_$(1))))
 
 gogoboot-$(1).elf:	$$(ROMOBJ_$(1)) $(1)/linker.ld
 	$$(LD) --gc-sections --script=$(1)/linker.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-$(1).map -o gogoboot-$(1).elf $$(ROMOBJ_$(1)) $$(LDOPT_$(1))
@@ -79,7 +80,7 @@ gogoboot-mini-ram.elf:	$(ROMOBJ_mini) mini/linker-ram.ld
 	$(LD) --gc-sections --script=mini/linker-ram.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-mini-ram.map -o gogoboot-mini-ram.elf $(ROMOBJ_mini) $(LDOPT_mini)
 
 clean:
-	rm -f *.rom *.map *.o *.lst *.elf *.bin core/version.c $(foreach target,$(TARGETS),$(target)/*.lst $(ROMOBJ_$(target)))
+	rm -f *.rom *.map *.elf *.bin core/version.c $(foreach target,$(TARGETS),$(LSTFILES_$(target)) $(ROMOBJ_$(target)))
 
 # update our version number whenever any source file changes
 core/version.c:	$(SRC_all) $(foreach target,$(TARGETS),$(SRC_$(target)))
