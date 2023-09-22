@@ -45,7 +45,11 @@ void do_set(char *argv[], int argc);
 
 // cli_mem.c
 void do_dump(char *argv[], int argc);
+void do_memtest(char *argv[], int argc);
 void do_writemem(char *argv[], int argc);
+
+// core/memtest.c
+void memory_test(uint32_t base, uint32_t size);
 
 // cli_info.c
 void help(char *argv[], int argc);

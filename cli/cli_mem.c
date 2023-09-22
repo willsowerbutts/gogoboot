@@ -63,6 +63,16 @@ void do_dump(char *argv[], int argc)
     pretty_dump_memory((void*)start, count);
 }
 
+void do_memtest(char *argv[], int argc)
+{
+    unsigned long start, count;
+
+    start = parse_uint32(argv[0], NULL);
+    count = parse_uint32(argv[1], NULL);
+
+    memory_test(start, count);
+}
+
 static int fromhex(char c)
 {
     if(c >= '0' && c <= '9')

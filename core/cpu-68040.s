@@ -19,6 +19,7 @@ cpu_cache_invalidate:           /* flush data and instruction caches */
         rts
 
 cpu_cache_enable_nodata:        /* enable cpu instruction cache, disable data cache */
+        cpusha %dc              /* write back data cache entries */
         move.l #(CACR_EI), %d0
         movec %d0, %cacr        /* enable instruction cache only */
         rts

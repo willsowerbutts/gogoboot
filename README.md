@@ -103,17 +103,19 @@ source is a python script that will send a ROM image in the required format.
 Before executing the ROM, softrom compares it to what is already running. If
 it matches, softrom does NOT reboot the machine.
 
-The `tftp` command will retrieve a file from a TFTP server. The syntax is:
+The `tftpget` (or `tftp`) command will download a file from a TFTP server, and
+`tftpput` will upload a file to a TFPT server. The syntax is:
 
-    tftp 1.2.3.4 sourcefile destfile
+    tftpget 1.2.3.4 sourcefile diskfile
+    tftpput 1.2.3.4 sourcefile destfile
 
 Where `1.2.3.4` is the TFTP server IP address, `sourcefile` is the filename
 on the TFTP server, and `destfile` is the target filename on the local disk.
 
-You can also run `set tftp_server 1.2.3.4` to set the tftp_server environment
-variable, then you can omit this, and optionally also the destination
-filename, from the command line (ie `tftp somefile` will work, using the same
-filename for the source and destination).
+You can also run `set tftp_server 1.2.3.4` to set the `tftp_server` environment
+variable. Thereafter you can omit the server IP, and optionally also the
+destination filename, from the command line (ie `tftp somefile` will work,
+using the same filename for the source and destination).
 
 If you put a text file on the FAT partition starting with `#!script` then
 this is treated as a batch file. If you have a file in the root of the

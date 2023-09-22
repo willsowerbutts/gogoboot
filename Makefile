@@ -13,9 +13,9 @@ TARGETS = q40 kiss mini
 
 # options for all targets
 AOPT_all = -alhmsg
-COPT_all = -O1 -std=c18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
+COPT_all = -O1 -std=gnu18 -Wall -Werror -malign-int -nostdinc -nostdlib -nolibc \
 	   -fdata-sections -ffunction-sections -Iinclude
-SRC_all = core/except.c core/boot.c core/mem.c \
+SRC_all = core/except.c core/boot.c core/mem.c core/memtest.c \
 	  core/loader.c core/ide.c core/timer.c core/uart.c \
 	  lib/memcpy.c lib/memmove.c lib/memset.c lib/printf.c lib/qsort.c \
 	  lib/stdlib.c lib/strdup.c lib/strtoul.c lib/tinyalloc.c \
