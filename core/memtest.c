@@ -14,11 +14,19 @@
 
 #include <stdlib.h>
 #include <uart.h>
+#include <init.h>
 #include <cpu.h>
 
 /* sprintf helpers */
 #define mb_whole(x) ((x) >> 20)
 #define mb_frac(x) (mul32((x)>>4, 100) >> 16)
+
+enum {
+    CACHE_FULL,   // cpu_cache_enable
+    CACHE_NODATA, // cpu_cache_enable_nodata
+    CACHE_NONE,   // cpu_cache_disable
+    CACHE_INIT
+};
 
 /* 32-bit sequence of length 2^32-1 (all 32-bit values except zero). */
 static inline __attribute__((always_inline)) uint32_t lfsr(uint32_t x)
@@ -79,6 +87,8 @@ struct test_memory_args {
     /* LFSR seed for pseudo-random fill. This gets saved at the start of fill 
      * so that the same sequence can be reproduced and checked. */
     uint32_t seed, _seed;
+    uint32_t error_counter;
+    int cache_mode;
 };
 
 static int test_memory_range(struct test_memory_args *args)
@@ -90,9 +100,6 @@ static int test_memory_range(struct test_memory_args *args)
 
     if (start >= end)
         return 0;
-
-    printf("\r%sing 0x%08lx-0x%08lx ", !(args->subround & 1) ? "Fill" : "Check",
-            (uint32_t)start, (uint32_t)end-1);
 
     switch (args->subround) {
 
@@ -155,8 +162,10 @@ static int test_memory_range(struct test_memory_args *args)
         break;
     }
 
-    /* Errors found: then print diagnostic and wait to exit. */
+    /* Errors found: print diagnostic */
     if (a != 0) {
+        args->error_counter++;
+        printf("Error found in memory range 0x%08lx-0x%08lx\n", (uint32_t)start, (uint32_t)end-1);
         printf("\nERRORS:     D31..D24  D23..D16  D15...D8  D7....D0\n");
         printf(  "(X=error)   76543210  76543210  76543210  76543210\n");
         printf("32-bit bus  %c%c%c%c%c%c%c%c  %c%c%c%c%c%c%c%c  "
@@ -186,7 +195,7 @@ static void print_memory_test_type(struct test_memory_args *args)
 {
     switch (args->subround) {
     case 0:
-        printf("\rRound %u.%u: Random Fill (seed=0x%08lx)\n", 
+        printf("Round %u.%u: Random Fill (seed=0x%08lx)", 
                 args->round+1, 1, args->seed);
         /* Save the seed we use for this fill. */
         args->_seed = args->seed;
@@ -196,41 +205,85 @@ static void print_memory_test_type(struct test_memory_args *args)
         args->seed = args->_seed;
         break;
     case 2: case 4: case 6: case 8:
-        printf("\rRound %u.%u: Checkboard #%u        \n",
+        printf("Round %u.%u: Checkboard #%u",
                 args->round+1, args->subround/2+1, args->subround/2);
         break;
     }
+    if((args->subround & 1) == 0){
+        if(args->error_counter)
+            printf(" (ERROR COUNTER: %ld)\n", args->error_counter);
+        else
+            printf("\n");
+    }
+}
+
+static void memory_test_next_cpu_cache_mode(struct test_memory_args *args)
+{
+#ifdef CPU_68020_OR_LATER
+    switch(args->cache_mode){
+        case CACHE_FULL:
+            args->cache_mode = CACHE_NODATA;
+            cpu_cache_enable_nodata();
+            printf("CPU cache disabled\n");
+            break;
+        case CACHE_NODATA:
+            args->cache_mode = CACHE_NONE;
+            cpu_cache_disable();
+            printf("CPU cache enabled for instructions only\n");
+            break;
+        case CACHE_NONE:
+        case CACHE_INIT:
+            args->cache_mode = CACHE_FULL;
+            cpu_cache_enable();
+            printf("CPU cache enabled for data and instructions\n");
+            break;
+    }
+#endif
 }
 
 static void init_memory_test(struct test_memory_args *args)
 {
     args->round = args->subround = 0;
     args->seed = 0x12341234;
+    args->error_counter = 0;
+    args->cache_mode = CACHE_INIT;
+    memory_test_next_cpu_cache_mode(args);
     print_memory_test_type(args);
 }
 
 static void memory_test_next_subround(struct test_memory_args *args)
 {
     if (args->subround++ == 9) {
-        args->round++;
         args->subround = 0;
+        args->round++;
+        memory_test_next_cpu_cache_mode(args);
     }
     print_memory_test_type(args);
 }
+
+/* original amiga test kit uses chunks no larger than 512kB */
+/* this is useful to narrow down where memory errors exist */
+#define TEST_CHUNK_SIZE 0x80000
 
 void memory_test(uint32_t base, uint32_t size)
 {
     bool done = false;
     struct test_memory_args tm_args;
-    uint32_t test_remain, test_size;
+    const char *addr_err;
+    uint32_t test_remain, test_size, chunk_end;
     int uart_byte;
 
     if(size == 0)
         return;
 
-    printf("memory test: begin 0x%08lx -- 0x%08lx (Press Q to end)\n", base, base+size);
-    printf("TODO: add cache on/cache instr/cache off rounds\n");
-    cpu_cache_enable_nodata();
+    printf("memory test: testing 0x%08lx -- 0x%08lx (Press Q to end)\n", base, base+size);
+
+    addr_err = check_writable_range(base, size, false);
+    if(addr_err){
+        printf("memory test: address range error: %s\n", addr_err);
+        return;
+    }
+
     init_memory_test(&tm_args);
 
     while(!done){
@@ -238,17 +291,23 @@ void memory_test(uint32_t base, uint32_t size)
         test_remain = size;
 
         while(test_remain && !done){ 
-            /* test_memory_range() expects the end bound to be +1. */
-            /* original amiga test kit uses chunks no larger than 512kB */
-            if(test_remain > 0x80000)
-                test_size = 0x80000;
+            if(test_remain > TEST_CHUNK_SIZE)
+                test_size = TEST_CHUNK_SIZE;
             else
                 test_size = test_remain;
 
-            tm_args.end = tm_args.start + test_size + 1;
+            /* test_memory_range() expects the end bound to be +1 */
+            tm_args.end = tm_args.start + test_size;
+
+            /* we want to start the next block on a chunk boundary */
+            chunk_end = tm_args.end & ~(TEST_CHUNK_SIZE-1);
+            if(chunk_end != tm_args.end && chunk_end > tm_args.start){
+                tm_args.end = chunk_end;
+                test_size = tm_args.end - tm_args.start;
+            }
 
             uart_byte = uart_read_byte();
-            if(uart_byte == 'q' || uart_byte == 'Q')
+            if(uart_byte == 'q' || uart_byte == 'Q' || uart_byte == 0x1B)
                 done = true;
             else
                 test_memory_range(&tm_args);

@@ -20,6 +20,11 @@ uint32_t mem_get_granularity(void)
     return 1024*1024;
 }
 
+uint32_t mem_get_rom_below_addr(void)
+{
+    return 96*1024;
+}
+
 void early_init(void)
 {
     q40_isa_reset();

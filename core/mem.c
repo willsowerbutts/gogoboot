@@ -6,7 +6,7 @@
 uint32_t ram_size;
 uint32_t stack_base, stack_size, stack_top;
 uint32_t heap_base, heap_size;
-uint32_t bounce_below_addr;
+uint32_t bounce_below_addr, rom_below_addr;
 extern const char bss_end; /* linker provides this symbol */
 
 void measure_ram_size(void)
@@ -24,6 +24,7 @@ void measure_ram_size(void)
 
     uint32_t max_ram = mem_get_max_possible();
     uint32_t unit_size = mem_get_granularity();
+    rom_below_addr = mem_get_rom_below_addr();
     uint32_t max_units = max_ram / unit_size;
     ram_size = 0;
 
@@ -47,3 +48,18 @@ void measure_ram_size(void)
      * will result in the bounce buffer being employed */
     bounce_below_addr = (((uint32_t)&bss_end) + 3) & ~3; /* round to longword */
 }
+
+const char *check_writable_range(uint32_t base, uint32_t length, bool can_bounce)
+{
+    if(base + length > ram_size)
+        return "past end of RAM";
+    if(base + length > heap_base)
+        return "overlaps heap memory";
+    if(base < rom_below_addr)
+        return "overlaps ROM";
+    if(!can_bounce && base < bounce_below_addr)
+        return "overlaps gogoboot memory";
+    /* if you get here, no problem! */
+    return NULL;
+}
+

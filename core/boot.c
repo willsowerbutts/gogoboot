@@ -10,12 +10,6 @@
 #include <version.h>
 #include <tinyalloc.h>
 
-extern const char copyright_msg[];
-extern const char text_start, text_size;
-extern const char rodata_start, rodata_size;
-extern const char data_start, data_load_start, data_size;
-extern const char bss_start, bss_size, bss_end;
-
 static void report_segment(const char *name, int start, int size, int load)
 {
     char unit;

@@ -13,6 +13,11 @@ uint32_t mem_get_granularity(void)
     return 512*1024;
 }
 
+uint32_t mem_get_rom_below_addr(void)
+{
+    return 0;
+}
+
 void early_init(void)
 {
     // not required

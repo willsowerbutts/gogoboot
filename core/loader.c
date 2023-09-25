@@ -32,12 +32,10 @@ uint32_t loader_bounce_buffer_target = 0;
 
 #ifdef TARGET_MINI
 #define EXECUTABLE_LOAD_ADDRESS 0
-#define ROM_BELOW_ADDR 0
 #endif
 
 #ifdef TARGET_KISS
 #define EXECUTABLE_LOAD_ADDRESS 0
-#define ROM_BELOW_ADDR 0
 #define MACH_THIS MACH_KISS68030
 #define THIS_BOOTI_VERSION KISS68030_BOOTI_VERSION
 #define CPU_THIS CPU_68030
@@ -47,9 +45,9 @@ uint32_t loader_bounce_buffer_target = 0;
 
 #ifdef TARGET_Q40
 #define EXECUTABLE_LOAD_ADDRESS (256*1024)
-#define ROM_BELOW_ADDR          (96*1024)
 #define MACH_THIS MACH_Q40
 #define THIS_BOOTI_VERSION Q40_BOOTI_VERSION
+/* TODO: detect 040/060 at runtime */
 #define CPU_THIS CPU_68040
 #define MMU_THIS MMU_68040
 #define FPU_THIS FPU_68040
@@ -110,22 +108,16 @@ FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file_size, 
     int bounce_addr;
     uint32_t bounce_size, direct_size;
     uint32_t load_size, pad_size;
+    const char *load_err;
     FRESULT fr;
 
     printf("load_data: paddr=0x%lx, offset=0x%lx, file_size=0x%lx, size=0x%lx\n",
             paddr, offset, file_size, size);
 
     /* check that this makes sense */
-    if(paddr + size > ram_size){
-        printf("Abort: load would go past end of RAM\n");
-        return FR_DISK_ERR;
-    }
-    if(paddr + size > heap_base){
-        printf("Abort: load would overlap heap memory\n");
-        return FR_DISK_ERR;
-    }
-    if(paddr < ROM_BELOW_ADDR){
-        printf("Abort: load would overlap ROM\n");
+    load_err = check_writable_range(paddr, size, true);
+    if(load_err){
+        printf("Abort: address range error: %s\n", load_err);
         return FR_DISK_ERR;
     }
 
@@ -247,6 +239,7 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     int proghead_num;
     unsigned int bytes_read;
     elf32_header header;
+    const char *load_err;
     void *proghead_data = NULL;
     elf32_program_header *proghead = NULL;
 #ifdef MACH_THIS
@@ -335,7 +328,7 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
 
     printf("Load address range 0x%lx -- 0x%lx\n", min_load_addr, max_load_addr);
 
-    if(min_load_addr < ROM_BELOW_ADDR){
+    if(min_load_addr < rom_below_addr){
         /* uh-oh, it will overlap with ROM */
         printf("Load would overlap ROM, offsetting by 0x%x\n", EXECUTABLE_LOAD_ADDRESS);
         /* BUT WE CAN FIX IT -- for linux at least -- by loading at a fixed offset!
@@ -347,19 +340,10 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         printf("Load address range 0x%lx -- 0x%lx\n", min_load_addr, max_load_addr);
     }
 
-    if(!failed){
-        if(max_load_addr > ram_size){
-            printf("Abort: load would go past end of RAM\n");
-            failed = true;
-        }else if(max_load_addr > heap_base){
-            printf("Abort: load would overlap heap memory\n");
-            failed = true;
-        }
-        // this situation is now resolved by use of bounce buffers:
-        // else if (min_load_addr < (uint32_t)&bss_end){
-        //     printf("Abort: load would overlap gogoboot memory\n");
-        //     failed = true;
-        // }
+    load_err = check_writable_range(min_load_addr, max_load_addr - min_load_addr, true);
+    if(load_err){
+        printf("Abort: address range error: %s\n", load_err);
+        failed = true;
     }
 
     if(failed){

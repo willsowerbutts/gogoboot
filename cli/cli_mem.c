@@ -2,6 +2,7 @@
 
 #include <types.h>
 #include <stdlib.h>
+#include <init.h>
 #include <cli.h>
 
 void pretty_dump_memory(void *start, int len)
@@ -67,8 +68,21 @@ void do_memtest(char *argv[], int argc)
 {
     unsigned long start, count;
 
-    start = parse_uint32(argv[0], NULL);
-    count = parse_uint32(argv[1], NULL);
+    switch(argc){
+        case 0:
+            start = (uint32_t)&bss_end;
+            count = heap_base - (uint32_t)&bss_end;
+            break;
+        case 2:
+            start = parse_uint32(argv[0], NULL);
+            count = parse_uint32(argv[1], NULL);
+            break;
+        default:
+            printf("memtest: wrong number of arguments\n" \
+                   "memtest -- test all free memory\n" \
+                   "memtest [start] [count] -- test specified region only\n");
+            return;
+    }
 
     memory_test(start, count);
 }
