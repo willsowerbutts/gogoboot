@@ -88,8 +88,10 @@ struct test_memory_args {
      * so that the same sequence can be reproduced and checked. */
     uint32_t seed, _seed;
     uint32_t error_counter;
-    int cache_mode;
+    int cache_mode, spinner;
 };
+
+const char spinner_symbol[4] = "\\|/-";
 
 static int test_memory_range(struct test_memory_args *args)
 {
@@ -100,6 +102,9 @@ static int test_memory_range(struct test_memory_args *args)
 
     if (start >= end)
         return 0;
+
+    putchar(spinner_symbol[args->spinner]);
+    args->spinner = (args->spinner + 1) % 4;
 
     switch (args->subround) {
 
@@ -162,13 +167,15 @@ static int test_memory_range(struct test_memory_args *args)
         break;
     }
 
+    putchar('\r');
+
     /* Errors found: print diagnostic */
     if (a != 0) {
         args->error_counter++;
-        printf("Error found in memory range 0x%08lx-0x%08lx\n", (uint32_t)start, (uint32_t)end-1);
-        printf("\nERRORS:     D31..D24  D23..D16  D15...D8  D7....D0\n");
-        printf(  "(X=error)   76543210  76543210  76543210  76543210\n");
-        printf("32-bit bus  %c%c%c%c%c%c%c%c  %c%c%c%c%c%c%c%c  "
+        printf("Errors found in memory range 0x%08lx-0x%08lx\n", (uint32_t)start, (uint32_t)end-1);
+        printf("Error bits: D31..D24  D23..D16  D15...D8  D7....D0\n");
+        printf("(X=error)   76543210  76543210  76543210  76543210\n");
+        printf("            %c%c%c%c%c%c%c%c  %c%c%c%c%c%c%c%c  "
                            "%c%c%c%c%c%c%c%c  %c%c%c%c%c%c%c%c\n",
                 (a & (1u<<31)) ? 'X' : '-', (a & (1u<<30)) ? 'X' : '-',
                 (a & (1u<<29)) ? 'X' : '-', (a & (1u<<28)) ? 'X' : '-',
@@ -229,13 +236,13 @@ static void memory_test_next_cpu_cache_mode(struct test_memory_args *args)
         case CACHE_NODATA:
             args->cache_mode = CACHE_NONE;
             cpu_cache_disable();
-            printf("CPU cache enabled for instructions only\n");
+            printf("CPU cache enabled (instructions only)\n");
             break;
         case CACHE_NONE:
         case CACHE_INIT:
             args->cache_mode = CACHE_FULL;
             cpu_cache_enable();
-            printf("CPU cache enabled for data and instructions\n");
+            printf("CPU cache enabled (data and instructions)\n");
             break;
     }
 #endif
@@ -247,6 +254,7 @@ static void init_memory_test(struct test_memory_args *args)
     args->seed = 0x12341234;
     args->error_counter = 0;
     args->cache_mode = CACHE_INIT;
+    args->spinner = 0;
     memory_test_next_cpu_cache_mode(args);
     print_memory_test_type(args);
 }

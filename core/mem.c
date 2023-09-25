@@ -9,6 +9,11 @@ uint32_t heap_base, heap_size;
 uint32_t bounce_below_addr, rom_below_addr;
 extern const char bss_end; /* linker provides this symbol */
 
+/* TODO: have a list of RAM regions?
+ * EG Q40/Q60 with 128MB option have non-contiguous DRAM, and separate VRAM region
+ * There's no reason RAM must be in one big chunk.
+ */
+
 void measure_ram_size(void)
 {
     /* 

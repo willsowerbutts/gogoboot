@@ -28,6 +28,7 @@ uint32_t mem_get_rom_below_addr(void)
 void early_init(void)
 {
     q40_isa_reset();
+    q40_led(true);
 }
 
 void target_hardware_init(void)
@@ -35,8 +36,6 @@ void target_hardware_init(void)
     printf("Initialise video: ");
     q40_graphics_init(3);
     printf("done\n");
-
-    q40_led(true);
 }
 
 timer_t gogoboot_read_timer(void)
