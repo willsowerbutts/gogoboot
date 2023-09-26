@@ -14,6 +14,7 @@ size_t ta_num_free();
 size_t ta_num_used();
 size_t ta_num_fresh();
 bool ta_check();
+size_t ta_bytes_used();
 
 #ifdef __cplusplus
 }

@@ -265,6 +265,19 @@ size_t ta_num_fresh() {
     return count_blocks(heap->fresh);
 }
 
+static size_t count_blocks_size(Block *ptr) {
+    size_t size = 0;
+    while (ptr != NULL) {
+        size += ptr->size;
+        ptr = ptr->next;
+    }
+    return size;
+}
+
+size_t ta_bytes_used() {
+    return count_blocks_size(heap->used);
+}
+
 bool ta_check() {
     return heap_max_blocks == ta_num_free() + ta_num_used() + ta_num_fresh();
 }

@@ -24,8 +24,8 @@ void help(char *argv[], int argc)
 void do_meminfo(char *argv[], int argc)
 {
     report_memory_layout();
-    printf("internal heap (tinyalloc):\nfresh: %ld\nfree: %ld\nused: %ld\n",
-            ta_num_fresh(), ta_num_free(), ta_num_used());
+    printf("internal heap (tinyalloc):\nfresh blocks: %ld\nfree blocks: %ld\nused blocks: %ld\nalloc bytes: %ld\n",
+            ta_num_fresh(), ta_num_free(), ta_num_used(), ta_bytes_used());
     printf("ta_check %s\n", ta_check() ? "ok" : "FAILED");
 }
 

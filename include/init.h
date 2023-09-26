@@ -16,15 +16,16 @@ extern uint32_t bounce_below_addr, rom_below_addr;
 
 void early_init(void);
 void target_hardware_init(void);
-void target_mem_init(void);
 void setup_interrupts(void);
 void measure_ram_size(void);
 void report_memory_layout(void);
 const char *check_writable_range(uint32_t base, uint32_t length, bool can_bounce);
 
 /* target provides these, used by measure_ram_size */
+/* these are called with a relatively small stack! */
 uint32_t mem_get_max_possible(void);
 uint32_t mem_get_granularity(void);
+void target_mem_init(void);
 
 /* linker provides these symbols */
 extern const char text_start, text_size;
