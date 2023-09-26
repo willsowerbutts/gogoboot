@@ -70,8 +70,11 @@ void do_memtest(char *argv[], int argc)
 
     switch(argc){
         case 0:
-            start = (uint32_t)&bss_end;
-            count = heap_base - (uint32_t)&bss_end;
+            start = bounce_below_addr;
+            if(heap_base > ram_size)
+                count = ram_size - start;
+            else
+                count = heap_base - start;
             break;
         case 2:
             start = parse_uint32(argv[0], NULL);

@@ -35,32 +35,25 @@ static void report_segment(const char *name, int start, int size, int load)
 
 void report_memory_layout(void)
 {
+    uint32_t free_ram_top;
+
+    if(heap_base > ram_size)
+        free_ram_top = ram_size;
+    else
+        free_ram_top = heap_base;
+
     printf(" segment     start    length\n");
     report_segment("text",   (int)&text_start,   (int)&text_size, 0); 
     report_segment("rodata", (int)&rodata_start, (int)&rodata_size, 0); 
     report_segment("data",   (int)&data_start,   (int)&data_size, (int)&data_load_start);
     report_segment("bss",    (int)&bss_start,    (int)&bss_size, 0);
-    report_segment("(free)", (int)&bss_end,      (int)heap_base - (int)&bss_end, 0);
+    report_segment("(free)", (int)bounce_below_addr, (int)free_ram_top - (int)bounce_below_addr, 0);
     report_segment("heap",   (int)heap_base,     (int)heap_size, 0);
     report_segment("stack",  (int)stack_base,    (int)stack_size, 0);
 }
 
-#define MAXHEAP (2 << 20) /* 2MB */
-
 static void heap_init(void)
 {
-    // this is an attempt to leave enough space
-    // above .data for us to load a sizeable
-    // program (ie, linux). it's not ideal.
-    // shame that talloc cannot allocate from
-    // the top downwards.
-
-    heap_size = ram_size / 4;  /* not more than 25% of RAM */
-    if(heap_size > MAXHEAP)    /* and not too much */
-        heap_size = MAXHEAP;
-
-    heap_base = ram_size - heap_size;
-    heap_size = stack_base - heap_base;
     ta_init((void*)heap_base, (void*)heap_base + heap_size - 1, heap_size > (200*1024) ? 2048 : 256, 16, 4);
 }
 
@@ -68,8 +61,6 @@ void report_ram_installed(void)
 {
     int shift;
     char unit;
-
-    heap_init();
 
     if(ram_size >= 8*1024*1024){
         shift = 20;

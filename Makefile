@@ -36,6 +36,7 @@ SRC_q40 = q40/startup.s q40/vectors.s q40/cli.c q40/hw.c q40/ide.c \
 	  q40/rtc.c q40/execute.s q40/softrom.s core/cpu-68040.s
 
 # kiss target (Retrobrew Computers KISS-68030)
+TARGET_FILES += gogoboot-kiss-sram.rom
 AOPT_kiss = -mcpu=68030 --defsym TARGET_KISS=1
 COPT_kiss = -mcpu=68030 -DTARGET_KISS
 SRC_kiss = kiss/startup.s kiss/vectors.s ecb/timer.c kiss/cli.c \
@@ -53,8 +54,11 @@ SRC_mini = mini/startup.s mini/vectors.s $(SRC_68000) mini/cli.c mini/hw.c \
 
 .SUFFIXES:   .c .s .o .out .hex .bin .rom .elf
 
-TARGET_FILES += $(foreach target,$(TARGETS),gogoboot-$(target).rom gogoboot-$(target).elf)
+TARGET_FILES += $(foreach target,$(TARGETS),gogoboot-$(target).rom)
 all:	$(TARGET_FILES)
+
+%.rom:	%.elf
+	$(OBJCOPY) -O binary $< $@
 
 # these rules are expanded once for each target, with $(1) = target name
 define make_target =
@@ -70,15 +74,15 @@ LSTFILES_$(1) = $(patsubst %.s,%.lst,$(patsubst %.c,,$(SRC_all) $(SRC_$(1))))
 gogoboot-$(1).elf:	$$(ROMOBJ_$(1)) $(1)/linker.ld
 	$$(LD) --gc-sections --script=$(1)/linker.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-$(1).map -o gogoboot-$(1).elf $$(ROMOBJ_$(1)) $$(LDOPT_$(1))
 
-gogoboot-$(1).rom:	gogoboot-$(1).elf
-	$(OBJCOPY) -O binary gogoboot-$(1).elf gogoboot-$(1).rom
-
 endef
 
 $(eval $(foreach target,$(TARGETS),$(call make_target,$(target))))
 
 gogoboot-mini-ram.elf:	$(ROMOBJ_mini) mini/linker-ram.ld
 	$(LD) --gc-sections --script=mini/linker-ram.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-mini-ram.map -o gogoboot-mini-ram.elf $(ROMOBJ_mini) $(LDOPT_mini)
+
+gogoboot-kiss-sram.elf:	$(ROMOBJ_kiss) kiss/linker-sram.ld
+	$(LD) --gc-sections --script=kiss/linker-sram.ld -z noexecstack --no-warn-rwx-segment -Map gogoboot-kiss-sram.map -o gogoboot-kiss-sram.elf $(ROMOBJ_kiss) $(LDOPT_kiss)
 
 clean:
 	rm -f *.rom *.map *.elf *.bin core/version.c $(foreach target,$(TARGETS),$(LSTFILES_$(target)) $(ROMOBJ_$(target)))

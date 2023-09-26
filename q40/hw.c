@@ -4,6 +4,7 @@
 #include <types.h>
 #include <q40/isa.h>
 #include <q40/hw.h>
+#include <init.h>
 #include <cpu.h>
 
 volatile uint32_t timer_ticks;
@@ -97,4 +98,22 @@ void q40_graphics_init(int mode)
     // the CPU caches video memory so we need to force it to write the updates out
     // otherwise we get weird artefacts on the screen that hang around forever!
     cpu_cache_flush();
+}
+
+void target_mem_init(void)
+{
+    rom_below_addr = 0;
+    stack_base = ram_size - DEFAULT_STACK_SIZE;
+    stack_size = DEFAULT_STACK_SIZE;
+    stack_top = stack_base + stack_size;
+    /* attempts to load_data() into addresses below bounce_below_addr 
+     * will result in the bounce buffer being employed */
+    bounce_below_addr = (((uint32_t)&bss_end) + 3) & ~3; /* round to longword */
+
+    heap_size = ram_size / 4;  /* not more than 25% of RAM */
+    if(heap_size > MAXHEAP)    /* and not too much */
+        heap_size = MAXHEAP;
+
+    heap_base = ram_size - heap_size;
+    heap_size -= stack_size;
 }

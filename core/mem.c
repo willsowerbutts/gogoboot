@@ -29,7 +29,6 @@ void measure_ram_size(void)
 
     uint32_t max_ram = mem_get_max_possible();
     uint32_t unit_size = mem_get_granularity();
-    rom_below_addr = mem_get_rom_below_addr();
     uint32_t max_units = max_ram / unit_size;
     ram_size = 0;
 
@@ -45,13 +44,7 @@ void measure_ram_size(void)
         else
             break;
 
-    stack_base = ram_size - DEFAULT_STACK_SIZE;
-    stack_size = DEFAULT_STACK_SIZE;
-    stack_top = stack_base + stack_size;
-
-    /* attempts to load_data() into addresses below bounce_below_addr 
-     * will result in the bounce buffer being employed */
-    bounce_below_addr = (((uint32_t)&bss_end) + 3) & ~3; /* round to longword */
+    target_mem_init();
 }
 
 const char *check_writable_range(uint32_t base, uint32_t length, bool can_bounce)
