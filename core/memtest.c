@@ -16,6 +16,7 @@
 #include <uart.h>
 #include <init.h>
 #include <cpu.h>
+#include <net.h>
 
 /* sprintf helpers */
 #define mb_whole(x) ((x) >> 20)
@@ -314,6 +315,10 @@ void memory_test(uint32_t base, uint32_t size)
                 test_size = tm_args.end - tm_args.start;
             }
 
+            /* keep the network alive */
+            net_pump();
+
+            /* check if the user is bored of this yet */
             uart_byte = uart_read_byte();
             if(uart_byte == 'q' || uart_byte == 'Q' || uart_byte == 0x1B)
                 done = true;

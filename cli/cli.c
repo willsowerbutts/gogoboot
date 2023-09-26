@@ -47,8 +47,8 @@ const cmd_entry_t builtin_cmd_table[] = {
     {"dump",        2,      2,  &do_dump,     "dump memory <from> <count>" },
     {"wm",          2,      0,  &do_writemem, "synonym for WRITEMEM"},
     {"writemem",    2,      0,  &do_writemem, "write memory <addr> [byte ...]" },
-    {"testmem",     0,      2,  &do_memtest,  "test memory <base> <size>" },
-    {"memtest",     0,      2,  &do_memtest,  "test memory <base> <size>" },
+    {"testmem",     0,      2,  &do_memtest,  "test memory [base size]" },
+    {"memtest",     0,      2,  &do_memtest,  "test memory [base size]" },
 
     /* -- cli_info.c ------------------- */
     /* name         min     max function */
