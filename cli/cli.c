@@ -373,7 +373,6 @@ static void run_autoexec(const char *filename)
 {
     FRESULT fr;
     FIL fd;
-    int c;
     timer_t timer;
 
     fr = f_open(&fd, filename, FA_READ);
@@ -388,9 +387,10 @@ static void run_autoexec(const char *filename)
     printf("Booting from \"%s\" (hit Q to cancel)\n", filename);
     while(!timer_expired(timer)){
         net_pump();
-        c = uart_read_byte();
-        if(c == 'q' || c == 'Q')
+        if(uart_check_cancel_key()){
+            printf("(cancelled)\n");
             return;
+        }
     }
 
     strcpy(cmd_buffer, filename);

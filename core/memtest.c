@@ -280,7 +280,6 @@ void memory_test(uint32_t base, uint32_t size)
     struct test_memory_args tm_args;
     const char *addr_err;
     uint32_t test_remain, test_size, chunk_end;
-    int uart_byte;
 
     if(size == 0)
         return;
@@ -319,8 +318,7 @@ void memory_test(uint32_t base, uint32_t size)
             net_pump();
 
             /* check if the user is bored of this yet */
-            uart_byte = uart_read_byte();
-            if(uart_byte == 'q' || uart_byte == 'Q' || uart_byte == 0x1B)
+            if(uart_check_cancel_key())
                 done = true;
             else
                 test_memory_range(&tm_args);
