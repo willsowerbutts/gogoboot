@@ -111,8 +111,8 @@ FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file_size, 
     const char *load_err;
     FRESULT fr;
 
-    printf("load_data: paddr=0x%lx, offset=0x%lx, file_size=0x%lx, size=0x%lx\n",
-            paddr, offset, file_size, size);
+    // printf("load_data: paddr=0x%lx, offset=0x%lx, file_size=0x%lx, size=0x%lx\n",
+    //         paddr, offset, file_size, size);
 
     /* check that this makes sense */
     load_err = check_writable_range(paddr, size, true);
@@ -153,7 +153,12 @@ FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file_size, 
         }else{
             pad_size = 0;
         }
-        printf("Loading 0x%lx bytes + 0x%lx padding from file offset 0x%lx to bounce buffer at 0x%lx (target 0x%lx)\n", load_size, pad_size, offset, (uint32_t)loader_bounce_buffer_data + bounce_addr, paddr);
+
+        printf("Loading 0x%lx bytes", load_size);
+        if(pad_size)
+            printf(" + 0x%lx padding", pad_size);
+        printf(" from file offset 0x%lx to bounce buffer at 0x%lx (target 0x%lx)\n", 
+                offset, (uint32_t)loader_bounce_buffer_data + bounce_addr, paddr);
 
         if(load_size){
             fr = f_lseek(fd, offset);
@@ -188,7 +193,11 @@ FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file_size, 
 
         /* load direct to target memory */
         if(load_size){
-            printf("Loading 0x%lx bytes + 0x%lx padding from file offset 0x%lx to memory at 0x%lx\n", load_size, pad_size, offset+bounce_size, paddr+bounce_size);
+            printf("Loading 0x%lx bytes", load_size);
+            if(pad_size)
+                printf(" + 0x%lx padding", pad_size);
+            printf(" from file offset 0x%lx to memory at 0x%lx\n", 
+                    offset+bounce_size, paddr+bounce_size);
 
             fr = f_lseek(fd, offset+bounce_size);
             if(fr != FR_OK)
