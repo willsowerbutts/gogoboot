@@ -12,7 +12,7 @@ extern const char text_start;
 static void do_hardrom(char *argv[], int argc)
 {
     printf("hardrom: rebooting ...\n\n\n");
-    execute((void*)ECB_ROM_BASE);
+    execute((void*)ECB_ROM_BASE, 0, 0);
 }
 
 static void do_softrom(char *argv[], int argc)
@@ -59,7 +59,7 @@ static void do_softrom(char *argv[], int argc)
     // check if what we've been given is different to what is already loaded
     if(memcmp(romimage, &text_start, count)){
         printf("softrom: rebooting ...\n");
-        execute(romimage);
+        execute(romimage, 0, 0);
     }else{
         printf("softrom: matches running ROM\n");
     } 

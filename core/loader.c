@@ -53,14 +53,34 @@ uint32_t loader_bounce_buffer_target = 0;
 #define FPU_THIS FPU_68040
 #endif
 
-void execute(void *entry_vector)
+void execute(void *entry_vector, int argc, char **argv)
 {
+    int cmdlen = 1, cmdoff = 0, len;
+    char *cmdbuf = 0;
+
+    if(argc > 0){
+        for(int i=0; i<argc; i++)
+            cmdlen += strlen(argv[i]) + 1;
+        cmdbuf = malloc(cmdlen);
+
+        for(int i=0; i<argc; i++){
+            if(i>0)
+                cmdbuf[cmdoff++] = ' ';
+            len = strlen(argv[i]);
+            memcpy(cmdbuf+cmdoff, argv[i], len);
+            cmdoff += len;
+        }
+        cmdbuf[cmdoff++] = 0;
+    }
+
     printf("Entry at 0x%lx in supervisor mode, SP 0x%lx\n", (uint32_t)entry_vector, ram_size);
     uart_flush();
     eth_halt();
     cpu_interrupts_off();
     cpu_cache_flush();
-    machine_execute(entry_vector, (void*)ram_size); /* inside here we need to move any bounce buffer into place */
+
+    /* inside machine_execute() we will move any bounce buffer into place */
+    machine_execute(entry_vector, (void*)ram_size, cmdbuf);
     /* no way back */
 }
 
@@ -239,11 +259,17 @@ bool load_m68k_executable(char *argv[], int argc, FIL *fd)
         return false;
     }
 
-    execute((void*)load_address);
+    /* remove program name from command line */
+    if(argc > 0){
+        argc--;
+        argv++;
+    }
+
+    execute((void*)load_address, argc, argv);
     return true; /* unlikely we will return ... */
 }
 
-bool load_elf_executable(char *arg[], int numarg, FIL *fd)
+bool load_elf_executable(char *argv[], int argc, FIL *fd)
 {
     int proghead_num;
     unsigned int bytes_read;
@@ -475,13 +501,13 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         char kernel_cmdline[MAXCMDLEN+1];
         kernel_cmdline[0] = 0;
 
-        for(int i=1; i<numarg; i++){
-            if(!strncasecmp(arg[i], "initrd=", 7)){
-                initrd_name = &arg[i][7];
+        for(int i=1; i<argc; i++){
+            if(!strncasecmp(argv[i], "initrd=", 7)){
+                initrd_name = &argv[i][7];
             }else{
                 if(kernel_cmdline[0])
                     strncat(kernel_cmdline, " ", MAXCMDLEN);
-                strncat(kernel_cmdline, arg[i], MAXCMDLEN);
+                strncat(kernel_cmdline, argv[i], MAXCMDLEN);
             }
         }
 
@@ -492,6 +518,9 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
         bootinfo->size = sizeof(struct bi_record) + i;
         memcpy(bootinfo->data, kernel_cmdline, i);
         bootinfo = (struct bi_record*)(((char*)bootinfo) + bootinfo->size);
+
+        /* knobble argc so that we do not recombine it inside execute() */
+        argc = 0;
 
         /* check for initrd */
         FIL initrd;
@@ -532,7 +561,12 @@ bool load_elf_executable(char *arg[], int numarg, FIL *fd)
     }
 #endif
     if(!failed){
-        execute((void*)(header.entry + load_offset));
+        /* remove program name from command line */
+        if(argc > 0){
+            argc--;
+            argv++;
+        }
+        execute((void*)(header.entry + load_offset), argc, argv);
     }
 
     return true;

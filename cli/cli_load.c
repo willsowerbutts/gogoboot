@@ -10,7 +10,7 @@ void do_execute(char *argv[], int argc)
 {
     uint32_t address;
     address = parse_uint32(argv[0], NULL);
-    execute((void*)address);
+    execute((void*)address, argc-1, argv+1);
 }
 
 void do_load(char *argv[], int argc)

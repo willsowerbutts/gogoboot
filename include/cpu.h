@@ -11,7 +11,7 @@ void cpu_interrupts_on(void);
 void cpu_interrupts_off(void);
 
 /* target provided */
-void machine_execute(void *entry_vector, void *stack_pointer);
+void machine_execute(void *entry_vector, void *stack_pointer, char *cmdline);
 
 #if defined(__mc68020__) || defined(__mc68030__) || defined(__mc68040__) || defined(__mc68060__)
 #define CPU_68020_OR_LATER

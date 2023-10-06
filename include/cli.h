@@ -17,7 +17,7 @@ const char *f_errmsg(int errno);
 void f_perror(int errno);
 
 // execute loaded code (wrapper that ultimately calls machine_execute)
-void execute(void *entry_vector);
+void execute(void *entry_vector, int argc, char **argv);
 FRESULT load_data(FIL *fd, uint32_t paddr, uint32_t offset, uint32_t file_size, uint32_t size);
 
 typedef struct
