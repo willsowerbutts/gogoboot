@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <fatfs/ff.h>
 #include <cli.h>
+#include <uart.h>
 
 void do_cd(char *argv[], int argc)
 {
@@ -221,4 +222,41 @@ void do_ls(char *argv[], int argc)
     free_sectors = (csize >> 9) * free_clusters;
         
     printf("%ld MB free (%ld clusters of %ld bytes)\n", free_sectors >> 11, free_clusters, csize);
+}
+
+void do_rxfile(char *argv[], int argc)
+{
+    FRESULT fr;
+    char *image;
+    uint32_t count;
+    FIL fd;
+
+    /* load size from UART */
+    printf("rxfile: loading from UART ...\n");
+    uart_read_string(&count, sizeof(count));
+
+    image = malloc_unchecked(count);
+    if(image == NULL){
+        printf("rxfile: %ld bytes too large!\n", count);
+        return;
+    }
+
+    /* load data from UART */
+    uart_read_string(image, count);
+
+    printf("rxfile: loaded %ld bytes\n", count);
+
+    /* save to file */
+    fr = f_open(&fd, argv[0], FA_WRITE | FA_CREATE_ALWAYS);
+    if(fr == FR_OK){
+        fr = f_write(&fd, image, count, NULL);
+        f_close(&fd);
+    }
+
+    if(fr != FR_OK){
+        printf("rxfile: failed to save to \"%s\": ", argv[0]);
+        f_perror(fr);
+    }
+
+    free(image);
 }

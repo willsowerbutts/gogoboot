@@ -39,6 +39,7 @@ void do_rm(char *argv[], int argc);
 void do_mkdir(char *argv[], int argc);
 void do_mv(char *argv[], int argc);
 void do_cp(char *argv[], int argc);
+void do_rxfile(char *argv[], int argc);
 
 // cli_env.c
 void do_set(char *argv[], int argc);

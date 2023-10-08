@@ -27,7 +27,6 @@ static void do_softrom(char *argv[], int argc)
         /* load from UART */
         printf("softrom: loading from UART ...\n");
         uart_read_string(&count, sizeof(count));
-        count--; // match bug in Q40 SOFTROM (yes even on KISS...): load one byte less than instructed
     }else{
         /* load from file */
         fr = f_open(&fd, argv[0], FA_READ);

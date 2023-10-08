@@ -36,6 +36,7 @@ const cmd_entry_t builtin_cmd_table[] = {
     {"copy",        2,      2,  &do_cp,       "copy a file" },
     {"rename",      2,      2,  &do_mv,       "rename a file" },
     {"rm",          1, MAXARG,  &do_rm,       "delete a file" },
+    {"rxfile",      1,      1,  &do_rxfile,   "receive file through console UART" },
 
     /* -- cli_env.c -------------------- */
     /* name         min     max function */

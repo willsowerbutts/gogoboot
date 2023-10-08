@@ -58,20 +58,19 @@ class Replica1Terminal:
 rom = open(sys.argv[3], 'rb').read()
 print(f"ROM length {len(rom)} bytes ({len(rom)/1024:.1f}KB)")
 
-if len(rom) >= (96*1024)-1:
-    print("ROM too large! Aborted.")
-    sys.exit(1)
-
 port = serial.Serial(sys.argv[1], int(sys.argv[2]))
 start = time.time()
 
 # WRS: observed that the final byte sent is NOT loaded correctly by the SOFTROM
-# utility on the Q40. We work around the defect here by adding 1 to the ROM
+# utility on the Q40.  We used to work around the defect here by adding 1 to the ROM
 # length.  Note that we do not actually send an extra byte, but this fixes the
 # issue observed.
+#
+# The GoGoBoot "softrom" and "rxfile" commands do not suffer from this issue so
+# the workaround has been removed.
 
 # send length+1 as little-endian 32-bit word
-port.write(struct.pack('>I', 1+len(rom))) 
+port.write(struct.pack('>I', len(rom)))  # Q40 SMSQ/E SOFTROM: send len(rom)+1 instead!
 port.flush()
 time.sleep(0.1) # at least 50ms delay for SOFTROM to catch up
 
