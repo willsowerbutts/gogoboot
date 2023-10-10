@@ -123,8 +123,9 @@ void do_ls(char *argv[], int argc)
     DIR fat_dir;
     FILINFO *fat_file;
     FILINFO **fat_file_ptr;
-    DWORD free_clusters, csize, free_sectors;
     FATFS *fatfs;
+    uint32_t free_clusters, csize, free_space, used_space = 0;
+    char space_unit;
     int fat_file_used = 0;
     int fat_file_length = 2;
 
@@ -185,6 +186,7 @@ void do_ls(char *argv[], int argc)
                     (fat_file_ptr[i]->ftime >> 5) & 0x3F,
                     fat_file_ptr[i]->fname);
         }else{
+            used_space += fat_file_ptr[i]->fsize;
             /* regular file */
             printf("%10lu %04d-%02d-%02d %02d:%02d %s", 
                     fat_file_ptr[i]->fsize, 
@@ -218,10 +220,24 @@ void do_ls(char *argv[], int argc)
         #endif
         * fatfs->csize;
 
-    // free space measured in units of 512 bytes (max 2TB in 32 bits)
-    free_sectors = (csize >> 9) * free_clusters;
-        
-    printf("%ld MB free (%ld clusters of %ld bytes)\n", free_sectors >> 11, free_clusters, csize);
+    // free space measured in units of sectors ie 512 bytes (max 2TB in 32 bits)
+    free_space = (csize >> 9) * free_clusters;
+    // multiply by 10, right shift 11 bits, avoid overflow
+    free_space = ((free_space >> 4) * 10) >> 7;
+
+    // used space: multiply by 10, right shift 10 bits, avoid overflow
+    used_space = ((used_space >> 4) * 10) >> 6;
+    space_unit = 'K';
+
+    // used space: pick a suitable unit
+    if(used_space > 9000){
+        used_space >>= 10;
+        space_unit = 'M';
+    }
+
+    printf("%ld.%ld %cB total, %ld.%ld MB free\n", 
+            used_space / 10, used_space % 10, space_unit,
+            free_space / 10, free_space % 10);
 }
 
 void do_rxfile(char *argv[], int argc)
