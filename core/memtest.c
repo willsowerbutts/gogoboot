@@ -282,7 +282,7 @@ void memory_test(uint32_t base, uint32_t size)
     if(size == 0)
         return;
 
-    printf("memory test: testing 0x%08lx -- 0x%08lx (Press Q to end)\n", base, base+size);
+    printf("memory test: testing 0x%08lx -- 0x%08lx (Press Q to end)\n", base, base+size-1);
 
     addr_err = check_writable_range(base, size, false);
     if(addr_err){
