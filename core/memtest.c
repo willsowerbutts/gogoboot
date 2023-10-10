@@ -29,21 +29,6 @@ enum {
     CACHE_INIT
 };
 
-/* Testing is split into rounds and subrounds. Each subround covers all 
- * memory before proceeding to the next. Even subrounds fill memory; 
- * odd subrounds check the preceding fill. */
-static unsigned int test_round, test_subround;
-/* Memory range being tested within the current subround. */
-static uint32_t test_start, test_end;
-static uint32_t error_counter;
-/* LFSR seed for pseudo-random fill. This gets saved at the start of fill 
- * so that the same sequence can be reproduced and checked. */
-static uint32_t test_seed, test_seed_saved;
-static int test_cache_mode;
-static int spinner_frame;
-
-const char spinner_symbol[4] = "\\|/-";
-
 /* 32-bit sequence of length 2^32-1 (all 32-bit values except zero). */
 static inline __attribute__((always_inline)) uint32_t lfsr(uint32_t x)
 {
@@ -93,41 +78,57 @@ static uint16_t check_pattern(
     return (uint16_t)val;
 }
 
-static int test_memory_range(void)
+struct test_memory_args {
+    /* Testing is split into rounds and subrounds. Each subround covers all 
+     * memory before proceeding to the next. Even subrounds fill memory; 
+     * odd subrounds check the preceding fill. */
+    unsigned int round, subround;
+    /* Memory range being tested within the current subround. */
+    uint32_t start, end;
+    /* LFSR seed for pseudo-random fill. This gets saved at the start of fill 
+     * so that the same sequence can be reproduced and checked. */
+    uint32_t seed, _seed;
+    uint32_t error_counter;
+    int cache_mode, spinner;
+};
+
+const char spinner_symbol[4] = "\\|/-";
+
+static int test_memory_range(struct test_memory_args *args)
 {
     volatile uint32_t *p;
-    volatile uint32_t *start = (volatile uint32_t *)((test_start+15) & ~15);
-    volatile uint32_t *end = (volatile uint32_t *)(test_end & ~15);
+    volatile uint32_t *start = (volatile uint32_t *)((args->start+15) & ~15);
+    volatile uint32_t *end = (volatile uint32_t *)(args->end & ~15);
     uint32_t a = 0, x;
 
     if (start >= end)
         return 0;
 
-    putchar(spinner_symbol[spinner_frame]);
-    spinner_frame = (spinner_frame + 1) % 4;
+    putchar(spinner_symbol[args->spinner]);
+    args->spinner = (args->spinner + 1) % 4;
 
-    switch (test_subround) {
+    switch (args->subround) {
 
     case 0:
         /* Random numbers. */
-        x = test_seed;
+        x = args->seed;
         for (p = start; p != end;) {
             *p++ = x = lfsr(x);
             *p++ = x = lfsr(x);
             *p++ = x = lfsr(x);
             *p++ = x = lfsr(x);
         }
-        test_seed = x;
+        args->seed = x;
         break;
     case 1:
-        x = test_seed;
+        x = args->seed;
         for (p = start; p != end;) {
             a |= *p++ ^ (x = lfsr(x));
             a |= *p++ ^ (x = lfsr(x));
             a |= *p++ ^ (x = lfsr(x));
             a |= *p++ ^ (x = lfsr(x));
         }
-        test_seed = x;
+        args->seed = x;
         break;
 
     case 2:
@@ -171,7 +172,7 @@ static int test_memory_range(void)
 
     /* Errors found: print diagnostic */
     if (a != 0) {
-        error_counter++;
+        args->error_counter++;
         printf("Errors found in memory range 0x%08lx-0x%08lx\n", (uint32_t)start, (uint32_t)end-1);
         printf("Error bits: D31..D24  D23..D16  D15...D8  D7....D0\n");
         printf("(X=error)   76543210  76543210  76543210  76543210\n");
@@ -198,49 +199,49 @@ static int test_memory_range(void)
     return 0;
 }
 
-static void print_memory_test_type(void)
+static void print_memory_test_type(struct test_memory_args *args)
 {
-    switch (test_subround) {
+    switch (args->subround) {
     case 0:
         printf("Round %u.%u: Random Fill (seed=0x%08lx)", 
-                test_round+1, 1, test_seed);
+                args->round+1, 1, args->seed);
         /* Save the seed we use for this fill. */
-        test_seed_saved = test_seed;
+        args->_seed = args->seed;
         break;
     case 1:
         /* Restore seed we used for fill. */
-        test_seed = test_seed_saved;
+        args->seed = args->_seed;
         break;
     case 2: case 4: case 6: case 8:
         printf("Round %u.%u: Checkboard #%u",
-                test_round+1, test_subround/2+1, test_subround/2);
+                args->round+1, args->subround/2+1, args->subround/2);
         break;
     }
-    if((test_subround & 1) == 0){
-        if(error_counter)
-            printf(" (ERROR COUNTER: %ld)\n", error_counter);
+    if((args->subround & 1) == 0){
+        if(args->error_counter)
+            printf(" (ERROR COUNTER: %ld)\n", args->error_counter);
         else
             printf("\n");
     }
 }
 
-static void memory_test_next_cpu_cache_mode(void)
+static void memory_test_next_cpu_cache_mode(struct test_memory_args *args)
 {
 #ifdef CPU_68020_OR_LATER
-    switch(test_cache_mode){
+    switch(args->cache_mode){
         case CACHE_FULL:
-            test_cache_mode = CACHE_NODATA;
+            args->cache_mode = CACHE_NODATA;
             cpu_cache_enable_nodata();
             printf("CPU cache disabled\n");
             break;
         case CACHE_NODATA:
-            test_cache_mode = CACHE_NONE;
+            args->cache_mode = CACHE_NONE;
             cpu_cache_disable();
             printf("CPU cache enabled (instructions only)\n");
             break;
         case CACHE_NONE:
         case CACHE_INIT:
-            test_cache_mode = CACHE_FULL;
+            args->cache_mode = CACHE_FULL;
             cpu_cache_enable();
             printf("CPU cache enabled (data and instructions)\n");
             break;
@@ -248,25 +249,25 @@ static void memory_test_next_cpu_cache_mode(void)
 #endif
 }
 
-static void init_memory_test(void)
+static void init_memory_test(struct test_memory_args *args)
 {
-    test_round = test_subround = 0;
-    test_seed = 0x12341234;
-    error_counter = 0;
-    test_cache_mode = CACHE_INIT;
-    spinner_frame = 0;
-    memory_test_next_cpu_cache_mode();
-    print_memory_test_type();
+    args->round = args->subround = 0;
+    args->seed = 0x12341234;
+    args->error_counter = 0;
+    args->cache_mode = CACHE_INIT;
+    args->spinner = 0;
+    memory_test_next_cpu_cache_mode(args);
+    print_memory_test_type(args);
 }
 
-static void memory_test_next_subround(void)
+static void memory_test_next_subround(struct test_memory_args *args)
 {
-    if (test_subround++ == 9) {
-        test_subround = 0;
-        test_round++;
-        memory_test_next_cpu_cache_mode();
+    if (args->subround++ == 9) {
+        args->subround = 0;
+        args->round++;
+        memory_test_next_cpu_cache_mode(args);
     }
-    print_memory_test_type();
+    print_memory_test_type(args);
 }
 
 /* original amiga test kit uses chunks no larger than 512kB */
@@ -276,6 +277,7 @@ static void memory_test_next_subround(void)
 void memory_test(uint32_t base, uint32_t size)
 {
     bool done = false;
+    struct test_memory_args tm_args;
     const char *addr_err;
     uint32_t test_remain, test_size, chunk_end;
 
@@ -290,10 +292,10 @@ void memory_test(uint32_t base, uint32_t size)
         return;
     }
 
-    init_memory_test();
+    init_memory_test(&tm_args);
 
     while(!done){
-        test_start = base;
+        tm_args.start = base;
         test_remain = size;
 
         while(test_remain && !done){ 
@@ -303,13 +305,13 @@ void memory_test(uint32_t base, uint32_t size)
                 test_size = test_remain;
 
             /* test_memory_range() expects the end bound to be +1 */
-            test_end = test_start + test_size;
+            tm_args.end = tm_args.start + test_size;
 
             /* we want to start the next block on a chunk boundary */
-            chunk_end = test_end & ~(TEST_CHUNK_SIZE-1);
-            if(chunk_end != test_end && chunk_end > test_start){
-                test_end = chunk_end;
-                test_size = test_end - test_start;
+            chunk_end = tm_args.end & ~(TEST_CHUNK_SIZE-1);
+            if(chunk_end != tm_args.end && chunk_end > tm_args.start){
+                tm_args.end = chunk_end;
+                test_size = tm_args.end - tm_args.start;
             }
 
             /* keep the network alive */
@@ -319,14 +321,14 @@ void memory_test(uint32_t base, uint32_t size)
             if(uart_check_cancel_key())
                 done = true;
             else
-                test_memory_range();
+                test_memory_range(&tm_args);
 
             test_remain -= test_size;
-            test_start += test_size;
+            tm_args.start += test_size;
         }
 
         if(!done)
-            memory_test_next_subround();
+            memory_test_next_subround(&tm_args);
     }
 
     cpu_cache_enable();
