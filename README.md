@@ -25,9 +25,6 @@ software under development, typically operating system kernels. It is not a
 operating system and does not provide a system call (BIOS) interface for
 software to use at run time.
 
-GogoBoot is in active development (as of September 2023) and may be in a broken
-or incomplete state. 
-
 Supported Targets
 -----------------
 
