@@ -9,12 +9,16 @@
 static inline uint8_t uart_inb(uint16_t port) { return isa_read_byte(port); }
 static inline void uart_outb(uint16_t port, uint8_t val) { isa_write_byte(port, val); }
 
+#define UARTCLOCK 1843200
+
 #elif defined(TARGET_KISS) || defined(TARGET_MINI) /* ECB based targets */
 
 #include <ecb/ecb.h>
 #define UART_ADDRESS    (MFPIC_UART)
 static inline uint8_t uart_inb(uint16_t port) { return ecb_read_byte(port); }
 static inline void uart_outb(uint16_t port, uint8_t val) { ecb_write_byte(port, val); }
+
+#define UARTCLOCK MFPIC_UART_CLK
 
 #else
 #pragma error update uart.c for your target
@@ -25,7 +29,7 @@ static inline void uart_outb(uint16_t port, uint8_t val) { ecb_write_byte(port, 
 #endif
 
 #ifndef UART_CLK
-#define UART_CLK        115200 /* UART CLK input */
+#define UART_CLK        UARTCLOCK/16 /* UART CLK input */
 #endif
 
 #define UART_DIVISOR    (UART_CLK/BAUD_RATE)
