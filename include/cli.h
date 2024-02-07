@@ -56,6 +56,7 @@ void memory_test(uint32_t base, uint32_t size);
 void help(char *argv[], int argc);
 void do_meminfo(char *argv[], int argc);
 void do_netinfo(char *argv[], int argc);
+void do_date(char *argv[], int argc);
 
 // cli_tftp.c
 void do_tftp_get(char *argv[], int argc);

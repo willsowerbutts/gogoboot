@@ -56,6 +56,7 @@ const cmd_entry_t builtin_cmd_table[] = {
     {"meminfo",    0,      0,   &do_meminfo,  "info on memory state" },
     {"netinfo",     0,      0,  &do_netinfo,  "network statistics" },
     {"help",        0,      0,  &help,        "list this help info"   },
+    {"date",        0,      0,  &do_date,     "display date from RTC"   },
 
     /* -- cli_tftp.c ------------------- */
     /* name         min     max function */
