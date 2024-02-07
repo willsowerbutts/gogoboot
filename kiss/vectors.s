@@ -177,12 +177,10 @@ ns202_irq_c:
 
 ns202_irq_d:
         /* this is our timer interrupt */
-        move.l %d0, -(%sp)
         /* generate an end of interrupt cycle for NS32202 */
-        move.b (KISS68030_ECBIO_BASE + KISS68030_MFPIC_ADDR + (NS32202_EOI << 8)), %d0
+        tst.b (KISS68030_ECBIO_BASE + KISS68030_MFPIC_ADDR + (NS32202_EOI << 8))
         /* increment timer tick counter */
         addq.l #1,(timer_ticks) 
-        move.l (%sp)+, %d0
         rte
 
 ns202_irq_e:
