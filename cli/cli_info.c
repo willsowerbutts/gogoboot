@@ -6,6 +6,7 @@
 #include <net.h>
 #include <init.h>
 #include <tinyalloc.h>
+#include <rtc.h>
 
 static void help_cmd_table(const cmd_entry_t *cmd)
 {
@@ -62,4 +63,9 @@ void do_netinfo(char *argv[], int argc)
     printf("packet_bad_cksum_count %ld\n", packet_bad_cksum_count);
 
     net_dump_packet_sinks();
+}
+
+void do_date(char *argv[], int argc)
+{
+	report_current_time();
 }

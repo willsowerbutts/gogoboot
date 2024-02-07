@@ -12,5 +12,6 @@ typedef struct {
 
 void rtc_read_clock(rtc_time_t *buffer);
 void rtc_init(void);
+void report_current_time(void);
 
 #endif
