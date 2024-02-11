@@ -26,6 +26,7 @@ struct disk_controller_t
 #define PPIDE_RST_LINE          0x80 // Inverter between 8255 and IDE interface
 #define PPIDE_WR_BIT            5    // (1 << PPIDE_WR_BIT) = PPIDE_WR_LINE
 #define PPIDE_RD_BIT            6    // (1 << PPIDE_RD_BIT) = PPIDE_RD_LINE
+#define PPIDE_RST_BIT           7    // (1 << PPIDE_RST_BIT) = PPIDE_RST_LINE
 
 /* 8255 configuration */
 #define PPIDE_PPI_BUS_READ      0x92

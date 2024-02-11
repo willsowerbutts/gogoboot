@@ -87,6 +87,10 @@ static void ide_controller_init(disk_controller_t *ctrl, uint16_t base_io)
     ide_set_data_direction(ctrl, true);
 
     printf("PPIDE controller at 0x%x:\n", base_io);
+    *ctrl->control = 1 | (PPIDE_RST_BIT << 1);	// set PC7 (/IRESET)
+    delay_ms(100);
+    *ctrl->control = 0 | (PPIDE_RST_BIT << 1);	// clear PC7 (/IRESET)
+    delay_ms(100);
     disk_controller_startup(ctrl);
 }
 
