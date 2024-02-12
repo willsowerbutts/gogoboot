@@ -57,6 +57,10 @@ void ide_set_register(disk_controller_t *ctrl, int reg, uint8_t val)
     *ctrl->lsb = val;
     *ctrl->control = 1 | (PPIDE_WR_BIT << 1);
     *ctrl->control = 0 | (PPIDE_WR_BIT << 1);
+    if(reg == ATA_REG_ALTSTATUS){
+        /* when ATA_REG_ALTSTATUS & 0x04 assert the PPIDE /RESET line */
+        *ctrl->control = ((val & 0x04) ? 1 : 0) | (PPIDE_RST_BIT << 1);
+    }
 }
 
 void ide_transfer_sector_read(disk_controller_t *ctrl, void *ptr)
@@ -87,10 +91,6 @@ static void ide_controller_init(disk_controller_t *ctrl, uint16_t base_io)
     ide_set_data_direction(ctrl, true);
 
     printf("PPIDE controller at 0x%x:\n", base_io);
-    *ctrl->control = 1 | (PPIDE_RST_BIT << 1);	// set PC7 (/IRESET)
-    delay_ms(10);
-    *ctrl->control = 0 | (PPIDE_RST_BIT << 1);	// clear PC7 (/IRESET)
-    delay_ms(10);
     disk_controller_startup(ctrl);
 }
 
