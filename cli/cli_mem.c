@@ -27,6 +27,8 @@ void pretty_dump_memory(void *start, int len)
         else
             *lbptr = '.';
 
+        if (((unsigned)ptr & 0x0F) == 0x08)
+            putch(' ');
         printf(" %02x", *ptr++);
         len--;
         lbptr++;
@@ -44,14 +46,16 @@ void pretty_dump_memory(void *start, int len)
         }
     }
 
-    rem = 16 - ((unsigned)ptr & 15);
+    rem = 2 + 3 * (16 - ((unsigned)ptr & 15));
 
-    for(i=0; i<rem; i++){
-        printf("   ");
-        *lbptr = ' ';
-        lbptr++;
-    }
-    printf("  %s\n", linebuffer);
+    if (rem >= 26)
+        rem++;
+
+    for(i=0; i<rem; i++)
+        putch(' ');
+
+    *lbptr = 0;
+    puts(linebuffer);
 }
 
 void do_dump(char *argv[], int argc)
