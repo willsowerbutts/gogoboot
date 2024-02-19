@@ -88,7 +88,9 @@ port.flush()
 
 # report progress
 taken = time.time() - start
-print(f'\rall sent in {taken:.3f} seconds.              ')
+persec = total / taken
+efi = (persec * 100) / (int(sys.argv[2]) / 10)
+print(f'\rall sent in {taken:.3f} seconds. {persec:.0f} bytes/sec. {efi:.3f}% efficency.')
 if '--term' in sys.argv:
     print('---- entering terminal mode ----')
     t = Replica1Terminal(port)
