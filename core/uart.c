@@ -72,7 +72,7 @@ void uart_init(void)
     if(autoflow)
         MCR |= UART_MCR_AFE; /* set auto flow-control enable bit */
 
-    /* Clear 1950 Extended Features Register (if present) */
+    /* Clear 16950 Extended Features Register (if present) */
     uart_outb(UART_ADDRESS+UART_LCR, UART_LCR_CONF_MODE_B);
     uart_outb(UART_ADDRESS+UART_EFR, 0);
     uart_outb(UART_ADDRESS+UART_LCR, LCR);
