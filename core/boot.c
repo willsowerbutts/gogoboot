@@ -90,6 +90,7 @@ void gogoboot(void)
     printf("Version %s\n", software_version_string);
     heap_init();
     report_ram_installed();
+    uart_identify();
     printf("Setup interrupts: ");
     setup_interrupts(); /* do this early to get timers ticking */
     printf("done\n");

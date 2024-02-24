@@ -4,7 +4,18 @@
 #include <stdbool.h>
 #include <types.h>
 
+typedef enum {
+    UART_UNKNOWN,
+    UART_16450,
+    UART_16550,
+    UART_16550A,
+    UART_16750,
+    UART_16950,
+    UART_16950B,
+} uart_type_t;
+
 void uart_init(void);
+void uart_identify(void);
 void uart_flush(void);
 bool uart_write_ready(void);
 void uart_write_byte(char b);
@@ -37,36 +48,41 @@ bool uart_check_cancel_key(void);
 #define UART_ID3        10      /* UART ID3 */
 #define UART_REV        11      /* UART Revision */
 
-#define UART_ACR_ICRRD  0x40    /* ICR Read enable */
+#define UART_ACR_ICRRD         0x40 /* ICR Read enable */
 
 #define UART_FCR_ENABLE_FIFO   0x01 /* Enable the FIFO */
-#define UART_LSR_DR     0x01    /* LSR: data ready bit */
+#define UART_FCR_CLEAR_RX_FIFO 0x02 /* Clear and reset RX FIFO */
+#define UART_FCR_CLEAR_TX_FIFO 0x04 /* Clear and reset TX FIFO */
+#define UART_FCR_64BYTE_ENABLE 0x20 /* Enable deeper FIFOs (16750) */
+#define UART_FCR_RXFIFO_TRIG1  0x00 /* RX FIFO trigger 1 byte */
+#define UART_FCR_RXFIFO_TRIG2  0x40 /* RX FIFO trigger 4 bytes */
+#define UART_FCR_RXFIFO_TRIG3  0x80 /* RX FIFO trigger 8 bytes */
+#define UART_FCR_RXFIFO_TRIG4  0xC0 /* RX FIFO trigger 14 bytes */
 
-#define UART_EFR_ECB    0x10    /* LSR: Enhanced control bit */
-#define UART_EFR_RTS    0x40    /* RTS flow control */
-#define UART_EFR_CTS    0x80    /* CTS flow control */
+#define UART_LSR_DR            0x01 /* LSR: data ready bit */
 
-#define UART_LSR_THRE   0x20    /* LSR: transmit holding register empty */
-#define UART_LSR_TEMT   0x40    /* LSR: transmitter empty */
+#define UART_EFR_ECB           0x10 /* LSR: Enhanced control bit */
+#define UART_EFR_RTS           0x40 /* RTS flow control */
+#define UART_EFR_CTS           0x80 /* CTS flow control */
 
-#define UART_LCR_DLAB          0x80 /* Divisor latch access bit */
-#define UART_LCR_CONF_MODE_A   UART_LCR_DLAB /* Configutation mode A */
+#define UART_LSR_THRE          0x20 /* LSR: transmit holding register empty */
+#define UART_LSR_TEMT          0x40 /* LSR: transmitter empty */
+
+#define UART_LCR_CONF_MODE_A   0x80 /* Configutation mode A - Divisor latch access bit set */
 #define UART_LCR_CONF_MODE_B   0xBF /* Configutation mode B */
 #define UART_LCR_WLEN8         0x03 /* Wordlength: 8 bits */
 
-#define UART_MCR_DTR   0x01 /* DTR complement */
-#define UART_MCR_RTS   0x02 /* RTS complement */
-#define UART_MCR_OUT1  0x04 /* Out1 complement */
-#define UART_MCR_OUT2  0x08 /* Out2 complement */
-#define UART_MCR_LOOP  0x10 /* Enable loopback test mode */
-#define UART_MCR_AFE   0x20 /* Enable auto-RTS/CTS (TI16C550C/TI16C750) */
+#define UART_MCR_DTR           0x01 /* DTR complement */
+#define UART_MCR_RTS           0x02 /* RTS complement */
+#define UART_MCR_OUT1          0x04 /* Out1 complement */
+#define UART_MCR_OUT2          0x08 /* Out2 complement */
+#define UART_MCR_LOOP          0x10 /* Enable loopback test mode */
+#define UART_MCR_AFE           0x20 /* Enable auto-RTS/CTS (TI16C550C/TI16C750) */
 
-#define UART_FCR7_64BYTE 0x20
-#define UART_IIR_FIFO_ENABLED	0xc0 /* FIFOs enabled / port type identification */
-#define UART_IIR_FIFO_ENABLED_16450	0x00	/* 16450: no FIFO */
-#define UART_IIR_FIFO_ENABLED_16550	0x80	/* 16550: (broken/unusable) FIFO */
-#define UART_IIR_FIFO_ENABLED_16550A	0xc0	/* 16550A: FIFO enabled */
-#define UART_IIR_FIFO_ENABLED_16750	0xe0	/* 16750: 64 bytes FIFO enabled */
-
+#define UART_IIR_FIFO_ENABLED         0xc0 /* FIFOs enabled / port type identification */
+#define UART_IIR_FIFO_ENABLED_16450   0x00 /* 16450: no FIFO */
+#define UART_IIR_FIFO_ENABLED_16550   0x80 /* 16550: (broken/unusable) FIFO */
+#define UART_IIR_FIFO_ENABLED_16550A  0xc0 /* 16550A: FIFO enabled */
+#define UART_IIR_FIFO_ENABLED_16750   0xe0 /* 16750: 64 bytes FIFO enabled */
 
 #endif
