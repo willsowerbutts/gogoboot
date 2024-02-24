@@ -97,13 +97,24 @@ void uart_init(void)
             break;
     }
 
+    /* check for 16750 or compatible (including 16950) */
+    if(uart_type == UART_16550A) {
+        /* try to enable the deeper FIFO (64 bytes on 16750, 128 bytes on 16950) */
+        uart_outb(UART_ADDRESS+UART_LCR, UART_LCR_CONF_MODE_A); /* LCR bit 7 must be set first */
+        uart_outb(UART_ADDRESS+UART_FCR, FCR);                  /* setting bit 5 enables 64 byte FIFO */
+        uart_outb(UART_ADDRESS+UART_LCR, LCR);                  /* restore LCR */
+
+        /* 16750 will set IIR bits 5, 6, 7 to indicate deep FIFO enabled; 16550A sets 5, 6 only */
+        if((uart_inb(UART_ADDRESS+UART_IIR) & UART_IIR_FIFO_ENABLED_16750) == UART_IIR_FIFO_ENABLED_16750)
+            uart_type = UART_16750;
+        /* NOTE deep FIFO bit may be disabled by any write to FCR when LCR bit 7 is clear */
+    }
+
     /* check for 16950 */
     if(uart_type == UART_16550A){
         uart_outb(UART_ADDRESS+UART_LCR, UART_LCR_CONF_MODE_B);
         if(uart_inb(UART_ADDRESS+UART_EFR) == 0){
             uint8_t id1 = 0, id2 = 0, id3 = 0, rev = 0;
-
-            uart_outb(UART_ADDRESS+UART_EFR, UART_EFR_ECB | UART_EFR_RTS | (autoflow ? UART_EFR_CTS : 0));
             uart_outb(UART_ADDRESS+UART_LCR, LCR);
 
             id1 = uart_icr_read(UART_ID1);
@@ -113,20 +124,11 @@ void uart_init(void)
 
             if(id1 == 0x16 && id2 == 0xC9 && id3 == 0x50)
                 uart_type = (rev == 3) ? UART_16950B : UART_16950;
+
+            /* NOTE leave 16950 EFR = 0 for 16750 compatible AFE bit in MCR
+             * and deep FIFO bit in FCR */
         }else
             uart_outb(UART_ADDRESS+UART_LCR, LCR);
-    }
-
-    /* not 16950? check for 16750 */
-    if(uart_type == UART_16550A) {
-        /* try to enable the 64-byte FIFO */
-        uart_outb(UART_ADDRESS+UART_LCR, UART_LCR_CONF_MODE_A); /* LCR bit 7 must be set first */
-        uart_outb(UART_ADDRESS+UART_FCR, FCR);                  /* setting bit 5 enables 64 byte FIFO */
-        uart_outb(UART_ADDRESS+UART_LCR, LCR);                  /* restore LCR */
-        /* 16750 will set IIR bits 5, 6, 7 to indicate 64-byte FIFO enabled; 16550A sets 5, 6 only */
-        if((uart_inb(UART_ADDRESS+UART_IIR) & UART_IIR_FIFO_ENABLED_16750) == UART_IIR_FIFO_ENABLED_16750)
-            uart_type = UART_16750;
-        /* NOTE 64-byte FIFO bit may be disabled by any write to FCR when LCR bit 7 is clear */
     }
 
     uart_outb(UART_ADDRESS+UART_LCR, UART_LCR_CONF_MODE_A); /* set DLAB to access divisor */
