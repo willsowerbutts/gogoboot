@@ -68,8 +68,9 @@ bool uart_check_cancel_key(void);
 #define UART_LSR_THRE          0x20 /* LSR: transmit holding register empty */
 #define UART_LSR_TEMT          0x40 /* LSR: transmitter empty */
 
-#define UART_LCR_CONF_MODE_A   0x80 /* Configutation mode A - Divisor latch access bit set */
-#define UART_LCR_CONF_MODE_B   0xBF /* Configutation mode B */
+#define UART_DLAB              0x80 /* Divisor latch access bit */
+#define UART_LCR_CONF_MODE_A   0x80 /* Configutation mode A - DLAB set */
+#define UART_LCR_CONF_MODE_B   0xBF /* Configutation mode B - DLAB + unused LCR value */
 #define UART_LCR_WLEN8         0x03 /* Wordlength: 8 bits */
 
 #define UART_MCR_DTR           0x01 /* DTR complement */
