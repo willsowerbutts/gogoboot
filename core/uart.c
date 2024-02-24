@@ -108,10 +108,8 @@ void uart_init(void)
         if((uart_inb(UART_ADDRESS+UART_IIR) & UART_IIR_FIFO_ENABLED_16750) == UART_IIR_FIFO_ENABLED_16750)
             uart_type = UART_16750;
         /* NOTE deep FIFO bit may be disabled by any write to FCR when LCR bit 7 is clear */
-    }
 
-    /* check for 16950 */
-    if(uart_type == UART_16550A){
+        /* now check for 16950 */
         uart_outb(UART_ADDRESS+UART_LCR, UART_LCR_CONF_MODE_B);
         if(uart_inb(UART_ADDRESS+UART_EFR) == 0){
             uint8_t id1 = 0, id2 = 0, id3 = 0, rev = 0;
