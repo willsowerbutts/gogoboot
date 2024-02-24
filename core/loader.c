@@ -30,27 +30,25 @@ void   * loader_bounce_buffer_data = NULL;
 uint32_t loader_bounce_buffer_size = 0;
 uint32_t loader_bounce_buffer_target = 0;
 
-#ifdef TARGET_MINI
-#define EXECUTABLE_LOAD_ADDRESS 0
-#endif
-
-#ifdef TARGET_KISS
-#define EXECUTABLE_LOAD_ADDRESS 0
-#define MACH_THIS MACH_KISS68030
-#define THIS_BOOTI_VERSION KISS68030_BOOTI_VERSION
-#define CPU_THIS CPU_68030
-#define MMU_THIS MMU_68030
-#define FPU_THIS 0 /* no FPU */
-#endif
-
-#ifdef TARGET_Q40
-#define EXECUTABLE_LOAD_ADDRESS (256*1024)
-#define MACH_THIS MACH_Q40
-#define THIS_BOOTI_VERSION Q40_BOOTI_VERSION
-/* TODO: detect 040/060 at runtime */
-#define CPU_THIS CPU_68040
-#define MMU_THIS MMU_68040
-#define FPU_THIS FPU_68040
+#if defined(TARGET_MINI)
+    #define EXECUTABLE_LOAD_ADDRESS 0
+#elif defined(TARGET_KISS)
+    #define EXECUTABLE_LOAD_ADDRESS 0
+    #define MACH_THIS MACH_KISS68030
+    #define THIS_BOOTI_VERSION KISS68030_BOOTI_VERSION
+    #define CPU_THIS CPU_68030
+    #define MMU_THIS MMU_68030
+    #define FPU_THIS 0 /* no FPU */
+#elif defined(TARGET_Q40)
+    #define EXECUTABLE_LOAD_ADDRESS (256*1024)
+    #define MACH_THIS MACH_Q40
+    #define THIS_BOOTI_VERSION Q40_BOOTI_VERSION
+    /* TODO: detect 040/060 at runtime */
+    #define CPU_THIS CPU_68040
+    #define MMU_THIS MMU_68040
+    #define FPU_THIS FPU_68040
+#else
+    #pragma error update loader.c for your target
 #endif
 
 void execute(void *entry_vector, int argc, char **argv)
@@ -479,11 +477,11 @@ bool load_elf_executable(char *argv[], int argc, FIL *fd)
         bootinfo->tag = BI_MEMCHUNK;
         bootinfo->size = sizeof(struct bi_record) + sizeof(struct mem_info);
         meminfo = (struct mem_info*)bootinfo->data;
-#ifdef TARGET_KISS
+#if defined(TARGET_KISS)
         meminfo->addr = 0;
         meminfo->size = (unsigned long)ram_size;
 #endif
-#ifdef TARGET_Q40
+#if defined(TARGET_Q40)
         // we need to make sure our RAM starts on a multiple of 256KB it seems
         meminfo->addr = (unsigned long)EXECUTABLE_LOAD_ADDRESS;
         if(ram_size > 32*1024*1024){

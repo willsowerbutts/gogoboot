@@ -21,26 +21,28 @@ static void push_packet_ready(int len);
 
 #undef  DEBUG                   /* extra-chatty mode */
 
-#ifdef TARGET_Q40
-/* 16-bit bus targets: Q40 */
-#include <q40/isa.h>
-#define NE2000_16BIT_PIO        /* use 16-bit PIO data transfer */
-static uint16_t const portlist[] = { 0x300, 0x280, 0x320, 0x340, 0x360, 0x380, 0 };
-static inline void    write_port_byte_pause(uint16_t port, uint8_t val) { isa_write_byte_pause(port, val); }
-static inline void    write_port_byte(uint16_t port, uint8_t val)       { isa_write_byte(port, val); }
-static inline void    write_port_word(uint16_t port, uint16_t val)      { isa_write_word(port, val); }
-static inline uint8_t  read_port_byte(uint16_t port)             { return isa_read_byte(port); }
-static inline uint16_t read_port_word(uint16_t port)             { return isa_read_word(port); }
-static inline void     io_slow_down(void)                               { isa_slow_down(); }
-#else 
-/* 8-bit bus targets: KISS-68030 */
-#include <ecb/ecb.h>
-#undef NE2000_16BIT_PIO         /* use 8-bit PIO data transfer */
-static uint16_t const portlist[] = { 0 };
-static inline void    write_port_byte_pause(uint16_t port, uint8_t val) { ecb_write_byte_pause(port, val); }
-static inline void    write_port_byte(uint16_t port, uint8_t val)       { ecb_write_byte(port, val); }
-static inline uint8_t  read_port_byte(uint16_t port)             { return ecb_read_byte(port); }
-static inline void     io_slow_down(void)                               { ecb_slow_down(); }
+#if defined(TARGET_Q40)
+    /* 16-bit bus targets: Q40 */
+    #include <q40/isa.h>
+    #define NE2000_16BIT_PIO        /* use 16-bit PIO data transfer */
+    static uint16_t const portlist[] = { 0x300, 0x280, 0x320, 0x340, 0x360, 0x380, 0 };
+    static inline void    write_port_byte_pause(uint16_t port, uint8_t val) { isa_write_byte_pause(port, val); }
+    static inline void    write_port_byte(uint16_t port, uint8_t val)       { isa_write_byte(port, val); }
+    static inline void    write_port_word(uint16_t port, uint16_t val)      { isa_write_word(port, val); }
+    static inline uint8_t  read_port_byte(uint16_t port)             { return isa_read_byte(port); }
+    static inline uint16_t read_port_word(uint16_t port)             { return isa_read_word(port); }
+    static inline void     io_slow_down(void)                               { isa_slow_down(); }
+#elif defined(TARGET_KISS) || defined(TARGET_MINI)
+    /* 8-bit bus targets: KISS-68030 */
+    #include <ecb/ecb.h>
+    #undef NE2000_16BIT_PIO         /* use 8-bit PIO data transfer */
+    static uint16_t const portlist[] = { 0 };
+    static inline void    write_port_byte_pause(uint16_t port, uint8_t val) { ecb_write_byte_pause(port, val); }
+    static inline void    write_port_byte(uint16_t port, uint8_t val)       { ecb_write_byte(port, val); }
+    static inline uint8_t  read_port_byte(uint16_t port)             { return ecb_read_byte(port); }
+    static inline void     io_slow_down(void)                               { ecb_slow_down(); }
+#else
+    #pragma error update ne2000.c for your target
 #endif
 
 #ifdef DEBUG
