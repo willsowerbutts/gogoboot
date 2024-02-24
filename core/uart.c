@@ -60,14 +60,18 @@ void uart_init(void)
 {
     bool autoflow;
     uint8_t LCR = UART_LCR_WLEN8;               /* 8N1 */
-    uint8_t MCR = UART_MCR_DTR|UART_MCR_RTS;    /* set DTR, RTS */
-    uint8_t FCR = UART_FCR_ENABLE_FIFO | UART_FCR_RXFIFO_TRIG4 | UART_FCR_64BYTE_ENABLE;
+    uint8_t MCR = UART_MCR_DTR | UART_MCR_RTS;  /* set DTR, RTS */
+    uint8_t FCR = UART_FCR_ENABLE_FIFO | UART_FCR_RXFIFO_TRIGH | UART_FCR_DEEP;
 
-    /* Check CTS bit in MSR: if high, hardware flow control will be
-     * enabled for UARTs with hardware autoflow control */
-    autoflow = (uart_inb(UART_ADDRESS+UART_MSR) & 0x10) == 0x10;
+    /* Disable interrupts */
+    uart_outb(UART_ADDRESS+UART_IER, 0);
 
-    uart_outb(UART_ADDRESS+UART_IER, 0);                /* disable interrupts */
+    /* Check CTS bit in MSR: if high, hardware auto-flow control will be
+     * enabled (for UARTs with this feature) */
+    autoflow = uart_inb(UART_ADDRESS+UART_MSR) & 0x10;
+    if(autoflow)
+        MCR |= UART_MCR_AFE; /* set auto flow-control enable bit */
+
     /* Clear 1950 Extended Features Register (if present) */
     uart_outb(UART_ADDRESS+UART_LCR, UART_LCR_CONF_MODE_B);
     uart_outb(UART_ADDRESS+UART_EFR, 0);
@@ -110,7 +114,7 @@ void uart_init(void)
             if(id1 == 0x16 && id2 == 0xC9 && id3 == 0x50)
                 uart_type = (rev == 3) ? UART_16950B : UART_16950;
         }else
-            uart_outb(UART_ADDRESS+UART_LCR, LCR); /* clear LCR */
+            uart_outb(UART_ADDRESS+UART_LCR, LCR);
     }
 
     /* not 16950? check for 16750 */
@@ -118,26 +122,17 @@ void uart_init(void)
         /* try to enable the 64-byte FIFO */
         uart_outb(UART_ADDRESS+UART_LCR, UART_LCR_CONF_MODE_A); /* LCR bit 7 must be set first */
         uart_outb(UART_ADDRESS+UART_FCR, FCR);                  /* setting bit 5 enables 64 byte FIFO */
-        uart_outb(UART_ADDRESS+UART_LCR, LCR);                  /* clear LCR */
+        uart_outb(UART_ADDRESS+UART_LCR, LCR);                  /* restore LCR */
         /* 16750 will set IIR bits 5, 6, 7 to indicate 64-byte FIFO enabled; 16550A sets 5, 6 only */
         if((uart_inb(UART_ADDRESS+UART_IIR) & UART_IIR_FIFO_ENABLED_16750) == UART_IIR_FIFO_ENABLED_16750)
             uart_type = UART_16750;
-    }
-
-    if(autoflow){
-        switch(uart_type){
-            case UART_16550A: /* supported on TL16C550C, but not all 16550As */
-            case UART_16750:
-            case UART_16950:
-                MCR |= UART_MCR_AFE; /* set autoflow control enable bit */
-            default:
-        }
+        /* NOTE 64-byte FIFO bit may be disabled by any write to FCR when LCR bit 7 is clear */
     }
 
     uart_outb(UART_ADDRESS+UART_LCR, UART_LCR_CONF_MODE_A); /* set DLAB to access divisor */
     uart_outb(UART_ADDRESS+0, UART_DIVISOR & 0xFF);    /* set divisor LSB */
     uart_outb(UART_ADDRESS+1, UART_DIVISOR >> 8);      /* set divisor MSB */
-    uart_outb(UART_ADDRESS+UART_LCR, LCR);             /* clear DLAB, set 8 bit data, 1 stop bit, no parity */
+    uart_outb(UART_ADDRESS+UART_LCR, LCR);             /* restore LCR */
     uart_outb(UART_ADDRESS+UART_MCR, MCR);             /* set DTR, RTS and maybe AFE */
 }
 

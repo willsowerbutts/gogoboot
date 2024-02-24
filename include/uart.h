@@ -53,11 +53,11 @@ bool uart_check_cancel_key(void);
 #define UART_FCR_ENABLE_FIFO   0x01 /* Enable the FIFO */
 #define UART_FCR_CLEAR_RX_FIFO 0x02 /* Clear and reset RX FIFO */
 #define UART_FCR_CLEAR_TX_FIFO 0x04 /* Clear and reset TX FIFO */
-#define UART_FCR_64BYTE_ENABLE 0x20 /* Enable deeper FIFOs (16750) */
-#define UART_FCR_RXFIFO_TRIG1  0x00 /* RX FIFO trigger 1 byte */
-#define UART_FCR_RXFIFO_TRIG2  0x40 /* RX FIFO trigger 4 bytes */
-#define UART_FCR_RXFIFO_TRIG3  0x80 /* RX FIFO trigger 8 bytes */
-#define UART_FCR_RXFIFO_TRIG4  0xC0 /* RX FIFO trigger 14 bytes */
+#define UART_FCR_DEEP          0x20 /* Enable deeper FIFOs (16750) */
+#define UART_FCR_RXFIFO_TRIG1  0x00 /* RX FIFO trigger at 1 byte */
+#define UART_FCR_RXFIFO_TRIGL  0x40 /* RX FIFO trigger at low level */
+#define UART_FCR_RXFIFO_TRIGM  0x80 /* RX FIFO trigger at middle */
+#define UART_FCR_RXFIFO_TRIGH  0xC0 /* RX FIFO trigger at high level */
 
 #define UART_LSR_DR            0x01 /* LSR: data ready bit */
 
