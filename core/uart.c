@@ -20,14 +20,14 @@
 #endif
 
 #ifndef BAUD_RATE
-#define BAUD_RATE       115200 /* desired RS232 baud rate */
+#define BAUD_RATE 115200          /* desired RS232 baud rate */
 #endif
 
-#ifndef UART_CLK
-#define UART_CLK        UARTCLOCK/16 /* UART CLK input */
+#ifndef UART_BASE
+#define UART_BASE (UARTCLOCK/16)  /* UART baud rate generator input frequency */
 #endif
 
-#define UART_DIVISOR    (UART_CLK/BAUD_RATE)
+#define UART_DIVISOR    (UART_BASE / BAUD_RATE)
 
 static const char* uart_chip_name[] = {
     [UART_UNKNOWN] = "unknown",
