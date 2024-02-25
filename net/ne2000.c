@@ -45,20 +45,12 @@ static void push_packet_ready(int len);
     #pragma error update ne2000.c for your target
 #endif
 
-#ifdef DEBUG
-#define DEBUG_FUNCTION() do { printf("%s\n", __FUNCTION__); } while (0)
-#define DEBUG_LINE() do { printf("%d\n", __LINE__); } while (0)
-#else
-#define DEBUG_FUNCTION() do {} while(0)
-#define DEBUG_LINE() do {} while(0)
-#endif
-
 #include <ne2000.h>
 
 #ifdef DEBUG
-#define PRINTK(args...) printf(args)
+#define debug_printf(args...) printf(args)
 #else
-#define PRINTK(args...)
+#define debug_printf(args...)
 #endif
 
 static dp83902a_priv_data_t nic;                /* just one instance of the card supported */
@@ -82,8 +74,6 @@ static void ne2000_dump_regs(void)
 
 static void dp83902a_stop(void)
 {
-    DEBUG_FUNCTION();
-
     write_port_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_STOP);  /* Brutal */
     write_port_byte_pause(nic.base + DP_ISR, 0xFF);             /* Clear any pending interrupts */
     write_port_byte_pause(nic.base + DP_IMR, 0x00);             /* Disable all interrupts */
@@ -100,8 +90,6 @@ static void dp83902a_stop(void)
 static void dp83902a_start(macaddr_t enaddr)
 {
     int i;
-
-    DEBUG_FUNCTION();
 
     write_port_byte_pause(nic.base + DP_CR, DP_CR_PAGE0 | DP_CR_NODMA | DP_CR_STOP); /* Brutal */
 #ifdef NE2000_16BIT_PIO
@@ -151,8 +139,6 @@ static void dp83902a_start(macaddr_t enaddr)
    */
 static void dp83902a_start_xmit(int start_page, int len)
 {
-    DEBUG_FUNCTION();
-
 #ifdef DEBUG
     printf("Tx pkt %d len %d\n", start_page, len);
     if (nic.tx_started)
@@ -177,26 +163,24 @@ static void dp83902a_send(void *data, int total_len)
 {
     int len, start_page, pkt_len, i, isr;
 
-    DEBUG_FUNCTION();
-
     len = pkt_len = total_len;
     if (pkt_len < IEEE_8023_MIN_FRAME)
         pkt_len = IEEE_8023_MIN_FRAME;
 
     start_page = nic.tx_next;
     if (nic.tx_next == nic.tx_buf1) {
-        PRINTK("tx1 ");
+        debug_printf("tx1 ");
         nic.tx1 = start_page;
         nic.tx1_len = pkt_len;
         nic.tx_next = nic.tx_buf2;
     } else {
-        PRINTK("tx2 ");
+        debug_printf("tx2 ");
         nic.tx2 = start_page;
         nic.tx2_len = pkt_len;
         nic.tx_next = nic.tx_buf1;
     }
 
-    PRINTK("total_len=%d pkt_len=%d ", total_len, pkt_len);
+    debug_printf("total_len=%d pkt_len=%d ", total_len, pkt_len);
 
     write_port_byte_pause(nic.base + DP_ISR, DP_ISR_RDC);  /* Clear end of DMA */
 
@@ -300,13 +284,9 @@ static void dp83902a_send(void *data, int total_len)
    */
 static void dp83902a_RxEvent(void)
 {
-    //uint8_t __attribute__((unused)) rsr;
     uint8_t rcv_hdr[4];
-    int i, len, cur; //, pkt, cur;
+    int i, len, cur;
 
-    DEBUG_FUNCTION();
-
-    //rsr = read_port_byte(nic.base + DP_RSR);
     while (true) {
 #ifdef DEBUG
         printf("ne2000: attempt receive\n");
@@ -401,14 +381,12 @@ static void dp83902a_TxEvent(void)
 {
     uint8_t __attribute__((unused)) tsr;
 
-    DEBUG_FUNCTION();
-
     tsr = read_port_byte(nic.base + DP_TSR);
     if (nic.tx_int == 1) {
-        PRINTK("f1 ");
+        debug_printf("f1 ");
         nic.tx1 = 0;
     } else {
-        PRINTK("f2 ");
+        debug_printf("f2 ");
         nic.tx2 = 0;
     }
 
@@ -516,7 +494,7 @@ static void pcnet_reset_8390(void)
 {
     int i, r;
 
-    PRINTK("nic base is 0x%x\n", (int)nic.base);
+    debug_printf("nic base is 0x%x\n", (int)nic.base);
 
     write_port_byte_pause(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE0+E8390_STOP);
     write_port_byte_pause(nic.base + E8390_CMD, E8390_NODMA+E8390_PAGE1+E8390_STOP);
@@ -558,7 +536,7 @@ static bool get_prom(void)
     int i, j;
     bool all_zero = true, all_ones = true;
 
-    PRINTK("trying to get MAC via prom reading\n");
+    debug_printf("trying to get MAC via prom reading\n");
 
     pcnet_reset_8390();
 
@@ -567,12 +545,12 @@ static bool get_prom(void)
     for (i = 0; i < sizeof(get_prom_program_seq)/sizeof(get_prom_program_seq[0]); i++)
         write_port_byte_pause(nic.base + get_prom_program_seq[i].offset, get_prom_program_seq[i].value);
 
-    PRINTK("PROM:");
+    debug_printf("PROM:");
     for (i = 0; i < 32; i++) {
         prom[i] = read_port_byte(nic.data);
-        PRINTK(" %02x", prom[i]);
+        debug_printf(" %02x", prom[i]);
     }
-    PRINTK("\n");
+    debug_printf("\n");
 
     /* used to be a match against a long-ish table here.
      * I ripped it out and replaced it with a simpler
@@ -598,7 +576,7 @@ static bool get_prom(void)
 
 static void push_packet_ready(int len)
 {
-    PRINTK("pushed len = %d\n", len);
+    debug_printf("pushed len = %d\n", len);
 
     packet_t *packet = packet_alloc(len);
     if(!packet){
