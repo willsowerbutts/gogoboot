@@ -25,14 +25,15 @@ void pretty_dump_memory(void *start, int len)
         putch(' ');
 
     while(len){
-        if(*ptr >= 32 && *ptr < 127)
-            *lbptr = *ptr;
+        uint8_t voi = *ptr++;
+        if(voi >= 32 && voi < 127)
+            *lbptr = voi;
         else
             *lbptr = '.';
 
         if (((unsigned)ptr & 0x0F) == 0x08)
             putch(' ');
-        printf(" %02x", *ptr++);
+        printf(" %02x", voi);
         len--;
         lbptr++;
 
