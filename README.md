@@ -71,7 +71,11 @@ Building GoGoBoot
 -----------------
 
 I use a Debian (12) Linux system with the gcc-m68k-linux-gnu cross-compiler
-package. Some of the scripts use `python`.
+package. Some of the scripts use `python`. On a Debian 12 machine this should
+install everything you need to build:
+```
+apt install make python3 git git-man gcc-m68k-linux-gnu libc6-m68k-cross libc6-dev-m68k-cross linux-libc-dev-m68k-cross
+```
 
 Just type `make -j` and you should end up with a `.rom` and `.elf` file for
 each target.
