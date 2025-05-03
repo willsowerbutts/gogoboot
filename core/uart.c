@@ -138,9 +138,10 @@ void uart_init(void)
 
 void uart_identify(void)
 {
+    uint8_t MCR = uart_inb(UART_ADDRESS+UART_MCR);
+#ifdef UART_VERBOSE
     uint8_t FCR = uart_inb(UART_ADDRESS+UART_IIR);             /* FCR/IIR */
     uint8_t LCR = uart_inb(UART_ADDRESS+UART_LCR);
-    uint8_t MCR = uart_inb(UART_ADDRESS+UART_MCR);
     uint8_t IER = uart_inb(UART_ADDRESS+UART_IER);
     uint8_t MSR = uart_inb(UART_ADDRESS+UART_MSR);
     uint8_t SCR = uart_inb(UART_ADDRESS+UART_SCR);
@@ -148,8 +149,9 @@ void uart_identify(void)
 
     printf("UART: %s, IER=0x%02x IIR=0x%02x LCR=0x%02x MCR=0x%02x LSR=0x%02x MSR=0x%02x SCR=0x%02x\n", 
             uart_chip_name[uart_type], IER, FCR, LCR, MCR, LSR, MSR, SCR);
-
-    return;
+#else
+    printf("UART: %s%s\n", uart_chip_name[uart_type], MCR & UART_MCR_AFE ? " (RTS/CTS)" : "");
+#endif
 }
 
 bool uart_write_ready(void)
