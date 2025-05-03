@@ -73,10 +73,6 @@ nextregister:
         pflusha
         nop
 
-        move.l #(CACR_EI+CACR_ED), %d0 /* enable data, instruction caches */
-        movec %d0, %cacr
-        nop
-
         /* load .data section into RAM from ROM -- note limited to 256KB */
         lea.l   data_load_start, %a0    /* source address */
         lea.l   data_start, %a1         /* dest address */
@@ -101,6 +97,9 @@ zap_bss:
         lea bss_end+256, %sp            /* use temporary stack (after .bss) */
         jsr measure_ram_size            /* call C helper */
         movea.l stack_top, %sp          /* move stack to top of RAM */
+        move.l #(CACR_EI+CACR_ED), %d0 /* enable data, instruction caches */
+        movec %d0, %cacr
+        nop
         jsr gogoboot                    /* call C boot code */
 
         /* halt */

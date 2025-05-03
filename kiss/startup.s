@@ -50,11 +50,6 @@ _start:
         pflusha
         nop
 
-        /* enable data, instruction caches */
-        move.l #(CACR_EI + CACR_ED), %d0 
-        movec.l %d0, %cacr
-        nop
-
         /* copy .text+.rodata+.data sections into RAM from ROM -- note limited to 256KB */
         lea.l   %pc@(text_start), %a0   /* source address - PC relative */
         movea.l #text_start, %a1        /* dest address */
@@ -71,11 +66,6 @@ copy_text_loop:
         move.l  (%a0)+,(%a1)+
 copy_text:
         dbra    %d0,copy_text_loop
-
-        /* flush (and keep enabled) data, instruction caches */
-        move.l #(CACR_EI + CACR_ED + CACR_CI + CACR_CD), %d0 
-        movec.l %d0, %cacr
-        nop
 
         /* jump and continue at our target address */
         movea.l #target_address, %a0
@@ -99,7 +89,10 @@ zap_bss:
 
         lea bss_end+256, %sp            /* use temporary stack (after .bss) */
         jsr measure_ram_size            /* call C helper */
-        movea.l stack_top, %sp           /* move stack to top of RAM */
+        movea.l stack_top, %sp          /* move stack to top of RAM */
+        move.l #(CACR_EI + CACR_ED), %d0 
+        movec.l %d0, %cacr              /* enable data, instruction caches */
+        nop
         jsr gogoboot                    /* call C boot code */
 
         /* halt */
