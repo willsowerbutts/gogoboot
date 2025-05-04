@@ -102,7 +102,7 @@ void q40_graphics_init(int mode)
 
 void target_mem_init(void)
 {
-    rom_below_addr = 0;
+    rom_below_addr = 0x28000; /* after ROM, I/O and video memory */
     stack_base = ram_size - DEFAULT_STACK_SIZE;
     stack_size = DEFAULT_STACK_SIZE;
     stack_top = stack_base + stack_size;
