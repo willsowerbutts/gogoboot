@@ -24,6 +24,9 @@
 #include <cli.h>
 #include <init.h>
 
+/* comfortably more than the bootinfo records we write, including the command line */
+#define BOOTINFO_MAX_SIZE 4096
+
 /* bounce buffer */
 void   * loader_scratch_space = NULL;
 void   * loader_bounce_buffer_data = NULL;
@@ -450,6 +453,12 @@ bool load_elf_executable(char *argv[], int argc, FIL *fd)
             return false;
         }
 
+        load_err = check_writable_range((uint32_t)bootinfo, BOOTINFO_MAX_SIZE, false);
+        if(load_err){
+            printf("Cannot proceed: bootinfo: %s\n", load_err);
+            return false;
+        }
+
         /* machine type */
         bootinfo->tag = BI_MACHTYPE;
         bootinfo->data[0] = MACH_THIS;
@@ -535,9 +544,16 @@ bool load_elf_executable(char *argv[], int argc, FIL *fd)
             meminfo->addr = ((((unsigned long)bootinfo) + 0xfff) & ~0xfff) + 0x100000;
             meminfo->size = f_size(&initrd);
             printf("Loading initrd \"%s\": %ld bytes at 0x%lx\n", initrd_name, meminfo->size, meminfo->addr);
+            load_err = check_writable_range(meminfo->addr, meminfo->size, false);
+            if(load_err){
+                printf("Unable to load initrd: %s\n", load_err);
+                f_close(&initrd);
+                return false;
+            }
             if(f_read(&initrd, (char*)meminfo->addr, meminfo->size, &bytes_read) != FR_OK || 
                     bytes_read != meminfo->size){
                 printf("Unable to load initrd.\n");
+                f_close(&initrd);
                 return false;
             }else{
                 bootinfo = (struct bi_record*)(((char*)bootinfo) + bootinfo->size);
