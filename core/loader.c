@@ -85,6 +85,17 @@ void execute(void *entry_vector, int argc, char **argv)
     /* no way back */
 }
 
+/* discard a partly loaded executable so execute() does not copy it into place */
+static void loader_reset(void)
+{
+    free(loader_bounce_buffer_data);
+    free(loader_scratch_space);
+    loader_bounce_buffer_data = NULL;
+    loader_scratch_space = NULL;
+    loader_bounce_buffer_size = 0;
+    loader_bounce_buffer_target = 0;
+}
+
 static void bounce_expand(uint32_t paddr, uint32_t bounce_size)
 {
     if(loader_bounce_buffer_data){
@@ -257,6 +268,7 @@ bool load_m68k_executable(char *argv[], int argc, FIL *fd)
     if(fr != FR_OK){
         printf("%s: Cannot load: ", argv[0]);
         f_perror(fr);
+        loader_reset();
         return false;
     }
 
@@ -270,7 +282,17 @@ bool load_m68k_executable(char *argv[], int argc, FIL *fd)
     return true; /* unlikely we will return ... */
 }
 
+static bool load_elf(char *argv[], int argc, FIL *fd);
+
 bool load_elf_executable(char *argv[], int argc, FIL *fd)
+{
+    if(load_elf(argv, argc, fd))
+        return true;
+    loader_reset();
+    return false;
+}
+
+static bool load_elf(char *argv[], int argc, FIL *fd)
 {
     int proghead_num;
     unsigned int bytes_read;
