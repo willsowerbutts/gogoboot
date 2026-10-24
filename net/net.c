@@ -221,10 +221,10 @@ void net_eth_push(packet_t *packet)
                     goto bad_cksum;
                 switch(packet->ipv4->protocol){
                     case ip_proto_tcp:
-                        header_size = ((packet->tcp->data_offset & 0x0F) << 2);
                         packet->tcp = (tcp_header_t*)packet->ipv4->payload;
+                        header_size = ((packet->tcp->data_offset >> 4) << 2);
                         packet->data = packet->ipv4->payload + header_size;
-                        packet->data_length = ntohs(packet->ipv4->length) - header_size;
+                        packet->data_length = ntohs(packet->ipv4->length) - sizeof(ipv4_header_t) - header_size;
                         if(!net_verify_tcp_checksum(packet))
                             goto bad_cksum;
                         break;

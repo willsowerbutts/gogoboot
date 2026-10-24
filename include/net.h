@@ -117,10 +117,11 @@ struct __attribute__((packed, aligned(2))) tcp_header_t {
     uint16_t destination_port;
     uint32_t sequence;
     uint32_t ack;
-    uint8_t data_offset;
+    uint8_t data_offset;        // header length in 32-bit words, in the top 4 bits
+    uint8_t flags;
     uint16_t window_size;
     uint16_t checksum;
-    // optional urgent pointer
+    uint16_t urgent_pointer;
     uint8_t options[];          // variable length
     // followed by the user data
 };
