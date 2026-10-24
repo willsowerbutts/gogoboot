@@ -40,7 +40,7 @@ packet_t *packet_create_icmp(uint32_t dest_ipv4, int data_size)
 
 packet_t *packet_create_tcp(uint32_t dest_ipv4, uint16_t destination_port, uint16_t source_port, int data_size)
 {
-    packet_t *p = packet_create_ipv4(dest_ipv4, data_size + sizeof(tcp_header_t), ip_proto_udp);
+    packet_t *p = packet_create_ipv4(dest_ipv4, data_size + sizeof(tcp_header_t), ip_proto_tcp);
     p->tcp = (tcp_header_t*)p->ipv4->payload;
     p->data = (uint8_t*)p->tcp->options; // + options_size
     p->data_length = data_size;          // - options_size
