@@ -28,8 +28,6 @@ static packet_sink_t *sink;
 
 /* see https://www.rfc-editor.org/rfc/rfc1533 in particular section 9 */
 uint8_t const discover_options[] = {
-    // DHCP message type - DHCPDISCOVER
-    dhcp_opt_message_type,  0x01, dhcp_type_discover,
     // DHCP parameter request list (1=subnet mask, 3=router, 6=nameserver, 15=domain name)
     dhcp_opt_param_request, 0x04, 0x01, 0x03, 0x06, 0x0f,
 };
