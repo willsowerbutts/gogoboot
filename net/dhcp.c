@@ -11,6 +11,7 @@
 
 const int renew_retry_count = 100;
 int select_wait_time = short_wait_time;
+static uint32_t dhcp_xid;
 
 static uint32_t dhcp_server_id;
 static uint32_t dhcp_offer_ipv4_address;
@@ -60,7 +61,7 @@ static packet_t *packet_create_dhcp(uint32_t target_ipv4, uint8_t message_type,
     d->htype = 1;       // 10M ethernet
     d->hlen = 6;        // ethernet
     d->hops = 0;
-    d->xid = gogoboot_read_timer(); // no need to byte swap since it's random anyway
+    d->xid = dhcp_xid;
     d->secs = ntohs(0);        // we can do better here, surely?
     d->flags = ntohs(0);
     d->ciaddr = d->yiaddr = d->siaddr = d->giaddr = htonl(0);
@@ -116,6 +117,10 @@ bool process_dhcp_reply(packet_t *packet, uint8_t expected_dhcp_type)
 #endif
 
     if(d->op != 2) // check for BOOTREPLY
+        return false;
+
+    // replies to other clients are broadcast too
+    if(d->xid != dhcp_xid || memcmp(d->chaddr, interface_macaddr, 6) != 0)
         return false;
 
     // parse DHCP options
@@ -228,6 +233,7 @@ static void dhcp_enter_state(dhcp_state_t state)
             interface_ipv4_gateway = 0;
             interface_ipv4_address = 0;
             interface_subnet_mask = 0;
+            dhcp_xid = gogoboot_read_timer(); // no need to byte swap since it's random anyway
             // create and send a DHCPDISCOVER message
             net_tx(packet_create_dhcp(ipv4_broadcast, dhcp_type_discover,
                         discover_options, sizeof(discover_options)));
@@ -251,6 +257,7 @@ static void dhcp_enter_state(dhcp_state_t state)
             break;
         case DHCP_RENEW:
             // periodically send REQUESTs
+            dhcp_xid = gogoboot_read_timer();
             renew_retry_remaining = renew_retry_count;
             sink->timer = set_timer_sec(short_wait_time);
             dhcp_send_request();
