@@ -232,12 +232,12 @@ static void memory_test_next_cpu_cache_mode(struct test_memory_args *args)
         case CACHE_FULL:
             args->cache_mode = CACHE_NODATA;
             cpu_cache_enable_nodata();
-            printf("CPU cache disabled\n");
+            printf("CPU cache enabled (instructions only)\n");
             break;
         case CACHE_NODATA:
             args->cache_mode = CACHE_NONE;
             cpu_cache_disable();
-            printf("CPU cache enabled (instructions only)\n");
+            printf("CPU cache disabled\n");
             break;
         case CACHE_NONE:
         case CACHE_INIT:
