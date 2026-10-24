@@ -504,9 +504,13 @@ bool load_elf_executable(char *argv[], int argc, FIL *fd)
             if(!strncasecmp(argv[i], "initrd=", 7)){
                 initrd_name = &argv[i][7];
             }else{
+                if(strlen(kernel_cmdline) + (kernel_cmdline[0] ? 1 : 0) + strlen(argv[i]) > MAXCMDLEN){
+                    printf("Kernel command line too long (max %d characters)\n", MAXCMDLEN);
+                    return false;
+                }
                 if(kernel_cmdline[0])
-                    strncat(kernel_cmdline, " ", MAXCMDLEN);
-                strncat(kernel_cmdline, argv[i], MAXCMDLEN);
+                    strcat(kernel_cmdline, " ");
+                strcat(kernel_cmdline, argv[i]);
             }
         }
 
