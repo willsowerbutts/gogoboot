@@ -3,6 +3,7 @@
 #include <uart.h>
 #include <fatfs/ff.h>
 #include <ecb/ecb.h>
+#include <ecb/usbfifo.h>
 #include <kiss/hw.h>
 #include <cpu.h>
 #include <cli.h>
@@ -70,5 +71,6 @@ const cmd_entry_t target_cmd_table[] = {
   /* name          min     max  function      help */
     {"softrom",     0,      1,  &do_softrom,  "load and boot a KISS ROM image" },
     {"hardrom",     0,      0,  &do_hardrom,  "reboot into KISS hardware ROM" },
+    {"rxfifo",      1,      1,  &do_rxfifo,   "receive file through ECB USB-FIFO" },
     {0, 0, 0, 0, 0 } /* terminator */
 };

@@ -2,7 +2,7 @@
 # Will Sowerbutts 2023-07-23
 
 CROSS=m68k-linux-gnu-
-CC = $(CROSS)gcc
+CC = $(CROSS)gcc-14
 AS = $(CROSS)as
 LD = $(CROSS)ld
 LIB = $(CROSS)ar
@@ -40,7 +40,7 @@ TARGET_FILES += gogoboot-kiss-sram.rom
 AOPT_kiss = -mcpu=68030 --defsym TARGET_KISS=1
 COPT_kiss = -mcpu=68030 -DTARGET_KISS
 SRC_kiss = kiss/startup.s kiss/vectors.s ecb/timer.c kiss/cli.c \
-	   kiss/hw.c ecb/ppide.c ecb/rtc.c ecb/ppidexfer.s kiss/double.s \
+	   kiss/hw.c ecb/ppide.c ecb/rtc.c ecb/ppidexfer.s ecb/usbfifo.c kiss/double.s \
 	   kiss/execute.s core/cpu-68030.s
 
 # mini target (Retrobrew Computers Mini68K)
