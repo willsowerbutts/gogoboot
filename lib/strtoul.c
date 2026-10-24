@@ -122,20 +122,7 @@ unsigned long strtoul(const char *cptr, const char **endptr, int radix)
 
 long strtol(const char *nptr, const char **endptr, int base)
 {
-  const char * ptr;
-  unsigned short negative;
-  long int number;
-
-  ptr=nptr;
-
-  while (isspace(*ptr)) ptr++;
-
-  negative=0;
-  if (*ptr=='-')
-    negative=1;
-
-  number=(long int)strtoul(nptr, endptr, base);
-
-  return (negative ? -number:number);
+  /* strtoul() already applies the sign */
+  return (long int)strtoul(nptr, endptr, base);
 }
 
