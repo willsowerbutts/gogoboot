@@ -97,23 +97,21 @@ static int decode_bcd_byte(uint8_t val)
 
 void rtc_read_clock(rtc_time_t *buffer)
 {
+    uint8_t hour;
+
     /* clock burst read */
     rtc_set_clk(false); /* clk must be driven low before rising edge of chip select line */
     rtc_set_chipselect(true);
     rtc_send_byte(0xBF); /* clk burst read */
     buffer->second  = decode_bcd_byte(rtc_read_byte() & 0x7f);
     buffer->minute  = decode_bcd_byte(rtc_read_byte());
-    buffer->hour    = rtc_read_byte();
-    if(buffer->hour & 0x80){ /* need to convert from 12 hour mode? */
-        buffer->hour &= 0x7f;
-        if(buffer->hour & 0x20){
-            buffer->hour &= 0xdf;
-            buffer->hour += 0x12;
-            if((buffer->hour & 0x0f) >= 10) /* fix up carry */
-                buffer->hour += 6;
-        }
-    }
-    buffer->hour    = decode_bcd_byte(buffer->hour);
+    hour            = rtc_read_byte();
+    if(hour & 0x80){ /* 12 hour mode: 12AM is 0, 12PM is 12 */
+        buffer->hour = decode_bcd_byte(hour & 0x1f) % 12;
+        if(hour & 0x20) /* PM */
+            buffer->hour += 12;
+    }else
+        buffer->hour = decode_bcd_byte(hour & 0x3f);
     buffer->day     = decode_bcd_byte(rtc_read_byte());
     buffer->month   = decode_bcd_byte(rtc_read_byte());
     rtc_read_byte(); /* weekday -- not used -- discard */
