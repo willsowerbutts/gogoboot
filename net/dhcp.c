@@ -9,7 +9,9 @@
 
 #undef DHCP_DEBUG
 
-const int renew_retry_count = 100;
+/* renew at half the lease, but at least daily; this also keeps set_timer_sec() in range */
+#define MAX_RENEW_DELAY (24*60*60)
+
 int select_wait_time = short_wait_time;
 static uint32_t dhcp_xid;
 
@@ -252,13 +254,14 @@ static void dhcp_enter_state(dhcp_state_t state)
             sink->timer = set_timer_sec(short_wait_time);
             break;
         case DHCP_BOUND:
-            // relax and wait for our lease to near expiry
-            sink->timer = set_timer_sec(dhcp_offer_lease_time - (renew_retry_count * short_wait_time));
+            // relax until it is time to renew our lease
+            sink->timer = set_timer_sec(dhcp_offer_lease_time / 2 < MAX_RENEW_DELAY ?
+                    dhcp_offer_lease_time / 2 : MAX_RENEW_DELAY);
             break;
         case DHCP_RENEW:
-            // periodically send REQUESTs
+            // periodically send REQUESTs for up to half the lease time
             dhcp_xid = gogoboot_read_timer();
-            renew_retry_remaining = renew_retry_count;
+            renew_retry_remaining = (dhcp_offer_lease_time / 2) / short_wait_time;
             sink->timer = set_timer_sec(short_wait_time);
             dhcp_send_request();
             break;
