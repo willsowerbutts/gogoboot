@@ -109,7 +109,7 @@ static void bounce_expand(uint32_t paddr, uint32_t bounce_size)
             loader_bounce_buffer_data = realloc(loader_bounce_buffer_data, newsize);
             /* if we grew downwards, move the existing buffer upwards */
             if(below){
-                memmove(loader_bounce_buffer_data, loader_bounce_buffer_data+below, loader_bounce_buffer_size);
+                memmove(loader_bounce_buffer_data+below, loader_bounce_buffer_data, loader_bounce_buffer_size);
                 loader_bounce_buffer_target -= below;
             }
             loader_bounce_buffer_size = newsize;
