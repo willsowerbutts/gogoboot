@@ -245,6 +245,7 @@ void do_rxfile(char *argv[], int argc)
     FRESULT fr;
     char *image;
     uint32_t count;
+    UINT written;
     FIL fd;
 
     /* load size from UART */
@@ -265,7 +266,9 @@ void do_rxfile(char *argv[], int argc)
     /* save to file */
     fr = f_open(&fd, argv[0], FA_WRITE | FA_CREATE_ALWAYS);
     if(fr == FR_OK){
-        fr = f_write(&fd, image, count, NULL);
+        fr = f_write(&fd, image, count, &written);
+        if(fr == FR_OK && written != count)
+            fr = FR_DENIED; /* disk full */
         f_close(&fd);
     }
 

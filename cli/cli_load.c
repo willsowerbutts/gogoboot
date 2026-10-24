@@ -58,6 +58,7 @@ void do_save(char *argv[], int argc)
     FIL fd;
     FRESULT fr;
     uint32_t address, msize;
+    UINT written;
 
     /* arg 1 - filename */
     fr = f_open(&fd, argv[0], FA_WRITE | FA_CREATE_ALWAYS);
@@ -74,7 +75,9 @@ void do_save(char *argv[], int argc)
 
     printf("save: writing 0x%lx bytes from 0x%lx to \"%s\"\n", msize, address, argv[0]);
 
-    fr = f_write(&fd, (void*)address, msize, NULL);
+    fr = f_write(&fd, (void*)address, msize, &written);
+    if(fr == FR_OK && written != msize)
+        fr = FR_DENIED; /* disk full */
     if(fr != FR_OK){
         printf("save: failed to write to \"%s\": %s\n", argv[0], f_errmsg(fr));
     }

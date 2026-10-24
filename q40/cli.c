@@ -9,11 +9,12 @@
 static void do_loadimage(char *argv[], int argc)
 {
     FRESULT fr;
+    UINT loaded;
     FIL fd;
 
     fr = f_open(&fd, argv[0], FA_READ);
     if(fr == FR_OK){
-        f_read(&fd, (char*)VIDEO_RAM_BASE, (1024*1024), NULL);
+        f_read(&fd, (char*)VIDEO_RAM_BASE, (1024*1024), &loaded);
         f_close(&fd);
     }
     cpu_cache_flush(); /* flush data to video memory */

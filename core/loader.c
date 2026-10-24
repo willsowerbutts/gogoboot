@@ -320,7 +320,8 @@ bool load_elf_executable(char *argv[], int argc, FIL *fd)
 
     proghead_data = malloc(header.phentsize * header.phnum);
     if(f_lseek(fd, header.phoff) != FR_OK ||
-       f_read(fd, proghead_data, header.phentsize * header.phnum, NULL) != FR_OK){
+       f_read(fd, proghead_data, header.phentsize * header.phnum, &bytes_read) != FR_OK ||
+       bytes_read != header.phentsize * header.phnum){
         printf("Cannot read ELF program headers.\n");
         free(proghead_data);
         return false;

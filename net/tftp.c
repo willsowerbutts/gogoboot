@@ -319,6 +319,7 @@ static void tftp_get_flush_data_and_ack(packet_sink_t *sink)
     packet_t *packet;
     tftp_header_t *message;
     int size;
+    UINT written;
     FRESULT fr;
 
     // send this FIRST so we can overlap receiving more data with writing to disk
@@ -330,7 +331,9 @@ static void tftp_get_flush_data_and_ack(packet_sink_t *sink)
         size = packet->data_length - 4;
 
         if(size > 0){
-            fr = f_write(&tftp->disk_file, message->payload.data.data, size, NULL);
+            fr = f_write(&tftp->disk_file, message->payload.data.data, size, &written);
+            if(fr == FR_OK && written != size)
+                fr = FR_DENIED; /* disk full */
             tftp->bytes_transferred += size;
             if(fr != FR_OK){
                 printf("tftp: failed to write to \"%s\": %s\n", tftp->disk_filename, f_errmsg(fr));
