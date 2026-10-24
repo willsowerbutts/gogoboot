@@ -102,15 +102,14 @@ unsigned long strtoul(const char *cptr, const char **endptr, int radix)
 
 /*        printf("stage 4\n");  */
         value = digit;
-        while ( (digit = ndigit(*++cp)) != RUB) {
-            if (digit < radix  &&  (value < max || (value == max && digit <= maxdigit)) ) {
+        while ( (digit = ndigit(*++cp)) < radix) {
+            if (errno == 0 && (value < max || (value == max && digit <= maxdigit)) ) {
                 value *= radix;
                 value += digit;
             }
             else {
-                errno = 1;
+                errno = 1;  /* overflow */
                 value = 0;
-                ++cp;
             }
         }
         --cp;
