@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+# Send a file to the GogoBoot "rxfifo" command.
+# usage: sendfifo <host:port | serial device> <file>
+
+import socket
+import struct
+import sys
+import time
+import zlib
+
+dest, filename = sys.argv[1], sys.argv[2]
+data = open(filename, 'rb').read()
+frame = struct.pack('>I', len(data)) + data + struct.pack('>I', zlib.crc32(data))
+
+if ':' in dest:
+    host, port = dest.rsplit(':', 1)
+    sock = socket.create_connection((host, int(port)))
+    write = sock.sendall
+else:
+    import serial
+    port = serial.Serial(dest)
+    write = port.write
+
+start = time.time()
+sent = 0
+for offset in range(0, len(frame), 4096):
+    chunk = frame[offset:offset+4096]
+    write(chunk)
+    sent += len(chunk)
+    sys.stdout.write(f'\rsent {sent:<8} {100*sent/len(frame):>5.1f}%  ')
+    sys.stdout.flush()
+
+if ':' in dest:
+    sock.shutdown(socket.SHUT_WR)
+    sock.close()
+else:
+    port.flush()
+
+taken = time.time() - start
+print(f'\rsent {len(data)} bytes + 8 framing in {taken:.3f} seconds, {len(data)/taken:.0f} bytes/sec, CRC {zlib.crc32(data):08x}')
