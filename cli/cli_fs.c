@@ -104,7 +104,12 @@ void do_rm(char *argv[], int argc)
             f_closedir(&di); // in any event we MUST close the dir before calling f_unlink
             if(fr == FR_OK && fi.fname[0]){
                 printf("Deleting \"%s\"\n", fi.fname);
-                f_unlink(fi.fname);
+                fr = f_unlink(fi.fname);
+                if(fr != FR_OK){
+                    /* f_findfirst() would just find it again */
+                    f_perror(fr);
+                    break;
+                }
             }else
                 break;
         }
