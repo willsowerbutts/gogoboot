@@ -284,6 +284,47 @@ bool load_m68k_executable(char *argv[], int argc, FIL *fd)
 
 static bool load_elf(char *argv[], int argc, FIL *fd);
 
+#ifdef MACH_THIS
+static bool elf_has_section(FIL *fd, elf32_header *header, const char *name)
+{
+    elf32_section_header sh;
+    unsigned int bytes_read;
+    char *strtab;
+    uint32_t strtab_size;
+    bool found = false;
+
+    if(header->shoff == 0 || header->shtrndx >= header->shnum ||
+       header->shentsize < sizeof(sh))
+        return false;
+
+    if(f_lseek(fd, header->shoff + header->shtrndx * header->shentsize) != FR_OK ||
+       f_read(fd, &sh, sizeof(sh), &bytes_read) != FR_OK || bytes_read != sizeof(sh))
+        return false;
+
+    strtab_size = sh.size;
+    strtab = malloc_unchecked(strtab_size + 1);
+    if(strtab == NULL)
+        return false;
+    if(f_lseek(fd, sh.offset) != FR_OK ||
+       f_read(fd, strtab, strtab_size, &bytes_read) != FR_OK || bytes_read != strtab_size){
+        free(strtab);
+        return false;
+    }
+    strtab[strtab_size] = 0; /* in case the last name is unterminated */
+
+    for(int i=0; !found && i<header->shnum; i++){
+        if(f_lseek(fd, header->shoff + i * header->shentsize) != FR_OK ||
+           f_read(fd, &sh, sizeof(sh), &bytes_read) != FR_OK || bytes_read != sizeof(sh))
+            break;
+        if(sh.name < strtab_size && !strcmp(strtab + sh.name, name))
+            found = true;
+    }
+
+    free(strtab);
+    return found;
+}
+#endif
+
 bool load_elf_executable(char *argv[], int argc, FIL *fd)
 {
     if(load_elf(argv, argc, fd))
@@ -431,6 +472,8 @@ static bool load_elf(char *argv[], int argc, FIL *fd)
         return false;
 
 #ifdef MACH_THIS
+    bootinfo = NULL;
+
     /* check for linux kernel magic number at lowest load address */
     if(min_load_addr < bounce_below_addr)
         bootver = (struct bootversion*)loader_bounce_buffer_data;
@@ -467,7 +510,13 @@ static bool load_elf(char *argv[], int argc, FIL *fd)
 
         /* now we write a linux bootinfo structure at the start of the 4K page following the kernel image */
         bootinfo = (struct bi_record*)((max_load_addr + 0xfff) & ~0xfff);
+    }else if(elf_has_section(fd, &header, ".note.netbsd.ident")){
+        printf("NetBSD kernel detected:");
+        /* NetBSD's bootinfo parser expects it immediately after the kernel, where QEMU virt68k puts it */
+        bootinfo = (struct bi_record*)((max_load_addr + 1) & ~1);
+    }
 
+    if(bootinfo){
         printf(" creating bootinfo at 0x%x\n", (int)bootinfo);
 
         if((uint32_t)bootinfo < bounce_below_addr){

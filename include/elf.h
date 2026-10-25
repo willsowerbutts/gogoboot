@@ -35,6 +35,19 @@ typedef struct __attribute__ ((__packed__)) {
     unsigned long align;
 } elf32_program_header;
 
+typedef struct __attribute__ ((__packed__)) {
+    unsigned long name;
+    unsigned long type;
+    unsigned long flags;
+    unsigned long addr;
+    unsigned long offset;
+    unsigned long size;
+    unsigned long link;
+    unsigned long info;
+    unsigned long addralign;
+    unsigned long entsize;
+} elf32_section_header;
+
 enum {
     PT_NULL,    /* 0 */
     PT_LOAD,    /* 1 */
