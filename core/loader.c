@@ -345,6 +345,7 @@ static bool load_elf(char *argv[], int argc, FIL *fd)
     struct bootversion *bootver;
     struct bi_record *bootinfo;
     struct mem_info *meminfo;
+    uint32_t bootinfo_limit, mem_top;
 #endif
     bool failed = false;
     uint32_t max_load_addr = 0;
@@ -529,6 +530,7 @@ static bool load_elf(char *argv[], int argc, FIL *fd)
             printf("Cannot proceed: bootinfo: %s\n", load_err);
             return false;
         }
+        bootinfo_limit = (uint32_t)bootinfo + BOOTINFO_MAX_SIZE;
 
         /* machine type */
         bootinfo->tag = BI_MACHTYPE;
@@ -572,6 +574,7 @@ static bool load_elf(char *argv[], int argc, FIL *fd)
         }else
             meminfo->size = (unsigned long)(ram_size - EXECUTABLE_LOAD_ADDRESS);
 #endif
+        mem_top = meminfo->addr + meminfo->size;
         bootinfo = (struct bi_record*)(((char*)bootinfo) + bootinfo->size);
 
         /* Now let's process the user-provided command line */
@@ -611,11 +614,16 @@ static bool load_elf(char *argv[], int argc, FIL *fd)
             bootinfo->tag = BI_RAMDISK;
             bootinfo->size = sizeof(struct bi_record) + sizeof(struct mem_info);
             meminfo = (struct mem_info*)bootinfo->data;
-            /* we need to locate the initrd some distance above the kernel -- 1MB should be enough? */
-            meminfo->addr = ((((unsigned long)bootinfo) + 0xfff) & ~0xfff) + 0x100000;
+            /* kernels allocate their early page tables just past the bootinfo, so keep well clear of it */
+            if(mem_top > heap_base)
+                mem_top = heap_base;
             meminfo->size = f_size(&initrd);
+            meminfo->addr = (mem_top - meminfo->size) & ~0xfff;
             printf("Loading initrd \"%s\": %ld bytes at 0x%lx\n", initrd_name, meminfo->size, meminfo->addr);
-            load_err = check_writable_range(meminfo->addr, meminfo->size, false);
+            if(meminfo->size > mem_top || meminfo->addr < bootinfo_limit)
+                load_err = "too large";
+            else
+                load_err = check_writable_range(meminfo->addr, meminfo->size, false);
             if(load_err){
                 printf("Unable to load initrd: %s\n", load_err);
                 f_close(&initrd);
