@@ -9,6 +9,8 @@
 #include <ide.h>
 
 #define MAX_IDE_DISKS FF_VOLUMES
+#define IDE_TIMEOUT 3        /* seconds */
+#define IDE_FLUSH_TIMEOUT 30 /* seconds; the spec allows a flush to take this long */
 
 // debugging option:
 #undef ATA_DUMP_IDENTIFY_RESULT
@@ -16,7 +18,7 @@
 static disk_t **disk_table = 0;
 static int disk_table_size = 0;
 
-static bool ide_wait_status(disk_controller_t *ctrl, uint8_t bits)
+static bool ide_wait_status(disk_controller_t *ctrl, uint8_t bits, int timeout_sec)
 {
     uint8_t status;
     timer_t timeout = 0;
@@ -36,7 +38,7 @@ static bool ide_wait_status(disk_controller_t *ctrl, uint8_t bits)
         }
 
         if(!timeout)
-            timeout = set_timer_sec(3); 
+            timeout = set_timer_sec(timeout_sec);
     }while(!timer_expired(timeout));
 
     printf("IDE timeout, status=%x\n", status);
@@ -56,6 +58,12 @@ static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sec
 
     disk = disk_table[disknr];
     ctrl = disk->ctrl;
+
+    /* LBA28 only: out of range sectors would be silently masked onto other sectors */
+    if(sector_count < 0 || sector >= disk->sectors || sector_count > disk->sectors - sector){
+        printf("disk %d: sector %lu+%d out of range\n", disknr, sector, sector_count);
+        return false;
+    }
 
     //printf("disk %d op=%s sector=%ld count=%d sectors\n",
     //        disknr, is_write?"write":"read", sector, sector_count);
@@ -80,7 +88,7 @@ static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sec
         ide_set_register(ctrl, ATA_REG_NSECT, nsect == 256 ? 0 : nsect);
 
         /* wait for device to be ready */
-        if(!ide_wait_status(ctrl, IDE_STATUS_READY))
+        if(!ide_wait_status(ctrl, IDE_STATUS_READY, IDE_TIMEOUT))
             return false;
 
         /* send command */
@@ -89,7 +97,7 @@ static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sec
         /* read result */
         while(nsect > 0){
             /* unclear if we need to wait for DRQ on each sector? play it safe */
-            if(!ide_wait_status(ctrl, IDE_STATUS_DATAREQUEST))
+            if(!ide_wait_status(ctrl, IDE_STATUS_DATAREQUEST, IDE_TIMEOUT))
                 return false;
             if(is_write)
                 ide_transfer_sector_write(ctrl, buff);
@@ -100,7 +108,7 @@ static bool disk_data_readwrite(int disknr, void *buff, uint32_t sector, int sec
         }
 
         if(is_write) /* wait for write operations to complete */
-            if(!ide_wait_status(ctrl, IDE_STATUS_READY))
+            if(!ide_wait_status(ctrl, IDE_STATUS_READY, IDE_TIMEOUT))
                 return false;
     }
 
@@ -148,7 +156,7 @@ static void disk_init_disk(disk_controller_t *ctrl, int drivenr)
     ide_set_register(ctrl, ATA_REG_DEVICE, sel); /* select master/slave */
 
     /* wait for drive to be ready */
-    if(!ide_wait_status(ctrl, IDE_STATUS_READY)){
+    if(!ide_wait_status(ctrl, IDE_STATUS_READY, IDE_TIMEOUT)){
         printf("no disk found.\n");
         return;
     }
@@ -156,7 +164,7 @@ static void disk_init_disk(disk_controller_t *ctrl, int drivenr)
     /* send identify command */
     ide_set_register(ctrl, ATA_REG_CMD, IDE_CMD_IDENTIFY);
 
-    if(!ide_wait_status(ctrl, IDE_STATUS_DATAREQUEST)){
+    if(!ide_wait_status(ctrl, IDE_STATUS_DATAREQUEST, IDE_TIMEOUT)){
         printf("disk not responding.\n");
 	return;
     }
@@ -199,6 +207,9 @@ static void disk_init_disk(disk_controller_t *ctrl, int drivenr)
         disk->ctrl = ctrl;
         disk->disk = drivenr;
         disk->sectors = sectors;
+        /* word 85 is meaningful only if word 83 bits 15:14 are 01 */
+        disk->write_cache = (buffer[ATA_ID_CMDSET_SUPP2+1] & 0xC0) == 0x40 &&
+                            (buffer[ATA_ID_CMDSET_ENAB1] & 0x20);
         disk->fat_fs_status = STA_NOINIT;
 
         /* prepare FatFs to talk to the volume */
@@ -248,4 +259,19 @@ bool disk_data_read(int disknr, void *buff, uint32_t sector, int sector_count)
 bool disk_data_write(int disknr, const void *buff, uint32_t sector, int sector_count)
 {
     return disk_data_readwrite(disknr, (void*)buff, sector, sector_count, true);
+}
+
+bool disk_data_flush(int disknr)
+{
+    disk_t *disk = disk_get_info(disknr);
+
+    /* FLUSH CACHE is optional before ATA-6; only issue it where it matters */
+    if(!disk || !disk->write_cache)
+        return true;
+
+    ide_set_register(disk->ctrl, ATA_REG_DEVICE, disk->disk == 0 ? 0xE0 : 0xF0);
+    if(!ide_wait_status(disk->ctrl, IDE_STATUS_READY, IDE_TIMEOUT))
+        return false;
+    ide_set_register(disk->ctrl, ATA_REG_CMD, IDE_CMD_FLUSH_CACHE);
+    return ide_wait_status(disk->ctrl, IDE_STATUS_READY, IDE_FLUSH_TIMEOUT);
 }

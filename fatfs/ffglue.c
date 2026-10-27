@@ -79,6 +79,7 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
 
     switch(cmd){
         case CTRL_SYNC:
+            return disk_data_flush(pdrv) ? RES_OK : RES_ERROR;
         case CTRL_TRIM:
             return RES_OK;
         case GET_SECTOR_SIZE:

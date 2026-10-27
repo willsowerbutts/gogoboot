@@ -20,6 +20,7 @@ typedef struct disk_t {
     disk_controller_t *ctrl;
     int disk;               /* 0 = master, 1 = slave */
     uint32_t sectors;       /* 32 bits limits us to 2TB */
+    bool write_cache;       /* volatile write cache enabled: needs FLUSH CACHE */
     DSTATUS fat_fs_status;
     FATFS fat_fs_workarea;
 } disk_t;
@@ -30,6 +31,7 @@ disk_t *disk_get_info(int nr);
 int disk_get_count(void);
 bool disk_data_read(int disk, void *buff, uint32_t sector, int sector_count);
 bool disk_data_write(int disk, const void *buff, uint32_t sector, int sector_count);
+bool disk_data_flush(int disk);
 void disk_controller_startup(disk_controller_t *ctrl);
 
 #endif

@@ -50,6 +50,8 @@ enum {
         ATA_ID_MAX_MULTSECT = 2*47,
         ATA_ID_MULTSECT     = 2*59,
         ATA_ID_LBA_CAPACITY = 2*60,
+        ATA_ID_CMDSET_SUPP2 = 2*83,
+        ATA_ID_CMDSET_ENAB1 = 2*85,
 };
 
 #endif
