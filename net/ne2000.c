@@ -325,6 +325,17 @@ static void dp83902a_RxEvent(void)
 #endif
 
         len = ((rcv_hdr[3] << 8) | rcv_hdr[2]) - sizeof(rcv_hdr);
+
+        /* clones sometimes corrupt the ring header; following a bad next page
+         * pointer or length would wreck the ring, so start it afresh instead */
+        if (len < (int)sizeof(ethernet_header_t) ||
+            rcv_hdr[1] < nic.rx_buf_start || rcv_hdr[1] >= nic.rx_buf_end) {
+            printf("ne2000: bad rx header %02x %02x %02x %02x, resetting\n",
+                    rcv_hdr[0], rcv_hdr[1], rcv_hdr[2], rcv_hdr[3]);
+            dp83902a_start(interface_macaddr);
+            return;
+        }
+
         if (len>=PACKET_MAXLEN) {
             printf("ne2000: rx too big\n");
         }else{
