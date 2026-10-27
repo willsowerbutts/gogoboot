@@ -248,8 +248,10 @@ static void tftp_put_process_ack(packet_sink_t *sink, packet_t *packet)
         tftp->completed = true;
         tftp->success = true;
     }else{
-        // send more
-        tftp_put_send_data(sink, (blocks_transferred == tftp->window_size) ? tftp->window_size : 1);
+        // the server expects a full window after an ACK (RFC 7440); sending less
+        // after a partial ACK leaves it waiting out its timeout on every block.
+        // duplicate ACKs get a single block, so a burst of them cannot flood the link.
+        tftp_put_send_data(sink, blocks_transferred > 0 ? tftp->window_size : 1);
     }
 }
 
