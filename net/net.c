@@ -206,30 +206,52 @@ void net_dump_packet_sinks(void) // used by "netinfo" command
 // to prevent potential re-entrancy, do NOT make any callbacks to sinks in here
 void net_eth_push(packet_t *packet)
 {
-    int header_size;
+    int header_size, ip_payload_length;
 
     packet_rx_count++;
+
+    if(packet->buffer_length < sizeof(ethernet_header_t))
+        goto discard;
 
     // check that the destination MAC is either our MAC, or a multicast MAC
     if(memcmp(packet->eth->destination_mac, interface_macaddr, sizeof(macaddr_t)) == 0 ||
        packet->eth->destination_mac[0] & 1){ // test multicast bit
         // determine protocol and verify checksums
+        // all header length fields are checked against the received length before use
         switch(ntohs(packet->eth->ethertype)){
             case ethertype_ipv4:
                 packet->ipv4 = (ipv4_header_t*)packet->eth->payload;
+                if(packet->buffer_length < sizeof(ethernet_header_t) + sizeof(ipv4_header_t))
+                    goto discard;
+                // we support neither IP options nor fragment reassembly
+                if(packet->ipv4->version_length != 0x45 ||
+                   (ntohs(packet->ipv4->flags_and_frags) & 0x3fff))
+                    goto discard;
+                if(ntohs(packet->ipv4->length) < sizeof(ipv4_header_t) ||
+                   sizeof(ethernet_header_t) + ntohs(packet->ipv4->length) > packet->buffer_length)
+                    goto discard;
                 if(!net_verify_ipv4_checksum(packet))
                     goto bad_cksum;
+                ip_payload_length = ntohs(packet->ipv4->length) - sizeof(ipv4_header_t);
                 switch(packet->ipv4->protocol){
                     case ip_proto_tcp:
                         packet->tcp = (tcp_header_t*)packet->ipv4->payload;
+                        if(ip_payload_length < sizeof(tcp_header_t))
+                            goto discard;
                         header_size = ((packet->tcp->data_offset >> 4) << 2);
+                        if(header_size < sizeof(tcp_header_t) || header_size > ip_payload_length)
+                            goto discard;
                         packet->data = packet->ipv4->payload + header_size;
-                        packet->data_length = ntohs(packet->ipv4->length) - sizeof(ipv4_header_t) - header_size;
+                        packet->data_length = ip_payload_length - header_size;
                         if(!net_verify_tcp_checksum(packet))
                             goto bad_cksum;
                         break;
                     case ip_proto_udp:
                         packet->udp = (udp_header_t*)packet->ipv4->payload;
+                        if(ip_payload_length < sizeof(udp_header_t) ||
+                           ntohs(packet->udp->length) < sizeof(udp_header_t) ||
+                           ntohs(packet->udp->length) > ip_payload_length)
+                            goto discard;
                         packet->data = packet->udp->payload;
                         packet->data_length = ntohs(packet->udp->length) - sizeof(udp_header_t);
                         if(!net_verify_udp_checksum(packet))
@@ -237,8 +259,10 @@ void net_eth_push(packet_t *packet)
                         break;
                     case ip_proto_icmp:
                         packet->icmp = (icmp_header_t*)packet->ipv4->payload;
+                        if(ip_payload_length < sizeof(icmp_header_t))
+                            goto discard;
                         packet->data = packet->icmp->payload;
-                        packet->data_length = ntohs(packet->ipv4->length) - sizeof(icmp_header_t) - sizeof(ipv4_header_t);
+                        packet->data_length = ip_payload_length - sizeof(icmp_header_t);
                         if(!net_verify_icmp_checksum(packet))
                             goto bad_cksum;
                         break;
@@ -248,6 +272,8 @@ void net_eth_push(packet_t *packet)
                 }
                 break;
             case ethertype_arp:
+                if(packet->buffer_length < sizeof(ethernet_header_t) + sizeof(arp_header_t))
+                    goto discard;
                 packet->arp = (arp_header_t*)packet->eth->payload;
                 break;
             default:
@@ -257,10 +283,12 @@ void net_eth_push(packet_t *packet)
 
         // figure out the best matching queue to put it into
         // convert key fields to cpu byte order (avoids doing this for every sink)
+        // packet->ipv4 is NULL for non-IPv4 frames; dereferencing it unconditionally
+        // lets gcc delete the packet->ipv4 tests in the sink matching below
         uint16_t ethertype        = ntohs(packet->eth->ethertype);
-        uint16_t protocol         = ntohs(packet->ipv4->protocol);
-        uint32_t destination_ip   = ntohl(packet->ipv4->destination_ip);
-        uint32_t source_ip        = ntohl(packet->ipv4->source_ip);
+        uint8_t  protocol         = packet->ipv4 ? packet->ipv4->protocol : 0;
+        uint32_t destination_ip   = packet->ipv4 ? ntohl(packet->ipv4->destination_ip) : 0;
+        uint32_t source_ip        = packet->ipv4 ? ntohl(packet->ipv4->source_ip) : 0;
         uint16_t destination_port = packet->tcp ? ntohs(packet->tcp->destination_port) : (packet->udp ? ntohs(packet->udp->destination_port) : 0);
         uint16_t source_port      = packet->tcp ? ntohs(packet->tcp->source_port)      : (packet->udp ? ntohs(packet->udp->source_port)      : 0);
         packet_sink_t *sink = net_packet_sink_head;
@@ -282,6 +310,7 @@ void net_eth_push(packet_t *packet)
     }
 
     // if we didn't find a queue, discard it.
+discard:
     packet_discard_count++;
     packet_free(packet);
     return;
