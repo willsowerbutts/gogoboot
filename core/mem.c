@@ -69,9 +69,10 @@ void measure_ram_size(void)
 
 const char *check_writable_range(uint32_t base, uint32_t length, bool can_bounce)
 {
-    if(base + length > ram_size)
+    /* written this way so that base + length cannot wrap around */
+    if(length > ram_size || base > ram_size - length)
         return "past end of RAM";
-    if(base + length > heap_base)
+    if(length > heap_base || base > heap_base - length)
         return "overlaps heap memory";
     if(base < rom_below_addr)
         return "overlaps ROM";
