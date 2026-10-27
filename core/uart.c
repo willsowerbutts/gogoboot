@@ -16,7 +16,7 @@
     static inline uint8_t uart_inb(uint16_t port) { return ecb_read_byte(port); }
     static inline void uart_outb(uint16_t port, uint8_t val) { ecb_write_byte(port, val); }
 #else
-    #pragma error update uart.c for your target
+    #error update uart.c for your target
 #endif
 
 #ifndef BAUD_RATE

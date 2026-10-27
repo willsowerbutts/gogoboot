@@ -51,7 +51,7 @@ uint32_t loader_bounce_buffer_target = 0;
     #define MMU_THIS MMU_68040
     #define FPU_THIS FPU_68040
 #else
-    #pragma error update loader.c for your target
+    #error update loader.c for your target
 #endif
 
 void execute(void *entry_vector, int argc, char **argv)

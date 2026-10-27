@@ -42,7 +42,7 @@ static void push_packet_ready(int len);
     static inline uint8_t  read_port_byte(uint16_t port)             { return ecb_read_byte(port); }
     static inline void     io_slow_down(void)                               { ecb_slow_down(); }
 #else
-    #pragma error update ne2000.c for your target
+    #error update ne2000.c for your target
 #endif
 
 #include <ne2000.h>

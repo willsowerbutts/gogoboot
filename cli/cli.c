@@ -120,10 +120,6 @@ static void select_working_drive(void)
     char path[4];
     DIR fat_dir;
 
-#if FF_VOLUMES > 10
-#pragma error this code needs rewriting for FF_VOLUMES greater than 10
-#endif
-
     for(int d=0; d<FF_VOLUMES; d++){
         path[0] = '0' + d;
         path[1] = ':';
